@@ -46,24 +46,50 @@ function frontClubValue(value) {
   return { value, known: false, invalid: false };
 }
 
+function frontCanonicalizeText(value) {
+  if (typeof value !== 'string') return value;
+  return value
+    .replace(/Clavia\s+Świątniki\s+Górne/gi, 'Clavia Świątniki Górne')
+    .replace(/Clavia\s+Swiatniki\s+Gorne/gi, 'Clavia Świątniki Górne')
+    .replace(/\bClavia\b(?!\s+Świątniki|\s+Swiatniki)/gi, 'Clavia Świątniki Górne')
+    .replace(/Zielonka\s+Gamar(?:\s+Wrząsowice|\s+Wrzasowice)?/gi, 'Zielonka Wrząsowice')
+    .replace(/\bZielonka\b(?!\s+Wrząsowice|\s+Wrzasowice)/gi, 'Zielonka Wrząsowice')
+    .replace(/Wróblowianka\s+Wróblowice(?:\s*\(Kraków\))?/gi, 'Wróblowianka Wróblowice (Kraków)')
+    .replace(/Wroblowianka\s+Wroblowice(?:\s*\(Krakow\))?/gi, 'Wróblowianka Wróblowice (Kraków)')
+    .replace(/\bWróblowianka\b(?!\s+Wróblowice)/gi, 'Wróblowianka Wróblowice (Kraków)')
+    .replace(/\bWroblowianka\b(?!\s+Wroblowice)/gi, 'Wróblowianka Wróblowice (Kraków)')
+    .replace(/Opatkowianka\s+Opatkowice/gi, 'Opatkowianka');
+}
+
+function containsBogusClub(value) {
+  return frontClubKey(value).includes('za artyzm nie ma punktow');
+}
+
 function sanitizeFrontClubData() {
   if (!Array.isArray(state.all)) return;
 
   state.all = state.all.filter(q => {
+    const visibleValues = [q.question, q.answer, q.explanation, ...(Array.isArray(q.options) ? q.options : [])];
+    if (visibleValues.some(value => typeof value === 'string' && containsBogusClub(value))) return false;
+
     if (Array.isArray(q.clubs)) {
       q.clubs = [...new Set(q.clubs.map(name => frontClubValue(name).value).filter(Boolean))];
     }
 
+    q.question = frontCanonicalizeText(q.question);
+    q.explanation = frontCanonicalizeText(q.explanation);
+
     const answer = frontClubValue(q.answer);
     if (answer.invalid) return false;
-    if (answer.known) q.answer = answer.value;
+    q.answer = frontCanonicalizeText(answer.known ? answer.value : q.answer);
 
     if (Array.isArray(q.options)) {
       const cleaned = q.options
         .map(option => frontClubValue(option))
         .filter(item => !item.invalid)
-        .map(item => item.value);
+        .map(item => frontCanonicalizeText(item.known ? item.value : item.value));
       q.options = [...new Set(cleaned)];
+      if (!q.options.includes(q.answer)) q.options.push(q.answer);
       if (q.options.length < 2) return false;
     }
     return true;
