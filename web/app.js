@@ -7,6 +7,7 @@ const state = {
   answered: 0,
   availableCount: 0,
   clubMeta: {},
+  seasons: [],
 };
 
 const el = (id) => document.getElementById(id);
@@ -96,15 +97,75 @@ function refreshClubOptions() {
   updateScopeControls();
 }
 
+function seasonStartYear(label) {
+  const match = String(label || '').match(/^(\d{4})\/(\d{2}|\d{4})$/);
+  return match ? Number.parseInt(match[1], 10) : null;
+}
+
+function refreshSeasonOptions() {
+  state.seasons = [...new Set(state.all.map(q => q.season).filter(season => seasonStartYear(season) !== null))]
+    .sort((a, b) => seasonStartYear(a) - seasonStartYear(b));
+
+  const html = state.seasons.map(season => `<option value="${season}">${season}</option>`).join('');
+  el('season-from').innerHTML = html;
+  el('season-to').innerHTML = html;
+
+  const hasSeasons = state.seasons.length > 0;
+  el('season-mode').disabled = !hasSeasons;
+  if (hasSeasons) {
+    const latest = state.seasons[state.seasons.length - 1];
+    el('season-from').value = latest;
+    el('season-to').value = latest;
+  }
+  updateSeasonControls();
+}
+
 function updateScopeControls() {
   const isClub = el('scope-mode').value === 'club';
   el('club-label').classList.toggle('hidden', !isClub);
+}
+
+function updateSeasonControls() {
+  const mode = el('season-mode').value;
+  el('season-from-label').classList.toggle('hidden', mode === 'all');
+  el('season-to-label').classList.toggle('hidden', mode !== 'range');
 }
 
 function questionMatchesScope(q) {
   if (el('scope-mode').value === 'league') return true;
   const selectedClub = el('club').value;
   return Boolean(selectedClub) && Array.isArray(q.clubs) && q.clubs.includes(selectedClub);
+}
+
+function questionMatchesSeason(q) {
+  const mode = el('season-mode').value;
+  if (mode === 'all') return true;
+  if (!q.season) return false;
+
+  const from = el('season-from').value;
+  if (mode === 'single') return q.season === from;
+
+  const to = el('season-to').value;
+  const qIndex = state.seasons.indexOf(q.season);
+  const fromIndex = state.seasons.indexOf(from);
+  const toIndex = state.seasons.indexOf(to);
+  if (qIndex < 0 || fromIndex < 0 || toIndex < 0) return false;
+  const low = Math.min(fromIndex, toIndex);
+  const high = Math.max(fromIndex, toIndex);
+  return qIndex >= low && qIndex <= high;
+}
+
+function selectedSeasonLabel() {
+  const mode = el('season-mode').value;
+  if (mode === 'all') return 'wszystkie sezony';
+  const from = el('season-from').value;
+  if (mode === 'single') return `sezon ${from}`;
+  const to = el('season-to').value;
+  const fromIndex = state.seasons.indexOf(from);
+  const toIndex = state.seasons.indexOf(to);
+  const low = Math.min(fromIndex, toIndex);
+  const high = Math.max(fromIndex, toIndex);
+  return `sezony ${state.seasons[low]}–${state.seasons[high]}`;
 }
 
 function getRequestedQuestionCount(available) {
@@ -199,6 +260,7 @@ function startGame() {
 
   const matching = shuffle(state.all.filter(q =>
     questionMatchesScope(q) &&
+    questionMatchesSeason(q) &&
     (difficulty === 'all' || String(q.difficulty) === difficulty) &&
     (type === 'all' || q.type === type)
   ));
@@ -215,8 +277,8 @@ function startGame() {
 
   if (!state.pool.length) {
     el('status').textContent = selectedClub
-      ? `Brak pytań dla klubu ${selectedClub} przy wybranych filtrach.`
-      : 'Brak pytań dla wybranych filtrów.';
+      ? `Brak pytań dla klubu ${selectedClub} przy wybranych filtrach i zakresie sezonów.`
+      : 'Brak pytań dla wybranych filtrów i zakresu sezonów.';
     el('status').classList.remove('hidden');
     el('quiz').classList.add('hidden');
     return;
@@ -226,7 +288,7 @@ function startGame() {
   const availability = state.pool.length === state.availableCount
     ? `${state.pool.length} pytań`
     : `${state.pool.length} z ${state.availableCount} dostępnych pytań`;
-  el('status').textContent = `${scopeLabel} · ta gra: ${availability}`;
+  el('status').textContent = `${scopeLabel} · ${selectedSeasonLabel()} · ta gra: ${availability}`;
   el('status').classList.remove('hidden');
   el('quiz').classList.remove('hidden');
   showQuestion();
@@ -327,6 +389,7 @@ el('sources').addEventListener('click', () => {
 });
 
 el('scope-mode').addEventListener('change', updateScopeControls);
+el('season-mode').addEventListener('change', updateSeasonControls);
 el('new-game').addEventListener('click', startGame);
 el('play-again').addEventListener('click', startGame);
 
@@ -340,6 +403,7 @@ fetch('data/questions.json')
     state.clubMeta = data.clubs || {};
     refreshTypeOptions();
     refreshClubOptions();
+    refreshSeasonOptions();
     startGame();
   })
   .catch(err => {
