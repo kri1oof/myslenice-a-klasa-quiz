@@ -1,0 +1,15 @@
+.round-control { flex: 1 1 100%; }
+#round { width: min(100%, 440px); font-weight: 750; }
+.control-help { max-width: 720px; color: #6b7280; font-size: 12px; line-height: 1.35; font-weight: 500; }
+.legacy-type-control { display: none !important; }
+.round-filter-secondary { opacity: .72; }
+.hints-box { display: grid; gap: 8px; margin: -8px 0 14px; }
+.round-hint { display: flex; gap: 10px; align-items: baseline; padding: 11px 13px; border-radius: 12px; border: 1px solid #e5e7eb; background: #f9fafb; }
+.round-hint strong { flex: 0 0 auto; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.round-hint span { line-height: 1.35; }
+.hint-button { margin: -4px 0 16px; background: #f3f4f6; }
+.round-bonus { margin-top: 10px; padding-top: 9px; border-top: 1px dashed #d1d5db; font-weight: 800; }
+@media (max-width: 640px) {
+  #round { width: 100%; min-width: 0; }
+  .round-hint { align-items: flex-start; flex-direction: column; gap: 3px; }
+}
