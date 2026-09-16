@@ -4,8 +4,22 @@ import json
 import sqlite3
 from pathlib import Path
 
+from .normalize import canonical_club_name, normalize_text
 
-def _season_clubs(conn: sqlite3.Connection, season_id: int | None) -> list[str]:
+
+_INVALID_CLUB_NAMES = {"za artyzm nie ma punktow"}
+
+
+def _clean_club_name(value: str | None) -> str | None:
+    if not value:
+        return None
+    canonical = canonical_club_name(value)
+    if normalize_text(canonical) in _INVALID_CLUB_NAMES:
+        return None
+    return canonical
+
+
+def _season_club_pairs(conn: sqlite3.Connection, season_id: int | None) -> list[tuple[str, str]]:
     if season_id is None:
         return []
     rows = conn.execute(
@@ -21,7 +35,17 @@ def _season_clubs(conn: sqlite3.Connection, season_id: int | None) -> list[str]:
            ORDER BY LENGTH(c.name) DESC, c.name""",
         (season_id, season_id, season_id, season_id, season_id),
     ).fetchall()
-    return [r[0] for r in rows]
+    pairs: list[tuple[str, str]] = []
+    for row in rows:
+        raw = row[0]
+        canonical = _clean_club_name(raw)
+        if canonical:
+            pairs.append((raw, canonical))
+    return pairs
+
+
+def _season_clubs(conn: sqlite3.Connection, season_id: int | None) -> list[str]:
+    return sorted({canonical for _, canonical in _season_club_pairs(conn, season_id)})
 
 
 def _player_clubs(conn: sqlite3.Connection, season_id: int | None) -> list[tuple[str, str]]:
@@ -50,7 +74,12 @@ def _player_clubs(conn: sqlite3.Connection, season_id: int | None) -> list[tuple
            ORDER BY player""",
         (season_id, season_id, season_id),
     ).fetchall()
-    return [(r[0], r[1]) for r in rows]
+    result: list[tuple[str, str]] = []
+    for row in rows:
+        club = _clean_club_name(row[1])
+        if club:
+            result.append((row[0], club))
+    return result
 
 
 def _question_clubs(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
@@ -58,7 +87,8 @@ def _question_clubs(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
 
     We intentionally inspect the prompt, correct answer and explanation, but not
     distractor options. This prevents a club from entering fan mode merely
-    because it appeared as a wrong answer.
+    because it appeared as a wrong answer. Raw historical aliases are matched
+    against the text and then collapsed to the current canonical club name.
     """
     season_id = row["season_id"]
     if season_id is None:
@@ -69,9 +99,9 @@ def _question_clubs(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
     ).casefold()
 
     clubs: set[str] = set()
-    for club in _season_clubs(conn, season_id):
-        if club.casefold() in text:
-            clubs.add(club)
+    for raw_club, canonical in _season_club_pairs(conn, season_id):
+        if raw_club.casefold() in text or canonical.casefold() in text:
+            clubs.add(canonical)
 
     # Some player comparison questions do not spell out the players' clubs.
     # Map every player explicitly named in the question back to their club(s)
@@ -109,18 +139,30 @@ def export_questions(conn: sqlite3.Connection, output: str | Path, min_confidenc
         """SELECT c.name,c.slug,cp.short_name,cp.city,cp.crest_path,cp.crest_remote_url,cp.crest_source_url
            FROM clubs c LEFT JOIN club_profiles cp ON cp.club_id=c.id ORDER BY c.name"""
     ).fetchall()
-    clubs = {
-        r["name"]: {
+    clubs: dict[str, dict[str, str | None]] = {}
+    for r in club_rows:
+        name = _clean_club_name(r["name"])
+        if not name:
+            continue
+        incoming = {
             "slug": r["slug"],
             "short_name": r["short_name"],
             "city": r["city"],
             "crest": r["crest_path"],
             "crest_remote_url": r["crest_remote_url"],
             "crest_source_url": r["crest_source_url"],
-        } for r in club_rows
-    }
+        }
+        if name not in clubs:
+            clubs[name] = incoming
+        else:
+            # Preserve the most complete metadata when several historical aliases
+            # collapse to one canonical club.
+            for key, value in incoming.items():
+                if value and not clubs[name].get(key):
+                    clubs[name][key] = value
+
     output.write_text(
-        json.dumps({"version": 3, "count": len(payload), "clubs": clubs, "questions": payload}, ensure_ascii=False, indent=2),
+        json.dumps({"version": 4, "count": len(payload), "clubs": clubs, "questions": payload}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     return len(payload)
