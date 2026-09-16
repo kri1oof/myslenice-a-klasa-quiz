@@ -6,6 +6,7 @@
   <title>Quiz A-klasy Myślenice</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="rounds.css" />
+  <link rel="stylesheet" href="match-mode.css" />
 </head>
 <body>
   <main class="shell">
@@ -13,51 +14,48 @@
       <div>
         <p class="eyebrow">MYŚLENICKA A-KLASA</p>
         <h1>Quiz dla kibiców</h1>
-        <p class="lead">Wyniki, zawodnicy, strzelcy, tabele, historia ligi i lokalne smaczki — teraz także w specjalnych rundach.</p>
+        <p class="lead">Nie wybierasz już kilkudziesięciu kategorii. Wchodzisz na boisko i grasz.</p>
       </div>
       <div class="score-card" aria-live="polite">
-        <span>Wynik</span>
-        <strong id="score">0 / 0</strong>
+        <span id="score-label">Wynik</span>
+        <strong id="score">0 pkt</strong>
       </div>
     </header>
 
-    <section class="toolbar">
-      <label class="round-control">Runda
-        <select id="round">
-          <optgroup label="Rundy klasyczne">
-            <option value="mix" selected>Szybki miks</option>
-            <option value="matchday">Meczowa sobota</option>
-            <option value="heroes">Strzelcy i bohaterowie</option>
-            <option value="table">Tabela nie kłamie</option>
-            <option value="locker">Szatnia i ławka</option>
-            <option value="chronicle">Kronika A-klasy</option>
-            <option value="records">Serie i rekordy</option>
-          </optgroup>
-          <optgroup label="Rundy specjalne">
-            <option value="truth">Prawda czy A-klasowa legenda?</option>
-            <option value="hints">Rozpoznaj mecz po 3 wskazówkach</option>
-            <option value="earlier">Co było najpierw?</option>
-            <option value="fake">Jeden wynik jest zmyślony</option>
-            <option value="overtime">Dogrywka: tylko ciekawostki</option>
-          </optgroup>
+    <section class="toolbar game-setup">
+      <label class="format-control">Format gry
+        <select id="game-format">
+          <option value="match90" selected>⚽ Mecz 90’ — pełna rozgrywka</option>
+          <option value="special">🎲 Runda specjalna</option>
+          <option value="quick">⚡ Szybki quiz — 10 pytań</option>
         </select>
-        <span id="round-description" class="control-help"></span>
+        <span id="format-description" class="control-help">11 pytań jak mecz: pierwsza połowa, przerwa, druga połowa, karta specjalna i 90+.</span>
+      </label>
+
+      <label id="special-round-control" class="hidden">Runda specjalna
+        <select id="special-round">
+          <option value="truth">Prawda czy A-klasowa legenda?</option>
+          <option value="hints">Rozpoznaj mecz po 3 wskazówkach</option>
+          <option value="earlier">Co było najpierw?</option>
+          <option value="fake">Jeden wynik jest zmyślony</option>
+          <option value="overtime">Dogrywka: tylko ciekawostki</option>
+        </select>
       </label>
 
       <label>Zakres gry
         <select id="scope-mode">
-          <option value="league">Cała liga — wszystkie drużyny</option>
-          <option value="club">Tryb klubowy — jedna drużyna</option>
+          <option value="league">Cała liga</option>
+          <option value="club">Tylko mój klub</option>
         </select>
       </label>
       <label id="club-label" class="hidden">Drużyna
         <select id="club"></select>
       </label>
-      <label>Zakres sezonów
+      <label>Sezony
         <select id="season-mode">
           <option value="all">Wszystkie sezony</option>
-          <option value="single">Jeden wybrany sezon</option>
-          <option value="range">Wybrany przedział sezonów</option>
+          <option value="single">Jeden sezon</option>
+          <option value="range">Przedział sezonów</option>
         </select>
       </label>
       <label id="season-from-label" class="hidden">Od sezonu
@@ -66,41 +64,75 @@
       <label id="season-to-label" class="hidden">Do sezonu
         <select id="season-to"></select>
       </label>
-      <label id="difficulty-control">Poziom trudności
-        <select id="difficulty">
-          <option value="all">Wszystkie poziomy</option>
-          <option value="1">1 — Rozgrzewka</option>
-          <option value="2">2 — Łatwy</option>
-          <option value="3">3 — Ligowy</option>
-          <option value="4">4 — Trudny</option>
-          <option value="5">5 — Kronikarz A-klasy</option>
-        </select>
-      </label>
-      <label id="question-count-control">Długość rozgrywki
-        <select id="question-count">
-          <option value="10" selected>10 — szybka seria</option>
-          <option value="20">20 — pełna runda</option>
-          <option value="30">30 — dogrywka</option>
-          <option value="50">50 — maraton</option>
-          <option value="all">Wszystkie dostępne</option>
-        </select>
-      </label>
-      <label>Styl gry
+      <label>Oprawa
         <select id="game-style">
-          <option value="classic">Klasyczny — konkretnie i bez komentarzy</option>
-          <option value="stadium" selected>Stadionowy — komentarze z trybun</option>
-          <option value="chaos">A-klasowy chaos — więcej żartów</option>
+          <option value="classic">Klasyczna</option>
+          <option value="stadium" selected>Stadionowa</option>
+          <option value="chaos">A-klasowy chaos</option>
         </select>
       </label>
+
+      <details id="advanced-options" class="advanced-options">
+        <summary>Opcje dodatkowe</summary>
+        <div class="advanced-grid">
+          <label id="difficulty-control">Trudność
+            <select id="difficulty">
+              <option value="all">Automatyczna / wszystkie</option>
+              <option value="1">1 — Rozgrzewka</option>
+              <option value="2">2 — Łatwy</option>
+              <option value="3">3 — Ligowy</option>
+              <option value="4">4 — Trudny</option>
+              <option value="5">5 — Kronikarz A-klasy</option>
+            </select>
+          </label>
+          <label id="question-count-control">Długość szybkiego quizu
+            <select id="question-count">
+              <option value="10" selected>10 pytań</option>
+              <option value="20">20 pytań</option>
+              <option value="30">30 pytań</option>
+              <option value="50">50 pytań</option>
+            </select>
+          </label>
+        </div>
+      </details>
+
       <label class="legacy-type-control" aria-hidden="true">Rodzaj pytania
         <select id="type"><option value="all">Wszystkie rodzaje pytań</option></select>
       </label>
-      <button id="new-game">Nowa rozgrywka</button>
+      <label class="legacy-round-control" aria-hidden="true">Runda
+        <select id="round">
+          <option value="mix">Szybki miks</option>
+          <option value="truth">Prawda czy legenda</option>
+          <option value="hints">3 wskazówki</option>
+          <option value="earlier">Co było najpierw</option>
+          <option value="fake">Jeden wynik zmyślony</option>
+          <option value="overtime">Dogrywka</option>
+        </select>
+        <span id="round-description"></span>
+      </label>
+
+      <button id="new-game" class="kickoff-button">Pierwszy gwizdek</button>
     </section>
 
     <section id="status" class="status">Ładowanie bazy pytań…</section>
 
+    <section id="match-hud" class="match-hud hidden" aria-live="polite">
+      <div class="match-clock">
+        <span id="match-phase">1. POŁOWA</span>
+        <strong id="match-minute">1’</strong>
+      </div>
+      <div class="match-progress-wrap">
+        <div id="match-progress" class="match-progress"></div>
+      </div>
+      <div class="match-stats">
+        <span><small>Punkty</small><strong id="match-points">0</strong></span>
+        <span><small>Seria</small><strong id="match-streak">0</strong></span>
+        <button id="var-button" class="var-button" type="button">VAR 50/50</button>
+      </div>
+    </section>
+
     <section id="quiz" class="quiz hidden">
+      <div id="phase-card" class="phase-card hidden"></div>
       <div id="question-clubs" class="question-clubs" aria-label="Kluby związane z pytaniem"></div>
       <div class="meta">
         <span id="question-number"></span>
@@ -116,18 +148,19 @@
       <div id="feedback" class="feedback hidden"></div>
       <div class="actions">
         <button id="sources" class="ghost hidden">Pokaż źródła</button>
-        <button id="next" class="hidden">Następne pytanie</button>
+        <button id="next" class="hidden">Gramy dalej</button>
       </div>
       <div id="source-box" class="source-box hidden"></div>
     </section>
 
     <section id="result" class="result hidden" aria-live="polite">
       <p class="eyebrow">KOŃCOWY GWIZDEK</p>
-      <h2>Twój wynik</h2>
+      <h2 id="result-title">Twój wynik</h2>
       <div class="result-grid">
-        <div><span>Punkty</span><strong id="result-score">0 / 0</strong></div>
+        <div><span>Punkty</span><strong id="result-score">0</strong></div>
         <div><span>Skuteczność</span><strong id="result-percent">0%</strong></div>
       </div>
+      <p id="result-rank" class="result-rank hidden"></p>
       <p id="result-details" class="result-details"></p>
       <p id="result-humor" class="result-humor"></p>
       <button id="play-again">Rewanż</button>
@@ -137,5 +170,6 @@
   <script src="app.js"></script>
   <script src="quality.js"></script>
   <script src="rounds.js"></script>
+  <script src="match-mode.js"></script>
 </body>
 </html>
