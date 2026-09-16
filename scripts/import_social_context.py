@@ -21,11 +21,20 @@ from myslenice_quiz.social_context import (
 )
 
 
+def _fact_paths(explicit: list[str] | None) -> list[Path]:
+    if explicit:
+        return [Path(value) for value in explicit]
+    # Keep the original seed file and allow season/source-specific supplements,
+    # e.g. match_context_seed_2019_20_futmal.csv. This makes verified research
+    # easy to extend without rewriting one ever-growing CSV.
+    return sorted(Path("data/reference").glob("match_context_seed*.csv"))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Import verified club social pages and match-context facts")
     parser.add_argument("--db", default="data/quiz.db")
     parser.add_argument("--pages", default="data/reference/club_social_pages.csv")
-    parser.add_argument("--facts", default="data/reference/match_context_seed.csv")
+    parser.add_argument("--facts", action="append", help="CSV z faktami; można podać wielokrotnie. Bez opcji importowane są match_context_seed*.csv")
     parser.add_argument("--audit-only", action="store_true")
     args = parser.parse_args()
 
@@ -33,10 +42,21 @@ def main() -> None:
     with connect(args.db) as conn:
         if not args.audit_only:
             pages_path = Path(args.pages)
-            facts_path = Path(args.facts)
             pages = import_social_pages(conn, read_social_pages(pages_path)) if pages_path.exists() else 0
-            linked, facts, skipped = import_context_seed(conn, read_context_seed(facts_path)) if facts_path.exists() else (0, 0, 0)
-            print(f"Social/context import: strony={pages}, linki={linked}, fakty={facts}, pominięte={skipped}")
+
+            linked_total = facts_total = skipped_total = 0
+            fact_files = [path for path in _fact_paths(args.facts) if path.exists()]
+            for facts_path in fact_files:
+                linked, facts, skipped = import_context_seed(conn, read_context_seed(facts_path))
+                linked_total += linked
+                facts_total += facts
+                skipped_total += skipped
+                print(f"  fakty: {facts_path} -> linki={linked}, fakty={facts}, pominięte={skipped}")
+
+            print(
+                f"Social/context import: strony={pages}, pliki_faktów={len(fact_files)}, "
+                f"linki={linked_total}, fakty={facts_total}, pominięte={skipped_total}"
+            )
 
         rows = audit_context(conn)
         if not rows:
