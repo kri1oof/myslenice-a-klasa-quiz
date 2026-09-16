@@ -126,7 +126,7 @@ function ensureLandingScreen() {
   screen.innerHTML = `
     <div class="landing-inner">
       <div class="landing-copy">
-        <p class="landing-kicker">MYŚLENICKA A-KLASA · QUIZ × TAKTYKA</p>
+        <p class="landing-kicker">MYŚLENICKA A-KLASA · QUIZ × TAKTYKA · v0.2</p>
         <h1>Quiz A-klasy<br>Myślenice</h1>
         <p class="landing-subtitle">Wiedza nie daje gola sama z siebie. W trybie RPG wybierasz prawdziwe zagrania, a poprawna odpowiedź zastępuje rzut kością i rozstrzyga, czy akcja się uda.</p>
         <div class="landing-rule">⚽ Najpierw wybierz tryb gry</div>
@@ -255,11 +255,13 @@ function ensureActionSplash() {
   splash.setAttribute('aria-live', 'polite');
   splash.innerHTML = `
     <div class="action-splash-card">
+      <div class="action-splash-icon" id="action-splash-icon" aria-hidden="true">⚽</div>
       <span id="action-splash-tag" class="action-splash-tag">TEST AKCJI</span>
       <h2 id="action-splash-title">Udana akcja!</h2>
-      <p id="action-splash-copy"></p>
+      <p id="action-splash-copy" class="action-splash-copy"></p>
+      <div class="action-splash-divider"></div>
       <p id="action-splash-summary" class="action-splash-summary"></p>
-      <button id="action-splash-close" type="button">Wracamy na boisko</button>
+      <button id="action-splash-close" type="button">Następna akcja →</button>
     </div>`;
   document.body.appendChild(splash);
   document.getElementById('action-splash-close').addEventListener('click', () => {
@@ -269,19 +271,71 @@ function ensureActionSplash() {
   return splash;
 }
 
-function showActionSplash(correct, action, possessionBefore) {
+function actionSplashScenario(correct, action, possessionBefore, scoreBefore) {
+  const scored = (state.rpgPlayerGoals || 0) > scoreBefore.player;
+  if (action?.kind === 'shot') return scored ? 'goal' : 'shotFailure';
+  if (possessionBefore === 'opponent') return correct ? 'defenseSuccess' : 'defenseFailure';
+  return correct ? 'attackSuccess' : 'attackFailure';
+}
+
+const ACTION_SPLASH_CONTENT = Object.freeze({
+  attackSuccess: {
+    title: 'Akcja idzie!',
+    tag: 'UDANE ROZEGRANIE',
+    copy: 'Test wiedzy zdany. Wybrane zagranie dochodzi do skutku i przesuwasz akcję w stronę bramki.',
+    tone: 'success',
+    icon: '↗️',
+  },
+  attackFailure: {
+    title: 'Strata!',
+    tag: 'PRZERWANA AKCJA',
+    copy: 'Rywal czyta zagranie i przejmuje inicjatywę. Trzeba natychmiast reagować po stracie.',
+    tone: 'failure',
+    icon: '⛔',
+  },
+  defenseSuccess: {
+    title: 'Odbiór!',
+    tag: 'SKUTECZNA OBRONA',
+    copy: 'Dobra odpowiedź oznacza udaną interwencję. Zatrzymujesz atak i sytuacja zmienia się na Twoją korzyść.',
+    tone: 'success',
+    icon: '🛡️',
+  },
+  defenseFailure: {
+    title: 'Rywal się przedarł!',
+    tag: 'NIEUDANA OBRONA',
+    copy: 'Test niezdany. Przeciwnik mija wybraną próbę obrony i robi się naprawdę niebezpiecznie.',
+    tone: 'failure',
+    icon: '⚠️',
+  },
+  goal: {
+    title: 'GOOOL!',
+    tag: 'SKUTECZNE WYKOŃCZENIE',
+    copy: 'To nie był punkt za odpowiedź — najpierw wypracowałeś sytuację, a teraz skutecznie ją kończysz.',
+    tone: 'goal',
+    icon: '⚽',
+  },
+  shotFailure: {
+    title: 'Ależ blisko!',
+    tag: 'NIEWYKORZYSTANA OKAZJA',
+    copy: 'Doszedłeś do strzału, ale próba nie kończy się golem. Bramkarz lub centymetry ratują rywala.',
+    tone: 'failure',
+    icon: '🧤',
+  },
+});
+
+function showActionSplash(correct, action, possessionBefore, scoreBefore) {
   const splash = ensureActionSplash();
-  const art = correct ? window.QUIZ_ACTION_ART?.success : window.QUIZ_ACTION_ART?.failure;
-  splash.style.backgroundImage = art ? `url("${art}")` : '';
-  splash.classList.remove('hidden', 'success', 'failure');
-  splash.classList.add(correct ? 'success' : 'failure');
+  const scenario = actionSplashScenario(correct, action, possessionBefore, scoreBefore);
+  const content = ACTION_SPLASH_CONTENT[scenario];
+  splash.classList.remove('hidden', 'success', 'failure', 'goal');
+  splash.classList.add(content.tone);
+  splash.dataset.scenario = scenario;
+  document.getElementById('action-splash-icon').textContent = content.icon;
 
   const defending = possessionBefore === 'opponent';
-  document.getElementById('action-splash-title').textContent = correct ? 'Udana akcja!' : 'Nieudana akcja!';
-  document.getElementById('action-splash-tag').textContent = `${defending ? 'OBRONA' : 'ATAK'} · ${action?.label || 'Test akcji'}`;
-  document.getElementById('action-splash-copy').textContent = correct
-    ? (defending ? 'Dobra odpowiedź oznacza skuteczną interwencję. Sytuacja na boisku zmienia się na Twoją korzyść.' : 'Test wiedzy zdany. Wybrane zagranie dochodzi do skutku i akcja może być kontynuowana.')
-    : (defending ? 'Test niezdany. Rywal przechodzi przez wybraną próbę obrony i rozwija akcję.' : 'Test niezdany. Wybrane zagranie się nie udało i rywal może przejąć inicjatywę.');
+  document.getElementById('action-splash-title').textContent = content.title;
+  document.getElementById('action-splash-tag').textContent = `${content.tag} · ${action?.label || (defending ? 'Obrona' : 'Atak')}`;
+  document.getElementById('action-splash-copy').textContent = content.copy;
   const minute = state.rpgInAddedTime ? '90+3’' : `${state.rpgMinute || 0}’`;
   document.getElementById('action-splash-summary').textContent = `${minute} · wynik ${state.rpgPlayerGoals || 0}:${state.rpgOpponentGoals || 0} · ${state.rpgPossession === 'player' ? 'Twoje posiadanie' : 'piłka rywala'} · ${zoneName(state.rpgZone)}`;
   document.getElementById('action-splash-close').focus();
@@ -293,8 +347,12 @@ answer = function frontAnswerWithSplash(button, option) {
   const isRpgAction = typeof rpgActive === 'function' && rpgActive() && q && action;
   const correct = Boolean(q && option === q.answer);
   const possessionBefore = state.rpgPossession;
+  const scoreBefore = {
+    player: state.rpgPlayerGoals || 0,
+    opponent: state.rpgOpponentGoals || 0,
+  };
   const result = frontBaseAnswer(button, option);
-  if (isRpgAction) showActionSplash(correct, action, possessionBefore);
+  if (isRpgAction) showActionSplash(correct, action, possessionBefore, scoreBefore);
   return result;
 };
 
