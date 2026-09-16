@@ -1,6 +1,6 @@
 // Runtime quality layer for the public beta.
-// It keeps the full question bank available, but makes mixed games less repetitive
-// and removes artificial distractors from questions with a natural 2/3-answer set.
+// It keeps the full question bank available, but makes mixed games less repetitive,
+// removes artificial distractors and prevents fan-mode / crest answer spoilers.
 
 const dryQuestionTypes = new Set([
   'match_date',
@@ -107,6 +107,21 @@ function naturalizeOptions(q) {
   if (options.length >= 2 && options.length <= 4 && options.includes(q.answer)) q.options = options;
 }
 
+function questionMentionsClub(q, club) {
+  if (!q || !club) return false;
+  return String(q.question || '').toLocaleLowerCase('pl').includes(String(club).toLocaleLowerCase('pl'));
+}
+
+function fanModeLeaksAnswer(q, selectedClub) {
+  if (!q || !selectedClub) return false;
+
+  // Example: fan mode = Clavia, prompt = "Z kim grał X w 3. kolejce?",
+  // correct answer = Clavia. The scope itself would give the answer away.
+  // If the selected club is explicitly named in the prompt, this is not a leak:
+  // "Kto wygrał Clavia - X?" remains a legitimate question.
+  return q.answer === selectedClub && !questionMentionsClub(q, selectedClub);
+}
+
 // app.js declares these as classic-script globals. The public beta loads this file
 // immediately afterwards, before questions.json normally finishes downloading.
 const baseShuffle = shuffle;
@@ -115,6 +130,34 @@ shuffle = function qualityShuffle(values) {
     return weightedQuestionOrder(values);
   }
   return baseShuffle(values);
+};
+
+const baseQuestionMatchesScope = questionMatchesScope;
+questionMatchesScope = function safeQuestionMatchesScope(q) {
+  if (!baseQuestionMatchesScope(q)) return false;
+  if (el('scope-mode').value !== 'club') return true;
+  const selectedClub = el('club').value;
+  return !fanModeLeaksAnswer(q, selectedClub);
+};
+
+const baseRenderQuestionClubs = renderQuestionClubs;
+renderQuestionClubs = function safeRenderQuestionClubs(q, revealAll = false) {
+  if (!q || revealAll) return baseRenderQuestionClubs(q);
+
+  // Before answering, show only clubs whose names are already visible in the
+  // question text. A crest/name for a hidden opponent can otherwise reveal the
+  // correct answer before the player reads the options.
+  const visibleClubs = Array.isArray(q.clubs)
+    ? q.clubs.filter(club => questionMentionsClub(q, club))
+    : [];
+  return baseRenderQuestionClubs({ ...q, clubs: visibleClubs });
+};
+
+const baseAnswer = answer;
+answer = function safeAnswer(button, option) {
+  const result = baseAnswer(button, option);
+  if (state.current) renderQuestionClubs(state.current, true);
+  return result;
 };
 
 const baseShowQuestion = showQuestion;
