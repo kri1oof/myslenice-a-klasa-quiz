@@ -25,6 +25,12 @@ SPECIAL_PERSON_FACTS = {
         lambda value, club: f'Dwie bramki dla {club} zdobył {value}.',
         3,
     ),
+    "four_goal_scorer": (
+        "social_four_goal_scorer",
+        lambda s, club, opponent: f'Kto zdobył aż cztery bramki dla {club} w meczu {s["home"]} – {s["away"]}?',
+        lambda value, club: f'Cztery bramki dla {club} zdobył {value}.',
+        4,
+    ),
     "promotion_clinching_goal_scorer": (
         "social_promotion_clinching_goal_scorer",
         lambda s, club, opponent: f'Kto zdobył drugą bramkę dla {club} w meczu z {opponent}, po którym klub zapewnił sobie awans?',
