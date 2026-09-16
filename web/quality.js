@@ -114,16 +114,9 @@ function questionMentionsClub(q, club) {
 
 function fanModeLeaksAnswer(q, selectedClub) {
   if (!q || !selectedClub) return false;
-
-  // Example: fan mode = Clavia, prompt = "Z kim grał X w 3. kolejce?",
-  // correct answer = Clavia. The scope itself would give the answer away.
-  // If the selected club is explicitly named in the prompt, this is not a leak:
-  // "Kto wygrał Clavia - X?" remains a legitimate question.
   return q.answer === selectedClub && !questionMentionsClub(q, selectedClub);
 }
 
-// app.js declares these as classic-script globals. The public beta loads this file
-// immediately afterwards, before questions.json normally finishes downloading.
 const baseShuffle = shuffle;
 shuffle = function qualityShuffle(values) {
   if (Array.isArray(values) && values.length && typeof values[0] === 'object' && values[0] !== null && 'type' in values[0]) {
@@ -143,10 +136,6 @@ questionMatchesScope = function safeQuestionMatchesScope(q) {
 const baseRenderQuestionClubs = renderQuestionClubs;
 renderQuestionClubs = function safeRenderQuestionClubs(q, revealAll = false) {
   if (!q || revealAll) return baseRenderQuestionClubs(q);
-
-  // Before answering, show only clubs whose names are already visible in the
-  // question text. A crest/name for a hidden opponent can otherwise reveal the
-  // correct answer before the player reads the options.
   const visibleClubs = Array.isArray(q.clubs)
     ? q.clubs.filter(club => questionMentionsClub(q, club))
     : [];
@@ -166,8 +155,18 @@ showQuestion = function qualityShowQuestion() {
   return baseShowQuestion();
 };
 
+const supplementalTypeLabels = {
+  player_match_club: 'Drużyna zawodnika w meczu',
+  player_match_role: 'Rola zawodnika w meczu',
+  player_season_appearances: 'Występy zawodnika w sezonie',
+  club_top_scorer: 'Najlepszy strzelec drużyny',
+  compare_player_goals: 'Który zawodnik strzelił więcej',
+  roster_member: 'Kadra drużyny',
+  roster_role: 'Pozycja lub rola w kadrze',
+  higher_finish: 'Która drużyna była wyżej w tabeli',
+};
+
 const baseLabelType = labelType;
 labelType = function qualityLabelType(type) {
-  if (String(type).startsWith('social_')) return 'Kontekst klubowy / ciekawostka';
-  return baseLabelType(type);
+  return supplementalTypeLabels[type] || baseLabelType(type);
 };
