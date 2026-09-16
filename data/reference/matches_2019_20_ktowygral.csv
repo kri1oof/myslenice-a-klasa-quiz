@@ -1,0 +1,92 @@
+season,round_no,date,home,away,home_goals,away_goals,confidence
+2019/20,1,2019-08-10 10:00,Staw Polanka,Górki Myślenice,3,2,0.95
+2019/20,1,2019-08-11 16:00,Zielonka Wrząsowice,Beskid Tokarnia,3,2,0.95
+2019/20,1,2019-08-10 18:00,Sokół Borzęta,Karpaty Siepraw,2,5,0.95
+2019/20,1,2019-08-11 18:00,Topór Tenczyn,Gościbia Sułkowice,1,2,0.95
+2019/20,1,2019-08-11 17:00,Rokita Kornatka,Lubomir Wiśniowa,1,0,0.95
+2019/20,1,2019-08-11 17:00,Skalnik Trzemeśnia,LKS Rudnik,2,0,0.95
+2019/20,1,2019-08-10 15:30,Wróblowianka Wróblowice (Kraków),Clavia Świątniki Górne,1,1,0.95
+2019/20,2,2019-08-14 18:00,Zielonka Wrząsowice,Wróblowianka Wróblowice (Kraków),1,2,0.95
+2019/20,2,2019-08-14 18:00,LKS Rudnik,Rokita Kornatka,1,2,0.95
+2019/20,2,2019-08-14 18:00,Gościbia Sułkowice,Staw Polanka,2,0,0.95
+2019/20,2,2019-08-14 18:00,Clavia Świątniki Górne,Topór Tenczyn,6,0,0.95
+2019/20,2,2019-08-14 17:00,Karpaty Siepraw,Skalnik Trzemeśnia,3,0,0.95
+2019/20,2,2019-08-14 18:00,Beskid Tokarnia,Lubomir Wiśniowa,0,2,0.95
+2019/20,2,2019-08-14 18:00,Górki Myślenice,Sokół Borzęta,2,0,0.95
+2019/20,3,2019-08-17 15:00,Wróblowianka Wróblowice (Kraków),Beskid Tokarnia,7,2,0.95
+2019/20,3,2019-08-17 17:00,Staw Polanka,Clavia Świątniki Górne,3,3,0.95
+2019/20,3,2019-08-17 17:00,Skalnik Trzemeśnia,Górki Myślenice,5,2,0.95
+2019/20,3,2019-08-21 18:00,Topór Tenczyn,Zielonka Wrząsowice,2,0,0.95
+2019/20,3,2019-08-17 17:00,Lubomir Wiśniowa,LKS Rudnik,1,0,0.95
+2019/20,3,2019-08-17 18:00,Sokół Borzęta,Gościbia Sułkowice,2,0,0.95
+2019/20,3,2019-08-17 17:00,Rokita Kornatka,Karpaty Siepraw,0,1,0.95
+2019/20,4,2019-08-24 17:00,Beskid Tokarnia,LKS Rudnik,4,2,0.95
+2019/20,4,2019-08-24 17:00,Zielonka Wrząsowice,Staw Polanka,2,2,0.95
+2019/20,4,2019-08-24 15:00,Wróblowianka Wróblowice (Kraków),Topór Tenczyn,2,1,0.95
+2019/20,4,2019-08-24 17:00,Clavia Świątniki Górne,Sokół Borzęta,2,2,0.95
+2019/20,4,2019-08-24 17:00,Gościbia Sułkowice,Skalnik Trzemeśnia,1,1,0.95
+2019/20,4,2019-08-25 17:00,Górki Myślenice,Rokita Kornatka,1,3,0.95
+2019/20,4,2019-08-24 17:00,Karpaty Siepraw,Lubomir Wiśniowa,5,1,0.95
+2019/20,5,2019-08-31 17:00,Staw Polanka,Wróblowianka Wróblowice (Kraków),3,1,0.95
+2019/20,5,2019-09-01 17:00,Rokita Kornatka,Gościbia Sułkowice,5,1,0.95
+2019/20,5,2019-09-01 17:00,Topór Tenczyn,Beskid Tokarnia,0,10,0.95
+2019/20,5,2019-08-31 16:00,Skalnik Trzemeśnia,Clavia Świątniki Górne,2,0,0.95
+2019/20,5,2019-08-31 16:00,LKS Rudnik,Karpaty Siepraw,3,9,0.95
+2019/20,5,2019-09-01 17:00,Lubomir Wiśniowa,Górki Myślenice,2,2,0.95
+2019/20,5,2019-08-31 17:00,Sokół Borzęta,Zielonka Wrząsowice,1,1,0.95
+2019/20,6,2019-09-07 16:30,Clavia Świątniki Górne,Rokita Kornatka,5,3,0.95
+2019/20,6,2019-09-07 17:00,Beskid Tokarnia,Karpaty Siepraw,3,2,0.95
+2019/20,6,2019-09-07 14:00,Górki Myślenice,LKS Rudnik,5,1,0.95
+2019/20,6,2019-09-07 17:00,Zielonka Wrząsowice,Skalnik Trzemeśnia,2,4,0.95
+2019/20,6,2019-09-07 15:00,Wróblowianka Wróblowice (Kraków),Sokół Borzęta,4,0,0.95
+2019/20,6,2019-09-07 17:00,Topór Tenczyn,Staw Polanka,0,2,0.95
+2019/20,6,2019-09-07 17:00,Gościbia Sułkowice,Lubomir Wiśniowa,2,1,0.95
+2019/20,7,2019-09-14 16:30,Staw Polanka,Beskid Tokarnia,1,1,0.95
+2019/20,7,2019-09-14 17:00,Sokół Borzęta,Topór Tenczyn,1,4,0.95
+2019/20,7,2019-09-15 16:30,Lubomir Wiśniowa,Clavia Świątniki Górne,2,0,0.95
+2019/20,7,2019-09-11 17:00,Karpaty Siepraw,Górki Myślenice,2,2,0.95
+2019/20,7,2019-09-14 17:00,Rokita Kornatka,Zielonka Wrząsowice,4,0,0.95
+2019/20,7,2019-09-14 15:00,LKS Rudnik,Gościbia Sułkowice,3,1,0.95
+2019/20,7,2019-09-14 16:00,Skalnik Trzemeśnia,Wróblowianka Wróblowice (Kraków),0,1,0.95
+2019/20,8,2019-09-21 16:00,Beskid Tokarnia,Górki Myślenice,3,2,0.95
+2019/20,8,2019-09-21 16:30,Staw Polanka,Sokół Borzęta,3,2,0.95
+2019/20,8,2019-09-22 17:00,Topór Tenczyn,Skalnik Trzemeśnia,2,0,0.95
+2019/20,8,2019-09-21 15:00,Wróblowianka Wróblowice (Kraków),Rokita Kornatka,0,1,0.95
+2019/20,8,2019-09-21 16:30,Clavia Świątniki Górne,LKS Rudnik,3,6,0.95
+2019/20,8,2019-09-22 15:00,Zielonka Wrząsowice,Lubomir Wiśniowa,2,3,0.95
+2019/20,8,2019-09-21 17:00,Gościbia Sułkowice,Karpaty Siepraw,2,0,0.95
+2019/20,9,2019-09-28 16:00,LKS Rudnik,Zielonka Wrząsowice,4,2,0.95
+2019/20,9,2019-09-28 15:00,Skalnik Trzemeśnia,Staw Polanka,1,3,0.95
+2019/20,9,2019-09-28 16:00,Lubomir Wiśniowa,Wróblowianka Wróblowice (Kraków),0,6,0.95
+2019/20,9,2019-09-29 14:00,Rokita Kornatka,Topór Tenczyn,2,1,0.95
+2019/20,9,2019-09-28 16:30,Sokół Borzęta,Beskid Tokarnia,1,2,0.95
+2019/20,9,2019-09-28 16:00,Górki Myślenice,Gościbia Sułkowice,3,2,0.95
+2019/20,9,2019-09-28 16:00,Karpaty Siepraw,Clavia Świątniki Górne,6,2,0.95
+2019/20,10,2019-10-05 16:00,Sokół Borzęta,Skalnik Trzemeśnia,1,2,0.95
+2019/20,10,2019-10-06 16:00,Topór Tenczyn,Lubomir Wiśniowa,4,0,0.95
+2019/20,10,2019-10-05 15:30,Clavia Świątniki Górne,Górki Myślenice,1,4,0.95
+2019/20,10,2019-10-05 13:30,Wróblowianka Wróblowice (Kraków),LKS Rudnik,1,0,0.95
+2019/20,10,2019-10-05 16:00,Zielonka Wrząsowice,Karpaty Siepraw,0,3,0.95
+2019/20,10,2019-10-06 14:00,Beskid Tokarnia,Gościbia Sułkowice,0,3,0.95
+2019/20,10,2019-10-06 15:30,Staw Polanka,Rokita Kornatka,5,2,0.95
+2019/20,11,2019-10-13 16:00,Górki Myślenice,Zielonka Wrząsowice,5,0,0.95
+2019/20,11,2019-10-13 15:30,Lubomir Wiśniowa,Staw Polanka,0,3,0.95
+2019/20,11,2019-10-13 14:00,Rokita Kornatka,Sokół Borzęta,2,2,0.95
+2019/20,11,2019-10-12 15:00,Gościbia Sułkowice,Clavia Świątniki Górne,3,1,0.95
+2019/20,11,2019-10-12 16:00,Skalnik Trzemeśnia,Beskid Tokarnia,0,1,0.95
+2019/20,11,2019-10-12 15:30,Karpaty Siepraw,Wróblowianka Wróblowice (Kraków),0,1,0.95
+2019/20,11,2019-10-12 15:00,LKS Rudnik,Topór Tenczyn,2,1,0.95
+2019/20,12,2019-10-20 16:00,Topór Tenczyn,Karpaty Siepraw,4,1,0.95
+2019/20,12,2019-10-19 11:00,Wróblowianka Wróblowice (Kraków),Górki Myślenice,1,0,0.95
+2019/20,12,2019-10-19 16:00,Zielonka Wrząsowice,Gościbia Sułkowice,6,4,0.95
+2019/20,12,2019-10-19 16:00,Sokół Borzęta,Lubomir Wiśniowa,0,0,0.95
+2019/20,12,2019-10-19 15:00,Skalnik Trzemeśnia,Rokita Kornatka,2,1,0.95
+2019/20,12,2019-10-19 15:30,Staw Polanka,LKS Rudnik,3,3,0.95
+2019/20,12,2019-10-19 14:00,Beskid Tokarnia,Clavia Świątniki Górne,6,1,0.95
+2019/20,13,2019-10-26 15:00,Lubomir Wiśniowa,Skalnik Trzemeśnia,0,0,0.95
+2019/20,13,2019-10-26 15:00,Górki Myślenice,Topór Tenczyn,2,2,0.95
+2019/20,13,2019-10-26 15:00,LKS Rudnik,Sokół Borzęta,2,3,0.95
+2019/20,13,2019-10-26 14:00,Clavia Świątniki Górne,Zielonka Wrząsowice,0,5,0.95
+2019/20,13,2019-10-27 14:00,Rokita Kornatka,Beskid Tokarnia,2,0,0.95
+2019/20,13,2019-10-26 15:00,Karpaty Siepraw,Staw Polanka,2,1,0.95
+2019/20,13,2019-10-26 15:00,Gościbia Sułkowice,Wróblowianka Wróblowice (Kraków),0,1,0.95
