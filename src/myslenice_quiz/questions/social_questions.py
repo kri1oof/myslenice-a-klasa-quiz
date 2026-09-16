@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections import defaultdict
 import sqlite3
+from collections import defaultdict
 
 from .base import Question, deterministic_shuffle, numeric_options, question_id
 
@@ -37,6 +37,27 @@ def _person_options(correct: str, candidates: list[str], qid: str) -> list[str]:
     if len(unique) < 3:
         return []
     return deterministic_shuffle(unique[:4], qid)
+
+
+def _person_question(
+    questions: list[Question],
+    fact: sqlite3.Row,
+    sample: sqlite3.Row,
+    player_candidates: list[str],
+    question_type: str,
+    prompt: str,
+    explanation: str,
+    urls: list[str],
+    difficulty: int = 3,
+) -> None:
+    qid = question_id(question_type, fact["id"])
+    options = _person_options(fact["value"], player_candidates, qid)
+    if not options:
+        return
+    questions.append(Question(
+        qid, question_type, difficulty, prompt, fact["value"], options, explanation,
+        sample["season_id"], fact["confidence"], urls,
+    ))
 
 
 def generate_social_context_questions(conn: sqlite3.Connection, min_confidence: float = 0.80) -> list[Question]:
@@ -88,64 +109,64 @@ def generate_social_context_questions(conn: sqlite3.Connection, min_confidence: 
         for fact in match_facts:
             fact_type = fact["fact_type"]
             club = fact["focal_club"] or sample["home"]
+            opponent = sample["away"] if club == sample["home"] else sample["home"]
             urls = _source_urls(conn, fact)
             confidence = fact["confidence"]
 
             if fact_type == "mvp":
-                qid = question_id("social_mvp", fact["id"])
-                options = _person_options(fact["value"], player_candidates, qid)
-                if options:
-                    questions.append(Question(
-                        qid, "social_mvp", 3,
-                        f'Kogo relacja po meczu {sample["home"]} – {sample["away"]} w sezonie {sample["season"]} wyróżniła jako MVP?',
-                        fact["value"], options,
-                        f'W relacji pomeczowej jako MVP wskazano: {fact["value"]}.',
-                        sample["season_id"], confidence, urls,
-                    ))
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_mvp",
+                    f'Kogo relacja po meczu {sample["home"]} – {sample["away"]} w sezonie {sample["season"]} wyróżniła jako MVP?',
+                    f'W relacji pomeczowej jako MVP wskazano: {fact["value"]}.', urls,
+                )
             elif fact_type == "captain":
-                qid = question_id("social_captain", fact["id"])
-                options = _person_options(fact["value"], player_candidates, qid)
-                if options:
-                    questions.append(Question(
-                        qid, "social_captain", 3,
-                        f'Kto według relacji był kapitanem {club} w meczu z {sample["away"] if club == sample["home"] else sample["home"]}?',
-                        fact["value"], options,
-                        f'Kapitanem {club} był {fact["value"]}.',
-                        sample["season_id"], confidence, urls,
-                    ))
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_captain",
+                    f'Kto według relacji był kapitanem {club} w meczu z {opponent}?',
+                    f'Kapitanem {club} był {fact["value"]}.', urls,
+                )
             elif fact_type == "assist" and fact["subject"]:
-                qid = question_id("social_assist", fact["id"])
-                options = _person_options(fact["value"], player_candidates, qid)
-                if options:
-                    questions.append(Question(
-                        qid, "social_assist", 4,
-                        f'Kto asystował przy bramce, którą {fact["subject"]} zdobył w meczu {sample["home"]} – {sample["away"]}?',
-                        fact["value"], options,
-                        f'Przy trafieniu zawodnika {fact["subject"]} asystował {fact["value"]}.',
-                        sample["season_id"], confidence, urls,
-                    ))
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_assist",
+                    f'Kto asystował przy bramce, którą {fact["subject"]} zdobył w meczu {sample["home"]} – {sample["away"]}?',
+                    f'Przy trafieniu zawodnika {fact["subject"]} asystował {fact["value"]}.', urls, 4,
+                )
             elif fact_type == "penalty_scorer":
-                qid = question_id("social_penalty_scorer", fact["id"])
-                options = _person_options(fact["value"], player_candidates, qid)
-                if options:
-                    questions.append(Question(
-                        qid, "social_penalty_scorer", 3,
-                        f'Kto wykorzystał rzut karny dla {club} w meczu {sample["home"]} – {sample["away"]}?',
-                        fact["value"], options,
-                        f'Rzut karny wykorzystał {fact["value"]}.',
-                        sample["season_id"], confidence, urls,
-                    ))
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_penalty_scorer",
+                    f'Kto wykorzystał rzut karny dla {club} w meczu {sample["home"]} – {sample["away"]}?',
+                    f'Rzut karny wykorzystał {fact["value"]}.', urls,
+                )
+            elif fact_type == "missed_penalty":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_missed_penalty",
+                    f'Kto nie wykorzystał rzutu karnego dla {club} w meczu {sample["home"]} – {sample["away"]}?',
+                    f'Niewykorzystany rzut karny wykonywał {fact["value"]}.', urls, 4,
+                )
+            elif fact_type == "own_goal":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_own_goal",
+                    f'Który zawodnik zanotował samobójcze trafienie w meczu {sample["home"]} – {sample["away"]}?',
+                    f'Samobójcze trafienie zanotował {fact["value"]}.', urls, 4,
+                )
+            elif fact_type == "equalizer_scorer":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_equalizer",
+                    f'Kto zdobył bramkę wyrównującą w meczu {sample["home"]} – {sample["away"]}?',
+                    f'Bramkę wyrównującą zdobył {fact["value"]}.', urls,
+                )
             elif fact_type == "late_equalizer_scorer":
-                qid = question_id("social_late_equalizer", fact["id"])
-                options = _person_options(fact["value"], player_candidates, qid)
-                if options:
-                    questions.append(Question(
-                        qid, "social_late_equalizer", 3,
-                        f'Kto zdobył wyrównującą bramkę w końcówce meczu {sample["home"]} – {sample["away"]}?',
-                        fact["value"], options,
-                        f'Bramkę dającą remis zdobył {fact["value"]}.',
-                        sample["season_id"], confidence, urls,
-                    ))
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_late_equalizer",
+                    f'Kto zdobył wyrównującą bramkę w końcówce meczu {sample["home"]} – {sample["away"]}?',
+                    f'Bramkę dającą remis zdobył {fact["value"]}.', urls,
+                )
+            elif fact_type == "returning_player":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_returning_player",
+                    f'Który zawodnik {club} według relacji wracał do kadry po przerwie przed meczem z {opponent}?',
+                    f'Wracającym po przerwie zawodnikiem był {fact["value"]}.', urls, 4,
+                )
             elif fact_type == "attendance":
                 try:
                     value = int(fact["value"])
@@ -157,6 +178,19 @@ def generate_social_context_questions(conn: sqlite3.Connection, min_confidence: 
                     f'Ilu widzów według relacji oglądało mecz {sample["home"]} – {sample["away"]}?',
                     str(value), deterministic_shuffle(numeric_options(value, minimum=0), qid),
                     f'Relacja podaje frekwencję: {value} widzów.',
+                    sample["season_id"], confidence, urls,
+                ))
+            elif fact_type == "oldest_starting_age":
+                try:
+                    value = int(fact["value"])
+                except (TypeError, ValueError):
+                    continue
+                qid = question_id("social_oldest_starting_age", fact["id"])
+                questions.append(Question(
+                    qid, "social_oldest_starting_age", 4,
+                    f'Ile lat miał najstarszy zawodnik {club} w wyjściowej jedenastce na mecz {sample["home"]} – {sample["away"]}, według relacji?',
+                    str(value), deterministic_shuffle(numeric_options(value, minimum=15), qid),
+                    f'Według relacji najstarszy zawodnik {club} w wyjściowej jedenastce miał {value} lat.',
                     sample["season_id"], confidence, urls,
                 ))
             elif fact_type == "comeback_from":
