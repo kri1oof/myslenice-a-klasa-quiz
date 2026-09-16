@@ -16,6 +16,7 @@ from myslenice_quiz.social_context import (
     audit_context,
     import_context_seed,
     import_social_pages,
+    match_context_row,
     read_context_seed,
     read_social_pages,
 )
@@ -47,11 +48,27 @@ def main() -> None:
             linked_total = facts_total = skipped_total = 0
             fact_files = [path for path in _fact_paths(args.facts) if path.exists()]
             for facts_path in fact_files:
-                linked, facts, skipped = import_context_seed(conn, read_context_seed(facts_path))
+                rows_in = read_context_seed(facts_path)
+                skipped_details: list[tuple[object, float, dict]] = []
+                for row in rows_in:
+                    match_id, match_score, evidence = match_context_row(conn, row)
+                    if match_id is None or match_score < 0.72:
+                        skipped_details.append((row, match_score, evidence))
+
+                linked, facts, skipped = import_context_seed(conn, rows_in)
                 linked_total += linked
                 facts_total += facts
                 skipped_total += skipped
                 print(f"  fakty: {facts_path} -> linki={linked}, fakty={facts}, pominięte={skipped}")
+                if skipped_details:
+                    for row, score, evidence in skipped_details:
+                        reason = evidence.get("reason", "niski wynik dopasowania")
+                        candidates = evidence.get("candidates")
+                        extra = f", kandydaci={candidates}" if candidates else ""
+                        print(
+                            f"    SKIP {row.season} | {row.club} - {row.opponent} | "
+                            f"{row.fact_type}={row.value} | score={score:.2f} | {reason}{extra}"
+                        )
 
             print(
                 f"Social/context import: strony={pages}, pliki_faktów={len(fact_files)}, "
