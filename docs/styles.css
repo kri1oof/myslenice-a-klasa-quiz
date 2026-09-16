@@ -1,0 +1,65 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #111827;
+  background: #f4f6f8;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, select { font: inherit; }
+.shell { width: min(920px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 64px; }
+.hero { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+.eyebrow { margin: 0 0 8px; letter-spacing: .16em; font-size: 12px; font-weight: 800; }
+h1 { margin: 0; font-size: clamp(34px, 7vw, 64px); line-height: .95; letter-spacing: -.04em; }
+.lead { margin: 14px 0 0; color: #4b5563; font-size: 18px; }
+.score-card { min-width: 130px; background: #111827; color: white; border-radius: 18px; padding: 18px; }
+.score-card span { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; opacity: .7; }
+.score-card strong { display: block; margin-top: 4px; font-size: 28px; }
+.toolbar, .quiz, .status { background: white; border: 1px solid #e5e7eb; border-radius: 18px; }
+.toolbar { display: flex; gap: 12px; padding: 14px; margin-bottom: 14px; flex-wrap: wrap; align-items: end; }
+.toolbar label { display: grid; gap: 6px; color: #4b5563; font-size: 13px; }
+select, button { border: 1px solid #d1d5db; border-radius: 12px; padding: 10px 12px; background: white; }
+button { cursor: pointer; font-weight: 700; }
+button:hover { transform: translateY(-1px); }
+#new-game, #next { background: #111827; color: white; border-color: #111827; }
+.status { padding: 18px; color: #4b5563; }
+.quiz { padding: clamp(18px, 4vw, 34px); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; color: #6b7280; font-size: 13px; }
+.meta span { background: #f3f4f6; border-radius: 999px; padding: 6px 9px; }
+#question { font-size: clamp(24px, 4vw, 36px); letter-spacing: -.025em; margin: 24px 0; }
+.answers { display: grid; gap: 10px; }
+.answer { text-align: left; min-height: 52px; padding: 14px 16px; }
+.answer.correct { border-color: #15803d; background: #f0fdf4; }
+.answer.wrong { border-color: #b91c1c; background: #fef2f2; }
+.answer:disabled { cursor: default; color: inherit; }
+.feedback { margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: #f9fafb; line-height: 1.45; }
+.actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+.ghost { background: transparent; }
+.source-box { margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 13px; overflow-wrap: anywhere; }
+.source-box a { color: #1d4ed8; }
+.hidden { display: none !important; }
+@media (max-width: 640px) {
+  .hero { flex-direction: column; }
+  .score-card { width: 100%; }
+  .toolbar { align-items: stretch; }
+  .toolbar label, .toolbar button { width: 100%; }
+}
+#scope-mode { min-width: 220px; }
+#club { min-width: 210px; }
+.result { margin-top: 14px; background: white; border: 1px solid #e5e7eb; border-radius: 18px; padding: clamp(18px, 4vw, 34px); }
+.result h2 { margin: 0 0 18px; font-size: clamp(28px, 5vw, 42px); letter-spacing: -.03em; }
+.result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.result-grid > div { background: #f3f4f6; border-radius: 14px; padding: 16px; }
+.result-grid span { display: block; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
+.result-grid strong { display: block; margin-top: 4px; font-size: 30px; }
+.result-details { color: #4b5563; margin: 0 0 18px; }
+#play-again { background: #111827; color: white; border-color: #111827; }
+@media (max-width: 480px) { .result-grid { grid-template-columns: 1fr; } }
+.humor-toggle { min-width: 190px; }
+.check-row { display: flex; gap: 8px; align-items: center; color: #111827; font-size: 13px; }
+.check-row input { width: 18px; height: 18px; }
+.question-clubs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.club-badge { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 999px; padding: 5px 10px 5px 5px; font-size: 13px; font-weight: 700; }
+.club-badge img, .crest-fallback { width: 34px; height: 34px; border-radius: 50%; object-fit: contain; background: white; border: 1px solid #e5e7eb; }
+.crest-fallback { display: inline-grid; place-items: center; font-size: 11px; }
+.humor-line { margin-top: 9px; padding-top: 9px; border-top: 1px dashed #d1d5db; font-style: italic; color: #4b5563; }
+.result-humor { margin: -6px 0 18px; padding: 12px 14px; border-radius: 12px; background: #f9fafb; font-weight: 700; }

@@ -1,0 +1,21 @@
+{
+  "notes": "Profile drużyn z sezonu 2021/22. Jeden profil zawiera wiele sezonów; skrypt zatrzymuje się na HTTP 429 i nie omija limitów.",
+  "clubs": [
+    {"club":"Beskid Tokarnia","url":"https://www.ktowygral.info/druzyna/beskid-tokarnia"},
+    {"club":"Clavia Świątniki Górne","url":"https://www.ktowygral.info/druzyna/clavia-swiatniki-gorne"},
+    {"club":"Dziecanovia Dziekanowice","url":"https://www.ktowygral.info/druzyna/dziecanovia-dziekanowice"},
+    {"club":"Gościbia Sułkowice","url":"https://www.ktowygral.info/druzyna/goscibia-sulkowice"},
+    {"club":"Górki Myślenice","url":"https://www.ktowygral.info/druzyna/gorki-myslenice"},
+    {"club":"Hejnał Krzyszkowice","url":"https://www.ktowygral.info/druzyna/hejnal-krzyszkowice"},
+    {"club":"Iskra Brzączowice","url":"https://www.ktowygral.info/druzyna/iskra-brzaczowice"},
+    {"club":"Iskra Głogoczów","url":"https://www.ktowygral.info/druzyna/iskra-glogoczow"},
+    {"club":"LKS Rudnik","url":"https://www.ktowygral.info/druzyna/lks-rudnik-myslenice"},
+    {"club":"Orzeł Nowa Wieś","url":"https://www.ktowygral.info/druzyna/orzel-nowa-wies"},
+    {"club":"Pasternik Ochojno","url":"https://www.ktowygral.info/druzyna/pasternik-ochojno"},
+    {"club":"Skalnik Trzemeśnia","url":"https://www.ktowygral.info/druzyna/skalnik-trzemesnia"},
+    {"club":"Sokół Borzęta","url":"https://www.ktowygral.info/druzyna/sokol-borzeta"},
+    {"club":"Staw Polanka","url":"https://www.ktowygral.info/druzyna/staw-polanka"},
+    {"club":"Topór Tenczyn","url":"https://www.ktowygral.info/druzyna/topor-tenczyn"},
+    {"club":"Zielonka Wrząsowice","url":"https://www.ktowygral.info/druzyna/zielonka-wrzasowice"}
+  ]
+}

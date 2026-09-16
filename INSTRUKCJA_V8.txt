@@ -1,0 +1,14 @@
+V8 - ARCHIWALNE KADRY
+
+1. Skopiuj zawartosc paczki do glownego folderu projektu i zastap pliki.
+2. Uruchom: pytest -q
+   Oczekiwany wynik: 17 passed
+3. Zaimportuj potwierdzona kadre Dziecanovii 2021/22:
+   myslenice-quiz fetch-futbolowo-roster --season "2021/22" --club "Dziecanovia Dziekanowice" "https://lksdziecanovia.futbolowo.pl/roster/kadra"
+4. Uruchom:
+   myslenice-quiz audit-players --season "2021/22"
+5. Potem:
+   myslenice-quiz generate
+   myslenice-quiz export
+
+Nie uruchamiaj ponownie crawl-futbolowo-schedule - te dane sa juz w bazie.

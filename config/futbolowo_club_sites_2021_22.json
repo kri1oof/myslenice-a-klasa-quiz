@@ -1,0 +1,15 @@
+{
+  "season": "2021/22",
+  "clubs": [
+    {"club": "Dziecanovia Dziekanowice", "base_url": "https://lksdziecanovia.futbolowo.pl", "status": "verified_site"},
+    {"club": "Beskid Tokarnia", "base_url": "https://beskidtokarnia.futbolowo.pl", "status": "verified_site"},
+    {"club": "Gościbia Sułkowice", "base_url": "https://goscibiatyrawa.futbolowo.pl", "status": "verified_site"},
+    {"club": "Górki Myślenice", "base_url": "https://gorkimce.futbolowo.pl", "status": "verified_site"},
+    {"club": "Hejnał Krzyszkowice", "base_url": "https://hejnaltrjm.futbolowo.pl", "status": "verified_site"},
+    {"club": "Iskra Głogoczów", "base_url": "https://iskraglogoczow.futbolowo.pl", "status": "verified_site"},
+    {"club": "LKS Rudnik", "base_url": "https://rudnik.futbolowo.pl", "status": "verified_site"},
+    {"club": "Skalnik Trzemeśnia", "base_url": "https://sskalnik.futbolowo.pl", "status": "verified_site"},
+    {"club": "Topór Tenczyn", "base_url": "https://lkstoportenczyn.futbolowo.pl", "status": "profile_lists_site"}
+  ],
+  "notes": "Lista zawiera tylko publicznie potwierdzone domeny klubowe. Brak klubu na liście nie oznacza braku strony; nie zgadujemy domen. Import kadry wymaga dodatkowo zgodności sezonu widocznego na stronie /roster/kadra."
+}

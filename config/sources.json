@@ -1,0 +1,18 @@
+{
+  "source_priority": [
+    {"type": "mzpn", "authority": 1.00, "purpose": ["fixtures", "results", "standings"]},
+    {"type": "pzpn_laczynaspilka", "authority": 1.00, "purpose": ["players", "appearances", "events"]},
+    {"type": "90minut", "authority": 0.92, "purpose": ["historical_results", "league_history", "standings"]},
+    {"type": "futbolowo", "authority": 0.80, "purpose": ["goals", "lineups", "player_stats", "historical_results"]},
+    {"type": "club_site", "authority": 0.72, "purpose": ["goals", "lineups", "match_reports"]},
+    {"type": "regional_portal", "authority": 0.65, "purpose": ["match_reports", "historical_context"]}
+  ],
+  "publication_threshold": 0.80,
+  "high_confidence_threshold": 0.90,
+  "rules": {
+    "never_publish_unknown_player": true,
+    "require_complete_season_for_season_aggregates": true,
+    "prefer_two_sources_for_player_identity": true,
+    "block_conflicting_facts": true
+  }
+}

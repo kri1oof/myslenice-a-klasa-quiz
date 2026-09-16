@@ -1,0 +1,10 @@
+{
+  "competition": "Klasa A Myślenice",
+  "scope": "2002/03-2026/27",
+  "primary_history_pattern": "https://www.ktowygral.info/liga/klasa-a-myslenice/{YYYY}-{YYYY+1}",
+  "recent_schedule_sources": {
+    "2024/25": "https://regionalnyfutbol.pl/liga,klasa-a-malopolska-grupa-myslenice-sezon-2024-2025,tabela-terminarz.html",
+    "2025/26": "https://regionalnyfutbol.pl/liga,klasa-a-malopolska-grupa-myslenice-sezon-2025-2026,tabela-terminarz.html"
+  },
+  "notes": "sync-history iteruje po historycznych tabelach KtoWygral. RegionalnyFutbol służy przede wszystkim do dokładnych dat i terminów meczów."
+}

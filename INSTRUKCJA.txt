@@ -1,0 +1,12 @@
+V7 - częściowe protokoły + historia 90minut
+
+1. Skopiuj zawartość paczki do głównego folderu projektu i zastąp pliki.
+2. Uruchom: pytest -q
+   Oczekiwany wynik: 15 passed
+3. Uruchom: myslenice-quiz audit-players --season "2021/22"
+4. Uruchom: myslenice-quiz generate
+5. Uruchom: myslenice-quiz export
+
+Nowe pytania nie zakładają kompletności całego składu. Są oparte na pozytywnych faktach występu.
+Historia klubów 90minut:
+myslenice-quiz fetch-90-club-history "https://www.90minut.pl/skarb.php?id_klub=...&id_sezon=..."
