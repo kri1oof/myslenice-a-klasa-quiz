@@ -7,30 +7,30 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="rounds.css" />
   <link rel="stylesheet" href="match-mode.css" />
-  <link rel="stylesheet" href="match-enhanced.css" />
+  <link rel="stylesheet" href="match-rpg.css" />
 </head>
 <body>
   <main class="shell">
     <header class="hero">
       <div>
         <p class="eyebrow">MYŚLENICKA A-KLASA</p>
-        <h1>Quiz dla kibiców</h1>
-        <p class="lead">Nie wybierasz już kilkudziesięciu kategorii. Wchodzisz na boisko i grasz.</p>
+        <h1>Rozegraj mecz wiedzą</h1>
+        <p class="lead">Jak w grze RPG: wybierasz zagranie, a pytanie zastępuje rzut kostką. Dobra odpowiedź oznacza udane podanie, odbiór albo strzał.</p>
       </div>
       <div class="score-card" aria-live="polite">
-        <span id="score-label">Wynik</span>
-        <strong id="score">0 pkt</strong>
+        <span id="score-label">Mecz</span>
+        <strong id="score">0 : 0</strong>
       </div>
     </header>
 
     <section class="toolbar game-setup">
       <label class="format-control">Format gry
         <select id="game-format">
-          <option value="match90" selected>⚽ Mecz 90’ — pełna rozgrywka</option>
+          <option value="match90" selected>⚽ Symulowany mecz RPG</option>
           <option value="special">🎲 Runda specjalna</option>
           <option value="quick">⚡ Szybki quiz — 10 pytań</option>
         </select>
-        <span id="format-description" class="control-help">11 pytań jak mecz: pierwsza połowa, przerwa, druga połowa, karta specjalna i 90+.</span>
+        <span id="format-description" class="control-help">Rozgrywasz mecz akcja po akcji. Wybór zagrania ustala trudność, a poprawna odpowiedź zastępuje rzut kostką.</span>
       </label>
 
       <label id="special-round-control" class="hidden">Runda specjalna
@@ -112,7 +112,7 @@
         <span id="round-description"></span>
       </label>
 
-      <button id="new-game" class="kickoff-button">Pierwszy gwizdek</button>
+      <button id="new-game" class="kickoff-button">Rozpocznij mecz</button>
     </section>
 
     <section id="status" class="status">Ładowanie bazy pytań…</section>
@@ -149,17 +149,17 @@
       <div id="feedback" class="feedback hidden"></div>
       <div class="actions">
         <button id="sources" class="ghost hidden">Pokaż źródła</button>
-        <button id="next" class="hidden">Gramy dalej</button>
+        <button id="next" class="hidden">Następna akcja</button>
       </div>
       <div id="source-box" class="source-box hidden"></div>
     </section>
 
     <section id="result" class="result hidden" aria-live="polite">
       <p class="eyebrow">KOŃCOWY GWIZDEK</p>
-      <h2 id="result-title">Twój wynik</h2>
+      <h2 id="result-title">Koniec meczu</h2>
       <div class="result-grid">
-        <div><span>Punkty</span><strong id="result-score">0</strong></div>
-        <div><span>Skuteczność</span><strong id="result-percent">0%</strong></div>
+        <div><span>Wynik</span><strong id="result-score">0:0</strong></div>
+        <div><span>Skuteczność testów</span><strong id="result-percent">0%</strong></div>
       </div>
       <p id="result-rank" class="result-rank hidden"></p>
       <p id="result-details" class="result-details"></p>
@@ -172,6 +172,6 @@
   <script src="quality.js"></script>
   <script src="rounds.js"></script>
   <script src="match-mode.js"></script>
-  <script src="match-enhanced.js"></script>
+  <script src="match-rpg.js"></script>
 </body>
 </html>
