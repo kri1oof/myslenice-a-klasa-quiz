@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -8,6 +9,22 @@ from .normalize import canonical_club_name, normalize_text
 
 
 _INVALID_CLUB_NAMES = {"za artyzm nie ma punktow"}
+
+_CLUB_TEXT_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bClavia\b(?!\s+(?:Świątniki|Swiatniki))", re.I), "Clavia Świątniki Górne"),
+    (re.compile(r"Clavia\s+Swiatniki(?:\s+Gorne)?", re.I), "Clavia Świątniki Górne"),
+    (re.compile(r"Zielonka\s+Gamar(?:\s+(?:Wrząsowice|Wrzasowice))?", re.I), "Zielonka Wrząsowice"),
+    (re.compile(r"\bZielonka\b(?!\s+(?:Wrząsowice|Wrzasowice))", re.I), "Zielonka Wrząsowice"),
+    (re.compile(r"Wroblowianka\s+Wroblowice(?:\s*\(Krakow\))?", re.I), "Wróblowianka Wróblowice (Kraków)"),
+    (re.compile(r"Wróblowianka\s+Wróblowice(?:\s*\(Kraków\))?", re.I), "Wróblowianka Wróblowice (Kraków)"),
+    (re.compile(r"\bWroblowianka\b(?!\s+Wroblowice)", re.I), "Wróblowianka Wróblowice (Kraków)"),
+    (re.compile(r"\bWróblowianka\b(?!\s+Wróblowice)", re.I), "Wróblowianka Wróblowice (Kraków)"),
+    (re.compile(r"Opatkowianka\s+Opatkowice", re.I), "Opatkowianka"),
+)
+
+
+def _is_invalid_club_text(value: object) -> bool:
+    return isinstance(value, str) and any(key in normalize_text(value) for key in _INVALID_CLUB_NAMES)
 
 
 def _clean_club_name(value: str | None) -> str | None:
@@ -17,6 +34,24 @@ def _clean_club_name(value: str | None) -> str | None:
     if normalize_text(canonical) in _INVALID_CLUB_NAMES:
         return None
     return canonical
+
+
+def _clean_public_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value
+    for pattern, replacement in _CLUB_TEXT_PATTERNS:
+        cleaned = pattern.sub(replacement, cleaned)
+    return cleaned
+
+
+def _clean_public_answer(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    club = _clean_club_name(value)
+    if club and club != value:
+        return club
+    return _clean_public_text(value)
 
 
 def _season_club_pairs(conn: sqlite3.Connection, season_id: int | None) -> list[tuple[str, str]]:
@@ -83,18 +118,12 @@ def _player_clubs(conn: sqlite3.Connection, season_id: int | None) -> list[tuple
 
 
 def _question_clubs(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
-    """Return canonical clubs materially involved in a question.
-
-    We intentionally inspect the prompt, correct answer and explanation, but not
-    distractor options. This prevents a club from entering fan mode merely
-    because it appeared as a wrong answer. Raw historical aliases are matched
-    against the text and then collapsed to the current canonical club name.
-    """
+    """Return canonical clubs materially involved in a question."""
     season_id = row["season_id"]
     if season_id is None:
         return []
     text = " ".join(
-        str(value or "")
+        str(_clean_public_text(value or "") or "")
         for value in (row["prompt"], row["correct_answer"], row["explanation"])
     ).casefold()
 
@@ -103,9 +132,6 @@ def _question_clubs(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
         if raw_club.casefold() in text or canonical.casefold() in text:
             clubs.add(canonical)
 
-    # Some player comparison questions do not spell out the players' clubs.
-    # Map every player explicitly named in the question back to their club(s)
-    # in that season so the fan filter still behaves as expected.
     for player, club in _player_clubs(conn, season_id):
         if player.casefold() in text:
             clubs.add(club)
@@ -120,14 +146,30 @@ def export_questions(conn: sqlite3.Connection, output: str | Path, min_confidenc
     ).fetchall()
     payload = []
     for r in rows:
+        raw_options = json.loads(r["options_json"])
+        visible_values = [r["prompt"], r["correct_answer"], r["explanation"], *raw_options]
+        if any(_is_invalid_club_text(value) for value in visible_values):
+            continue
+
+        answer = _clean_public_answer(r["correct_answer"])
+        options: list[object] = []
+        for option in raw_options:
+            cleaned = _clean_public_answer(option)
+            if cleaned not in options:
+                options.append(cleaned)
+        if answer not in options:
+            options.append(answer)
+        if len(options) < 2:
+            continue
+
         payload.append({
             "id": r["id"],
             "type": r["question_type"],
             "difficulty": r["difficulty"],
-            "question": r["prompt"],
-            "answer": r["correct_answer"],
-            "options": json.loads(r["options_json"]),
-            "explanation": r["explanation"],
+            "question": _clean_public_text(r["prompt"]),
+            "answer": answer,
+            "options": options,
+            "explanation": _clean_public_text(r["explanation"]),
             "season": r["season"],
             "confidence": r["confidence"],
             "clubs": _question_clubs(conn, r),
@@ -155,8 +197,6 @@ def export_questions(conn: sqlite3.Connection, output: str | Path, min_confidenc
         if name not in clubs:
             clubs[name] = incoming
         else:
-            # Preserve the most complete metadata when several historical aliases
-            # collapse to one canonical club.
             for key, value in incoming.items():
                 if value and not clubs[name].get(key):
                     clubs[name][key] = value
