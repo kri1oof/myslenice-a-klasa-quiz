@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">MYŚLENICKA A-KLASA</p>
         <h1>Quiz dla kibiców</h1>
-        <p class="lead">Wyniki, zawodnicy, strzelcy, tabele, historia ligi i klubowe smaczki.</p>
+        <p class="lead">Wyniki, zawodnicy, strzelcy, tabele, historia ligi i lokalne smaczki — bez nudy i bez surowych nazw z bazy.</p>
       </div>
       <div class="score-card" aria-live="polite">
         <span>Wynik</span>
@@ -21,52 +21,58 @@
     </header>
 
     <section class="toolbar">
-      <label>Zakres quizu
+      <label>Zakres gry
         <select id="scope-mode">
-          <option value="league">Cała A-klasa Myślenice</option>
-          <option value="club">Kibic konkretnej drużyny</option>
+          <option value="league">Cała liga — wszystkie drużyny</option>
+          <option value="club">Tryb klubowy — jedna drużyna</option>
         </select>
       </label>
       <label id="club-label" class="hidden">Drużyna
         <select id="club"></select>
       </label>
-      <label>Sezony
+      <label>Zakres sezonów
         <select id="season-mode">
           <option value="all">Wszystkie sezony</option>
-          <option value="single">Jeden sezon</option>
-          <option value="range">Przedział sezonów</option>
+          <option value="single">Jeden wybrany sezon</option>
+          <option value="range">Wybrany przedział sezonów</option>
         </select>
       </label>
-      <label id="season-from-label" class="hidden">Sezon
+      <label id="season-from-label" class="hidden">Od sezonu
         <select id="season-from"></select>
       </label>
       <label id="season-to-label" class="hidden">Do sezonu
         <select id="season-to"></select>
       </label>
-      <label>Trudność
+      <label>Poziom trudności
         <select id="difficulty">
-          <option value="all">Wszystkie</option>
-          <option value="1">1 — łatwa</option>
-          <option value="2">2</option>
-          <option value="3">3 — średnia</option>
-          <option value="4">4</option>
-          <option value="5">5 — trudna</option>
+          <option value="all">Wszystkie poziomy</option>
+          <option value="1">1 — Rozgrzewka</option>
+          <option value="2">2 — Łatwy</option>
+          <option value="3">3 — Ligowy</option>
+          <option value="4">4 — Trudny</option>
+          <option value="5">5 — Kronikarz A-klasy</option>
         </select>
       </label>
-      <label>Typ
-        <select id="type"><option value="all">Wszystkie</option></select>
+      <label>Rodzaj pytania
+        <select id="type"><option value="all">Wszystkie rodzaje pytań</option></select>
       </label>
-      <label>Liczba pytań
+      <label>Długość rozgrywki
         <select id="question-count">
-          <option value="10" selected>10</option>
-          <option value="20">20</option>
-          <option value="30">30</option>
-          <option value="50">50</option>
+          <option value="10" selected>10 — szybka seria</option>
+          <option value="20">20 — pełna runda</option>
+          <option value="30">30 — dogrywka</option>
+          <option value="50">50 — maraton</option>
           <option value="all">Wszystkie dostępne</option>
         </select>
       </label>
-      <label class="humor-toggle"><span>Tryb stadionowy</span><span class="check-row"><input id="humor" type="checkbox" checked /> humorystyczne komentarze</span></label>
-      <button id="new-game">Nowa gra</button>
+      <label>Styl gry
+        <select id="game-style">
+          <option value="classic">Klasyczny — konkretnie i bez komentarzy</option>
+          <option value="stadium" selected>Stadionowy — komentarze z trybun</option>
+          <option value="chaos">A-klasowy chaos — więcej żartów</option>
+        </select>
+      </label>
+      <button id="new-game">Nowa rozgrywka</button>
     </section>
 
     <section id="status" class="status">Ładowanie bazy pytań…</section>
@@ -77,7 +83,9 @@
         <span id="question-number"></span>
         <span id="season"></span>
         <span id="difficulty-label"></span>
+        <span id="question-type-label"></span>
       </div>
+      <p id="question-style" class="question-style"></p>
       <h2 id="question"></h2>
       <div id="answers" class="answers"></div>
       <div id="feedback" class="feedback hidden"></div>
@@ -89,15 +97,15 @@
     </section>
 
     <section id="result" class="result hidden" aria-live="polite">
-      <p class="eyebrow">KONIEC GRY</p>
+      <p class="eyebrow">KOŃCOWY GWIZDEK</p>
       <h2>Twój wynik</h2>
       <div class="result-grid">
-        <div><span>Wynik</span><strong id="result-score">0 / 0</strong></div>
+        <div><span>Punkty</span><strong id="result-score">0 / 0</strong></div>
         <div><span>Skuteczność</span><strong id="result-percent">0%</strong></div>
       </div>
       <p id="result-details" class="result-details"></p>
       <p id="result-humor" class="result-humor"></p>
-      <button id="play-again">Zagraj jeszcze raz</button>
+      <button id="play-again">Rewanż</button>
     </section>
   </main>
 
