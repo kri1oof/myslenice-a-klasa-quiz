@@ -48,11 +48,13 @@ Write-Host "[5/15] Biezacy sezon 2026/27 z oficjalnego MZPN"
 Run-Quiz fetch-mzpn --season "2026/27" "https://krakow.malopolskizpn.pl/rozgrywki/2026-2027/seniorzy/myslenice-klasa-a-83c3b646/?view=schedule"
 Run-Quiz fetch-mzpn --season "2026/27" "https://krakow.malopolskizpn.pl/rozgrywki/2026-2027/seniorzy/myslenice-klasa-a-83c3b646/"
 
-Write-Host "[6/15] Historyczne terminarze Futbolowo 2014/15-2016/17 i 2021/22"
+Write-Host "[6/15] Historyczne terminarze Futbolowo 2014/15-2018/19 i 2021/22"
 $futbolowoSchedules = @(
   @{ Season = "2014/15"; Url = "https://rokitakornatka.futbolowo.pl/schedule/420/3502/16359" },
   @{ Season = "2015/16"; Url = "https://rokitakornatka.futbolowo.pl/schedule/420/8299/9651" },
   @{ Season = "2016/17"; Url = "https://rokitakornatka.futbolowo.pl/schedule/420/12308/9650" },
+  @{ Season = "2017/18"; Url = "https://rokitakornatka.futbolowo.pl/schedule/420/15808/14098" },
+  @{ Season = "2018/19"; Url = "https://rokitakornatka.futbolowo.pl/schedule/420/19095/16359" },
   @{ Season = "2021/22"; Url = "https://dziecanovia.futbolowo.pl/schedule/420/24698/270" }
 )
 foreach ($archive in $futbolowoSchedules) {
