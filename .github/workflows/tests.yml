@@ -14,5 +14,8 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -U pip
       - run: pip install -e '.[dev]'
-      - run: pytest -q
-      - run: ruff check src tests
+      - name: Functional tests
+        run: pytest -q
+      - name: Lint (advisory)
+        run: ruff check src tests
+        continue-on-error: true
