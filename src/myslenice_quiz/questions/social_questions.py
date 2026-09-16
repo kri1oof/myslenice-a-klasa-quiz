@@ -173,6 +173,24 @@ def generate_social_context_questions(conn: sqlite3.Connection, min_confidence: 
                     f'Kto skompletował hat-tricka w meczu {sample["home"]} – {sample["away"]}?',
                     f'Hat-tricka w tym spotkaniu zdobył {fact["value"]}.', urls, 3,
                 )
+            elif fact_type == "substitute_brace_scorer":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_substitute_brace_scorer",
+                    f'Który rezerwowy po wejściu z ławki zdobył dwa gole w meczu {sample["home"]} – {sample["away"]}?',
+                    f'Dwa gole po wejściu z ławki zdobył {fact["value"]}.', urls, 4,
+                )
+            elif fact_type == "free_kick_scorer":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_free_kick_scorer",
+                    f'Kto zdobył bramkę bezpośrednio z rzutu wolnego w meczu {sample["home"]} – {sample["away"]}?',
+                    f'Z rzutu wolnego trafił {fact["value"]}.', urls, 4,
+                )
+            elif fact_type == "stoppage_time_scorer":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_stoppage_time_scorer",
+                    f'Kto trafił w doliczonym czasie meczu {sample["home"]} – {sample["away"]}?',
+                    f'W doliczonym czasie gry bramkę zdobył {fact["value"]}.', urls, 4,
+                )
             elif fact_type == "returning_player":
                 _person_question(
                     questions, fact, sample, player_candidates, "social_returning_player",
