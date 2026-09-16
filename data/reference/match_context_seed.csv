@@ -1,0 +1,12 @@
+club,season,opponent,source_url,published_at,relation_type,fact_type,subject,value,confidence,score,match_date,notes
+Górki Myślenice,2020/21,Sęp Droginia,https://myslenice-itv.pl/artykul/gorki-ponownie-wygrywaja-na-wyjezdzie-n944124,2020-08-24,post_match,mvp,,Jan Irzyk,0.95,0:4,,Relacja wskazuje Jana Irzyka jako MVP spotkania
+Górki Myślenice,2020/21,Sęp Droginia,https://myslenice-itv.pl/artykul/gorki-ponownie-wygrywaja-na-wyjezdzie-n944124,2020-08-24,post_match,captain,,Mateusz Kubiński,0.95,0:4,,Relacja wskazuje Mateusza Kubińskiego jako kapitana Górek
+Górki Myślenice,2020/21,Sęp Droginia,https://myslenice-itv.pl/artykul/gorki-ponownie-wygrywaja-na-wyjezdzie-n944124,2020-08-24,post_match,assist,Jan Irzyk,Mateusz Kubiński,0.95,0:4,,Asysta przy bramce na 0:1
+Górki Myślenice,2020/21,Sęp Droginia,https://myslenice-itv.pl/artykul/gorki-ponownie-wygrywaja-na-wyjezdzie-n944124,2020-08-24,post_match,assist,Dawid Masłowski,Mateusz Kubiński,0.95,0:4,,Asysta przy bramce na 0:2
+Górki Myślenice,2020/21,Sęp Droginia,https://myslenice-itv.pl/artykul/gorki-ponownie-wygrywaja-na-wyjezdzie-n944124,2020-08-24,post_match,assist,Ignacy Dudek,Jan Irzyk,0.95,0:4,,Asysta przy bramce na 0:3
+Górki Myślenice,2020/21,Sęp Droginia,https://myslenice-itv.pl/artykul/gorki-ponownie-wygrywaja-na-wyjezdzie-n944124,2020-08-24,post_match,assist,Mateusz Pietrzyk,Jan Irzyk,0.95,0:4,,Asysta przy bramce na 0:4
+Górki Myślenice,2020/21,Sęp Droginia,https://myslenice-itv.pl/artykul/gorki-ponownie-wygrywaja-na-wyjezdzie-n944124,2020-08-24,post_match,attendance,,100,0.90,0:4,,Relacja podaje liczbę widzów
+Beskid Tokarnia,2026/27,Orzeł Nowa Wieś,https://mysleniceon.pl/beskid-tokarnia-uratowal-punkt-w-nowej-wsi-po-meczu-dwoch-polowek/,2026-08-24,post_match,penalty_scorer,,Adam Piosek,0.95,2:2,,Gol kontaktowy z rzutu karnego w 82 minucie
+Beskid Tokarnia,2026/27,Orzeł Nowa Wieś,https://mysleniceon.pl/beskid-tokarnia-uratowal-punkt-w-nowej-wsi-po-meczu-dwoch-polowek/,2026-08-24,post_match,late_equalizer_scorer,,Michał Hanusiak,0.95,2:2,,Gol głową na remis w doliczonym czasie gry
+Beskid Tokarnia,2026/27,Orzeł Nowa Wieś,https://mysleniceon.pl/beskid-tokarnia-uratowal-punkt-w-nowej-wsi-po-meczu-dwoch-polowek/,2026-08-24,post_match,assist,Michał Hanusiak,Piotrek Hobot,0.95,2:2,,Dośrodkowanie przy golu wyrównującym
+Beskid Tokarnia,2026/27,Orzeł Nowa Wieś,https://mysleniceon.pl/beskid-tokarnia-uratowal-punkt-w-nowej-wsi-po-meczu-dwoch-polowek/,2026-08-24,post_match,comeback_from,,0:2,0.95,2:2,,Beskid odrobił dwubramkową stratę po przerwie
