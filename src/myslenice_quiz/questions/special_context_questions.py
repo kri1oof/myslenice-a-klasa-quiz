@@ -25,6 +25,24 @@ SPECIAL_PERSON_FACTS = {
         lambda value, club: f'Drugą bramkę dla {club} w tym meczu zdobył {value}.',
         4,
     ),
+    "opening_goal_scorer": (
+        "social_opening_goal_scorer",
+        lambda s, club, opponent: f'Kto otworzył wynik meczu {s["home"]} – {s["away"]}?',
+        lambda value, club: f'Pierwszą bramkę w tym spotkaniu zdobył {value}.',
+        3,
+    ),
+    "red_carded_goalkeeper": (
+        "social_red_carded_goalkeeper",
+        lambda s, club, opponent: f'Który bramkarz {club} zobaczył czerwoną kartkę w meczu z {opponent}?',
+        lambda value, club: f'Czerwoną kartkę dla bramkarza {club} otrzymał {value}.',
+        4,
+    ),
+    "emergency_goalkeeper": (
+        "social_emergency_goalkeeper",
+        lambda s, club, opponent: f'Kto awaryjnie stanął w bramce {club} po czerwonej kartce dla bramkarza w meczu z {opponent}?',
+        lambda value, club: f'Po czerwonej kartce w bramce {club} stanął {value}.',
+        4,
+    ),
 }
 
 
