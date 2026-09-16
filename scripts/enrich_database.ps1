@@ -17,13 +17,22 @@ Write-Host "[4/13] Biezacy sezon 2026/27 z oficjalnego MZPN"
 myslenice-quiz fetch-mzpn --season "2026/27" "https://krakow.malopolskizpn.pl/rozgrywki/2026-2027/seniorzy/myslenice-klasa-a-83c3b646/?view=schedule"
 myslenice-quiz fetch-mzpn --season "2026/27" "https://krakow.malopolskizpn.pl/rozgrywki/2026-2027/seniorzy/myslenice-klasa-a-83c3b646/"
 
-Write-Host "[5/13] Terminarz Futbolowo 2021/22 + profile i herby klubow"
-$fut = "https://dziecanovia.futbolowo.pl/schedule/420/24698/270"
-myslenice-quiz fetch-futbolowo-schedule --season "2021/22" $fut
+Write-Host "[5/13] Historyczne terminarze Futbolowo 2014/15-2016/17 i 2021/22"
+$futbolowoSchedules = @(
+  @{ Season = "2014/15"; Url = "https://dziecanovia.futbolowo.pl/schedule/420/3502/16359" },
+  @{ Season = "2015/16"; Url = "https://dziecanovia.futbolowo.pl/schedule/420/8299/16359" },
+  @{ Season = "2016/17"; Url = "https://dziecanovia.futbolowo.pl/schedule/420/12308/16359" },
+  @{ Season = "2021/22"; Url = "https://dziecanovia.futbolowo.pl/schedule/420/24698/270" }
+)
+foreach ($archive in $futbolowoSchedules) {
+  myslenice-quiz fetch-futbolowo-schedule --season $archive.Season $archive.Url
+}
 
 if ($DeepFutbolowo) {
   Write-Host "[6/13] Szczegoly dostepnych meczow Futbolowo"
-  myslenice-quiz crawl-futbolowo-schedule --season "2021/22" --delay 0.5 $fut
+  foreach ($archive in $futbolowoSchedules) {
+    myslenice-quiz crawl-futbolowo-schedule --season $archive.Season --delay 0.5 $archive.Url
+  }
 } else {
   Write-Host "[6/13] Pomijam gleboki crawl Futbolowo. Uzyj -DeepFutbolowo, aby pobrac szczegoly meczow."
 }
