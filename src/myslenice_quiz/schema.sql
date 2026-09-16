@@ -295,3 +295,59 @@ CREATE TABLE IF NOT EXISTS club_season_coverage (
 
 CREATE INDEX IF NOT EXISTS idx_roster_memberships ON player_roster_memberships(season_id, club_id, player_id);
 CREATE INDEX IF NOT EXISTS idx_club_season_coverage ON club_season_coverage(season_id, club_id, dataset, is_complete);
+
+-- Social/local context layer. These tables store public club posts and other
+-- narrative sources separately from official match facts. A post can be linked
+-- to a match only after matching/verification; it never overwrites the result.
+CREATE TABLE IF NOT EXISTS club_social_pages (
+    id INTEGER PRIMARY KEY,
+    club_id INTEGER NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+    platform TEXT NOT NULL,
+    page_name TEXT,
+    page_url TEXT NOT NULL UNIQUE,
+    verified INTEGER NOT NULL DEFAULT 0 CHECK(verified IN (0,1)),
+    active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
+    notes TEXT,
+    UNIQUE(club_id, platform, page_url)
+);
+
+CREATE TABLE IF NOT EXISTS social_posts (
+    id INTEGER PRIMARY KEY,
+    social_page_id INTEGER NOT NULL REFERENCES club_social_pages(id) ON DELETE CASCADE,
+    source_id INTEGER REFERENCES sources(id) ON DELETE SET NULL,
+    post_url TEXT NOT NULL UNIQUE,
+    published_at TEXT,
+    text_content TEXT,
+    content_hash TEXT,
+    confidence REAL NOT NULL DEFAULT 0.5 CHECK(confidence BETWEEN 0 AND 1),
+    fetched_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS social_post_match_links (
+    social_post_id INTEGER NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
+    match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+    relation_type TEXT NOT NULL DEFAULT 'related',
+    match_score REAL NOT NULL DEFAULT 0.5 CHECK(match_score BETWEEN 0 AND 1),
+    verified INTEGER NOT NULL DEFAULT 0 CHECK(verified IN (0,1)),
+    evidence_json TEXT,
+    PRIMARY KEY(social_post_id, match_id)
+);
+
+CREATE TABLE IF NOT EXISTS match_context_facts (
+    id INTEGER PRIMARY KEY,
+    match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+    club_id INTEGER REFERENCES clubs(id) ON DELETE SET NULL,
+    social_post_id INTEGER REFERENCES social_posts(id) ON DELETE SET NULL,
+    source_id INTEGER REFERENCES sources(id) ON DELETE SET NULL,
+    fact_type TEXT NOT NULL,
+    subject TEXT,
+    value TEXT NOT NULL,
+    confidence REAL NOT NULL DEFAULT 0.5 CHECK(confidence BETWEEN 0 AND 1),
+    verified INTEGER NOT NULL DEFAULT 0 CHECK(verified IN (0,1)),
+    notes TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_social_pages_club ON club_social_pages(club_id, platform, verified);
+CREATE INDEX IF NOT EXISTS idx_social_posts_page_date ON social_posts(social_page_id, published_at);
+CREATE INDEX IF NOT EXISTS idx_social_links_match ON social_post_match_links(match_id, verified, match_score);
+CREATE INDEX IF NOT EXISTS idx_match_context_facts ON match_context_facts(match_id, fact_type, verified);
