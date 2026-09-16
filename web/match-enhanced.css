@@ -1,6 +1,7 @@
+.match-hud { grid-template-columns: auto auto minmax(150px, 1fr) auto; }
 .live-scoreboard {
   display: flex; align-items: center; justify-content: center; gap: 10px;
-  padding: 8px 12px; border-radius: 14px; background: #111827; color: white;
+  padding: 8px 12px; border-radius: 14px; background: rgba(255,255,255,.08); color: white;
   min-width: 210px;
 }
 .score-side { display: grid; justify-items: center; line-height: 1; }
@@ -8,13 +9,14 @@
 .score-side strong { margin-top: 3px; font-size: 27px; }
 .score-colon { font-size: 24px; font-weight: 900; opacity: .55; }
 .match-mood { margin-left: 7px; padding-left: 12px; border-left: 1px solid rgba(255,255,255,.18); font-size: 11px; max-width: 105px; line-height: 1.2; opacity: .82; }
-.pressure-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.pressure-panel { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
 .pressure-panel > div { display: grid; gap: 4px; }
-.pressure-panel span { color: #6b7280; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
-.pressure-track { height: 7px; overflow: hidden; border-radius: 999px; background: #e5e7eb; }
-.pressure-track i { display: block; width: 0; height: 100%; border-radius: inherit; background: #111827; transition: width .25s ease; }
-#opponent-pressure { background: #991b1b; }
-.sub-button { background: #f9fafb; }
+.pressure-panel span { color: rgba(255,255,255,.68); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.pressure-track { height: 7px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }
+.pressure-track i { display: block; width: 0; height: 100%; border-radius: inherit; background: #fff; transition: width .25s ease; }
+#opponent-pressure { background: #fca5a5; }
+.sub-button { background: #f9fafb; white-space: nowrap; }
+.sub-button:disabled { opacity: .42; cursor: default; transform: none; }
 .tactic-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 13px; border: 1px solid #d1d5db; border-radius: 14px; background: #f9fafb; flex-wrap: wrap; }
 .tactic-copy { display: grid; gap: 2px; }
 .tactic-copy strong { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; }
@@ -31,8 +33,17 @@
 .match-event.event-good { background: #eff6ff; color: #1e40af; }
 @keyframes goalPulse { 0% { transform: scale(1); } 45% { transform: scale(1.08); } 100% { transform: scale(1); } }
 .match-event.event-goal { animation: goalPulse .35s ease; }
+@media (max-width: 900px) {
+  .match-hud { grid-template-columns: auto 1fr auto; }
+  .live-scoreboard { grid-column: 2; grid-row: 1; }
+  .match-progress-wrap { grid-column: 1 / -1; }
+  .match-stats { grid-column: 1 / -1; justify-content: flex-end; }
+}
 @media (max-width: 700px) {
-  .live-scoreboard { order: -1; width: 100%; }
+  .match-hud { grid-template-columns: 1fr; }
+  .match-clock, .live-scoreboard, .match-progress-wrap, .match-stats, .pressure-panel { grid-column: 1; }
+  .live-scoreboard { grid-row: auto; order: -1; width: 100%; }
+  .match-stats { justify-content: flex-start; flex-wrap: wrap; }
   .pressure-panel { grid-template-columns: 1fr; }
   .tactic-box { align-items: stretch; flex-direction: column; }
   .tactic-buttons { display: grid; grid-template-columns: 1fr 1fr; }
