@@ -80,10 +80,36 @@ def deterministic_shuffle(values: list[str], seed: str) -> list[str]:
     return values
 
 
+def _natural_options(q: Question) -> list[str]:
+    """Remove artificial distractors where the question has a natural answer set.
+
+    Most quiz questions still use four options. Comparisons and match outcomes are
+    different: adding a random fourth answer makes the question less natural rather
+    than harder. The frontend renders any number of buttons, so keep 2-4 choices.
+    """
+    options = list(dict.fromkeys(q.options))
+
+    if q.question_type == "match_winner":
+        # Exactly the two teams taking part plus draw.
+        options = [x for x in options if x == "Remis" or x in q.prompt]
+    elif q.question_type == "higher_finish":
+        # Positions are known and distinct: only the two compared clubs are possible.
+        options = [x for x in options if x in q.prompt]
+    elif q.question_type == "compare_player_goals":
+        # Player A, player B, or a tie.
+        options = [x for x in options if x == "Tyle samo" or x in q.prompt]
+    elif q.question_type == "player_match_role":
+        # A confirmed appearance with a starter flag can only be starter or bench.
+        options = [x for x in options if x in {"Podstawowy skład", "Ławka rezerwowych"}]
+
+    return options
+
+
 def save_questions(conn, questions: Iterable[Question]) -> int:
     count = 0
     for q in questions:
-        if len(q.options) != 4 or len(set(q.options)) != 4 or q.correct_answer not in q.options:
+        options = _natural_options(q)
+        if not 2 <= len(options) <= 4 or len(set(options)) != len(options) or q.correct_answer not in options:
             continue
         conn.execute(
             """INSERT INTO question_bank(id,question_type,difficulty,prompt,correct_answer,options_json,
@@ -93,7 +119,7 @@ def save_questions(conn, questions: Iterable[Question]) -> int:
                options_json=excluded.options_json,explanation=excluded.explanation,confidence=excluded.confidence,
                provenance_json=excluded.provenance_json,enabled=1""",
             (q.id, q.question_type, q.difficulty, q.prompt, q.correct_answer,
-             json.dumps(q.options, ensure_ascii=False), q.explanation, q.season_id, q.confidence,
+             json.dumps(options, ensure_ascii=False), q.explanation, q.season_id, q.confidence,
              json.dumps(q.provenance, ensure_ascii=False)),
         )
         count += 1
