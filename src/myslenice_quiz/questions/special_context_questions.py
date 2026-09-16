@@ -49,6 +49,12 @@ SPECIAL_PERSON_FACTS = {
         lambda value, club: f'Pierwszego gola w seniorskiej piłce zdobył wtedy {value}.',
         4,
     ),
+    "penalty_saver": (
+        "social_penalty_saver",
+        lambda s, club, opponent: f'Kto obronił rzut karny dla {club} w meczu z {opponent}?',
+        lambda value, club: f'Rzut karny obronił {value}.',
+        4,
+    ),
     "red_carded_goalkeeper": (
         "social_red_carded_goalkeeper",
         lambda s, club, opponent: f'Który bramkarz {club} zobaczył czerwoną kartkę w meczu z {opponent}?',
