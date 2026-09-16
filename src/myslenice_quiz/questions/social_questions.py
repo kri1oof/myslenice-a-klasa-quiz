@@ -119,6 +119,12 @@ def generate_social_context_questions(conn: sqlite3.Connection, min_confidence: 
                     f'Kogo relacja po meczu {sample["home"]} – {sample["away"]} w sezonie {sample["season"]} wyróżniła jako MVP?',
                     f'W relacji pomeczowej jako MVP wskazano: {fact["value"]}.', urls,
                 )
+            elif fact_type == "standout_player":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_standout_player",
+                    f'Którego zawodnika relacja wskazała jako bohatera meczu {sample["home"]} – {sample["away"]}?',
+                    f'Relacja wyróżniła jako bohatera spotkania zawodnika {fact["value"]}.', urls,
+                )
             elif fact_type == "captain":
                 _person_question(
                     questions, fact, sample, player_candidates, "social_captain",
@@ -160,6 +166,12 @@ def generate_social_context_questions(conn: sqlite3.Connection, min_confidence: 
                     questions, fact, sample, player_candidates, "social_late_equalizer",
                     f'Kto zdobył wyrównującą bramkę w końcówce meczu {sample["home"]} – {sample["away"]}?',
                     f'Bramkę dającą remis zdobył {fact["value"]}.', urls,
+                )
+            elif fact_type == "hat_trick_scorer":
+                _person_question(
+                    questions, fact, sample, player_candidates, "social_hat_trick_scorer",
+                    f'Kto skompletował hat-tricka w meczu {sample["home"]} – {sample["away"]}?',
+                    f'Hat-tricka w tym spotkaniu zdobył {fact["value"]}.', urls, 3,
                 )
             elif fact_type == "returning_player":
                 _person_question(
