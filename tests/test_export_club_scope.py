@@ -25,7 +25,8 @@ def test_export_adds_club_scope(tmp_path: Path):
         export_questions(conn, out, 0.8)
 
     payload = json.loads(out.read_text(encoding="utf-8"))
-    match = next(q for q in payload["questions"] if q["type"] == "match_score" and "CLAVIA" in q["question"])
-    assert set(match["clubs"]) == {"CLAVIA", "TEMPO"}
+    canonical = "Clavia Świątniki Górne"
+    match = next(q for q in payload["questions"] if q["type"] == "match_score" and canonical in q["question"])
+    assert set(match["clubs"]) == {canonical, "TEMPO"}
     player = next(q for q in payload["questions"] if q["type"] == "player_season_goals")
-    assert player["clubs"] == ["CLAVIA"]
+    assert player["clubs"] == [canonical]
