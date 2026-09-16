@@ -17,7 +17,22 @@ DB = ROOT / "data" / "quiz.db"
 MATCHES_CSV = ROOT / "data" / "reference" / "matches_2019_20_ktowygral.csv"
 STANDINGS_CSV = ROOT / "data" / "reference" / "standings_2019_20_ktowygral.csv"
 SOURCE_URL = "https://www.ktowygral.info/liga/klasa-a-myslenice/2019-2020"
+FUTMAL_CROSSCHECK_URL = "https://test.futmal.pl/league/klasa-a-myslenice?season=2019"
+REGIO_CROSSCHECK_URL = "https://regiowyniki.pl/kalendarz/pilka_nozna/2019/2020/Malopolskie/Klasa_A/Myslenice/"
 SEASON = "2019/20"
+
+# Cross-source audit note:
+# Futmal agrees with the schedule except that it displays Lubomir–Wróblowianka
+# as 0:5. KtoWygral gives 0:6 on both clubs' season pages and its 28:9 / 12:25
+# final goal balances reconcile only with 0:6. RegioWyniki independently lists
+# the match as 0:6 as well. Therefore the reference intentionally keeps 0:6.
+CROSS_SOURCE_NOTE = (
+    "Kontrola krzyżowa: terminarz porównany z Futmal i RegioWyniki. "
+    "Jedyny znaleziony konflikt wyniku to Lubomir Wiśniowa–Wróblowianka: "
+    "Futmal pokazuje 0:5, natomiast KtoWygral na profilach obu klubów pokazuje 0:6, "
+    "końcowe bilanse bramkowe KtoWygral zgadzają się z 0:6, a RegioWyniki niezależnie potwierdza 0:6. "
+    "W bazie przyjęto 0:6."
+)
 
 
 def _validate_reference(matches, standings) -> None:
@@ -101,16 +116,17 @@ def main() -> None:
             "ktowygral",
             SOURCE_URL,
             reference_payload,
-            "Zweryfikowany komplet 91 rozegranych meczów i końcowa tabela A-klasy Myślenice 2019/20; sezon przerwany po 13 kolejkach.",
+            "Zweryfikowany komplet 91 rozegranych meczów i końcowa tabela A-klasy Myślenice 2019/20; "
+            "sezon zakończony po 13 kolejkach. " + CROSS_SOURCE_NOTE,
         )
         match_rows = save_matches(conn, matches, source_id)
         table_rows = save_club_stats(conn, standings, source_id)
         season_id = get_or_create_season(conn, SEASON)
 
         notes = {
-            "matches": "KtoWygral: komplet 91 rozegranych meczów (13 kolejek po 7); sezon przerwany po rundzie jesiennej.",
-            "dates": "KtoWygral: data i godzina dla wszystkich 91 rozegranych meczów.",
-            "standings": "KtoWygral: końcowa tabela 14 drużyn po 13 rozegranych meczach każdej drużyny.",
+            "matches": "KtoWygral: komplet 91 rozegranych meczów (13 kolejek po 7); sezon zakończony po rundzie jesiennej. " + CROSS_SOURCE_NOTE,
+            "dates": "KtoWygral: data i godzina dla wszystkich 91 rozegranych meczów; terminarz porównany z Futmal.",
+            "standings": "KtoWygral: końcowa tabela 14 drużyn po 13 rozegranych meczach każdej drużyny; bilanse przeliczone ponownie z listy meczów.",
             "club_memberships": "KtoWygral: pełna końcowa tabela 14 uczestników sezonu 2019/20.",
         }
         for dataset, note in notes.items():
@@ -128,7 +144,9 @@ def main() -> None:
     print("2019/20: walidacja referencji OK")
     print(f"2019/20: mecze zapisane/przetworzone={match_rows}, w bazie={stored_matches}/91")
     print(f"2019/20: tabela zapisana/przetworzona={table_rows}, w bazie={stored_clubs}/14")
-    print(f"Źródło: {SOURCE_URL}")
+    print(f"Źródło bazowe: {SOURCE_URL}")
+    print(f"Kontrola: {FUTMAL_CROSSCHECK_URL}")
+    print(f"Kontrola: {REGIO_CROSSCHECK_URL}")
 
 
 if __name__ == "__main__":
