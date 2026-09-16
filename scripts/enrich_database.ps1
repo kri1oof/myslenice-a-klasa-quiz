@@ -19,7 +19,7 @@ myslenice-quiz fetch-mzpn --season "2026/27" "https://krakow.malopolskizpn.pl/ro
 
 Write-Host "[5/13] Historyczne terminarze Futbolowo 2014/15-2016/17 i 2021/22"
 $futbolowoSchedules = @(
-  @{ Season = "2014/15"; Url = "https://dziecanovia.futbolowo.pl/schedule/420/3502/16359" },
+  @{ Season = "2014/15"; Url = "https://rokitakornatka.futbolowo.pl/schedule/420/3502/16359" },
   @{ Season = "2015/16"; Url = "https://rokitakornatka.futbolowo.pl/schedule/420/8299/9651" },
   @{ Season = "2016/17"; Url = "https://rokitakornatka.futbolowo.pl/schedule/420/12308/9650" },
   @{ Season = "2021/22"; Url = "https://dziecanovia.futbolowo.pl/schedule/420/24698/270" }
