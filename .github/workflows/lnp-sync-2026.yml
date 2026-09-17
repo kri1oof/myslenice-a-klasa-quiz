@@ -18,7 +18,7 @@ jobs:
       - name: Restore latest full snapshot as cache
         run: |
           mkdir -p /tmp/lnp-cache
-          RUN_ID="$(gh run list --workflow 'LNP full sync' --branch lnp-data-2025-2027 --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          RUN_ID="$(gh run list --workflow 'LNP full sync' --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
           if [ -n "$RUN_ID" ]; then
             echo "Using cache from LNP full sync run: $RUN_ID"
             gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp-cache || true
