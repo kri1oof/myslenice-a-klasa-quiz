@@ -1,0 +1,124 @@
+/* Club-first pre-match setup for Match RPG. */
+body.rpg-setup-mode #match-settings {
+  border: 2px solid #bbf7d0;
+  border-radius: 16px;
+  background: #fbfffc;
+  box-shadow: 0 10px 28px rgba(22, 101, 52, .07);
+}
+body.rpg-setup-mode #match-settings > summary {
+  padding: 12px 14px;
+  border-bottom-color: #dcfce7;
+}
+body.rpg-setup-mode #match-settings > summary strong { color: #14532d; }
+body.rpg-setup-mode #match-settings > summary small { color: #4b6354; }
+
+body.rpg-setup-mode .match-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  padding-top: 11px;
+}
+
+.rpg-setup-heading { display: none; }
+body.rpg-setup-mode .rpg-setup-heading {
+  grid-column: 1 / -1;
+  order: -30;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  background: #f0fdf4;
+}
+.rpg-setup-heading > div { display: grid; gap: 2px; min-width: 0; }
+.rpg-setup-heading span {
+  color: #15803d;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+.rpg-setup-heading strong { color: #14532d; font-size: 16px; }
+.rpg-setup-heading small { color: #476553; font-size: 11px; line-height: 1.35; }
+.rpg-setup-heading em {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.rpg-setup-heading em.ready { background: #dcfce7; color: #166534; }
+
+body.rpg-setup-mode .rpg-setup-club { order: -20; }
+body.rpg-setup-mode .rpg-setup-season-mode { order: -19; }
+body.rpg-setup-mode .rpg-setup-season-from { order: -18; }
+body.rpg-setup-mode .rpg-setup-season-to { order: -17; }
+body.rpg-setup-mode .rpg-setup-scope { order: -16; }
+body.rpg-setup-mode .rpg-setup-style { order: 4; }
+body.rpg-setup-mode .advanced-options { order: 5; }
+
+body.rpg-setup-mode .rpg-setup-club,
+body.rpg-setup-mode .rpg-setup-season-mode,
+body.rpg-setup-mode .rpg-setup-season-from,
+body.rpg-setup-mode .rpg-setup-season-to {
+  padding: 11px;
+  border: 1px solid #d7e4da;
+  border-radius: 13px;
+  background: #fff;
+}
+body.rpg-setup-mode .rpg-setup-club { border-color: #86efac; background: #f7fff9; }
+body.rpg-setup-mode .rpg-setup-scope {
+  grid-column: 1 / -1;
+  padding: 9px 11px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+body.rpg-setup-mode .rpg-setup-scope::after {
+  content: 'Opcjonalnie: przełącz na całą ligę, jeśli nie chcesz ograniczać pytań do jednego klubu.';
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.3;
+}
+body.rpg-setup-mode .rpg-setup-club select,
+body.rpg-setup-mode .rpg-setup-season-mode select,
+body.rpg-setup-mode .rpg-setup-season-from select,
+body.rpg-setup-mode .rpg-setup-season-to select,
+body.rpg-setup-mode .rpg-setup-scope select {
+  margin-top: 5px;
+  min-height: 44px;
+  font-weight: 750;
+}
+
+body.rpg-setup-mode #new-game:disabled {
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+body.rpg-setup-mode #new-game:not(:disabled) {
+  box-shadow: 0 8px 22px rgba(22, 101, 52, .18);
+}
+
+@media (max-width: 700px) {
+  body.rpg-setup-mode .match-settings-grid { grid-template-columns: 1fr; }
+  body.rpg-setup-mode .rpg-setup-heading { align-items: flex-start; }
+  .rpg-setup-heading em { white-space: normal; text-align: center; }
+  body.rpg-setup-mode .rpg-setup-scope { grid-column: auto; }
+}
+
+@media (max-width: 480px) {
+  body.rpg-setup-mode .rpg-setup-heading { display: grid; gap: 8px; padding: 11px; }
+  .rpg-setup-heading em { justify-self: start; }
+  body.rpg-setup-mode .rpg-setup-club,
+  body.rpg-setup-mode .rpg-setup-season-mode,
+  body.rpg-setup-mode .rpg-setup-season-from,
+  body.rpg-setup-mode .rpg-setup-season-to { padding: 9px; }
+}
