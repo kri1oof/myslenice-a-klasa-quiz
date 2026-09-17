@@ -1,7 +1,7 @@
 name: LNP probe
 on:
   push:
-    branches: [main, lnp-data-2025-2027]
+    branches: [main, lnp-data-2025-2027, lnp-history-2024-25]
     paths:
       - 'scripts/lnp_probe.mjs'
       - '.github/workflows/lnp-probe.yml'
