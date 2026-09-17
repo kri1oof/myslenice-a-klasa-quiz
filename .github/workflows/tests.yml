@@ -67,6 +67,7 @@ jobs:
           node --check web/ux-polish.js
           node --check web/a-class-lifelines.js
           node --check web/rpg-setup-ux.js
+          node --check web/rpg-clarity.js
           node --check web/dev-tools.js
       - name: Match situations smoke test
         run: node tests/match-scenarios-smoke.mjs
@@ -100,6 +101,8 @@ jobs:
         run: node tests/a-class-lifelines-squad-smoke.mjs
       - name: RPG setup UX smoke test
         run: node tests/rpg-setup-ux-smoke.mjs
+      - name: RPG clarity and contrast smoke test
+        run: node tests/rpg-clarity-smoke.mjs
       - name: ŁNP incremental sync smoke test
         run: |
           node --check scripts/lnp_sync_helpers.mjs
