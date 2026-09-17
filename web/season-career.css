@@ -1,0 +1,139 @@
+.rpg-season-career-hud {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(120px, .7fr) minmax(120px, .7fr);
+  gap: 10px;
+  margin: 10px 0;
+  padding: 12px;
+  border: 1px solid rgba(245, 197, 66, .35);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(245, 197, 66, .12), rgba(255, 255, 255, .025));
+}
+
+.rpg-season-career-hud.hidden { display: none; }
+.rpg-season-career-hud > div { min-width: 0; }
+.rpg-season-career-hud small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: .12em;
+  opacity: .68;
+  text-transform: uppercase;
+}
+.rpg-season-career-hud strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+}
+.rpg-season-career-hud span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  opacity: .86;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.career-hud-table,
+.career-hud-development {
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, .12);
+}
+
+.career-development-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(245, 197, 66, .14);
+  border: 1px solid rgba(245, 197, 66, .28);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.career-round-summary {
+  margin: 18px 0 14px;
+}
+.career-round-card,
+.career-season-finale {
+  padding: 16px;
+  border: 1px solid rgba(245, 197, 66, .28);
+  border-radius: 16px;
+  background: rgba(245, 197, 66, .07);
+}
+.career-round-card > span,
+.career-season-finale > span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  opacity: .72;
+}
+.career-round-card h3,
+.career-season-finale h3 {
+  margin: 6px 0;
+  font-size: 21px;
+}
+.career-round-card p,
+.career-season-finale p { margin: 4px 0; }
+.career-round-card small { opacity: .64; }
+.career-season-finale.achieved {
+  border-color: rgba(98, 210, 128, .42);
+  background: rgba(98, 210, 128, .08);
+}
+
+.career-table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .13);
+}
+.career-table-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 7px;
+  font-size: 12px;
+}
+.career-table-head span { opacity: .66; }
+.career-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.career-table th,
+.career-table td {
+  padding: 7px 10px;
+  border-top: 1px solid rgba(255, 255, 255, .07);
+  text-align: right;
+}
+.career-table th:nth-child(2),
+.career-table td:nth-child(2) { text-align: left; }
+.career-table th { opacity: .58; font-weight: 700; }
+.career-own-row { background: rgba(245, 197, 66, .1); }
+.career-own-row td:nth-child(2) { font-weight: 800; }
+
+.career-next-match,
+.career-new-season {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.career-mode-card {
+  border-color: rgba(245, 197, 66, .3) !important;
+}
+.career-mode-card.selected {
+  box-shadow: inset 0 0 0 1px rgba(245, 197, 66, .5);
+}
+
+@media (max-width: 760px) {
+  .rpg-season-career-hud { grid-template-columns: 1fr 1fr; }
+  .career-hud-main { grid-column: 1 / -1; }
+  .career-hud-table { padding-left: 0; border-left: 0; }
+  .career-hud-development { padding-left: 10px; }
+  .career-table-head { flex-direction: column; gap: 2px; }
+}
