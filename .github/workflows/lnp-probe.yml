@@ -1,0 +1,30 @@
+name: LNP probe
+on:
+  push:
+    branches: [lnp-data-2025-2027]
+    paths:
+      - 'scripts/lnp_probe.mjs'
+      - '.github/workflows/lnp-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/lnp_probe.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lnp-probe
+          path: |
+            lnp_probe.json
+            lnp_probe.html
+            lnp_probe.png
+          if-no-files-found: ignore
