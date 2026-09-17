@@ -1,0 +1,317 @@
+/* Focused UX pass. Loaded after readability.css. */
+:root {
+  --ux-ink: #0f172a;
+  --ux-muted: #475569;
+  --ux-line: #d8e0e9;
+  --ux-panel: #ffffff;
+  --ux-soft: #f7f9fc;
+  --ux-accent: #166534;
+  --ux-accent-soft: #ecfdf3;
+}
+
+/* Landing: five modes become two understandable groups instead of one long stack. */
+.mode-grid { gap: 14px; }
+.ux-mode-group {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 17px;
+  background: rgba(0,0,0,.14);
+}
+.ux-mode-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 3px 2px;
+}
+.ux-mode-heading strong { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #dcfce7; }
+.ux-mode-heading small { color: rgba(255,255,255,.55); font-size: 11px; }
+.ux-mode-cards { display: grid; gap: 7px; }
+.mode-card {
+  min-height: 64px;
+  padding: 10px 12px;
+  grid-template-columns: 38px minmax(0,1fr) auto;
+  border-radius: 13px;
+}
+.mode-icon { width: 38px; height: 38px; border-radius: 10px; font-size: 19px; }
+.mode-card strong { font-size: 14px; }
+.mode-card small {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.28;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mode-card.selected small { color: rgba(255,255,255,.8); }
+
+/* Setup: explicit next step and fewer irrelevant controls in season modes. */
+.ux-setup-guide {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid #bbf7d0;
+  border-radius: 13px;
+  background: var(--ux-accent-soft);
+  color: #14532d;
+}
+.ux-setup-guide > span {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #dcfce7;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+.ux-setup-guide > div { display: grid; gap: 1px; min-width: 0; }
+.ux-setup-guide strong { font-size: 13px; }
+.ux-setup-guide small { color: #3f6250; font-size: 11px; line-height: 1.35; }
+.ux-auto-hidden { display: none !important; }
+.ux-season-mode .match-settings-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.ux-season-mode #club-label,
+.ux-season-mode #season-from-label { display: grid; }
+.ux-season-mode #season-to-label { display: none !important; }
+.ux-season-mode .advanced-options { opacity: .9; }
+
+/* The career strip is the one persistent secondary HUD that deserves to stay visible. */
+.rpg-season-career-hud {
+  grid-template-columns: minmax(0, 1.7fr) minmax(110px,.7fr) minmax(110px,.7fr) !important;
+  margin: 2px 0 4px !important;
+  padding: 9px 11px !important;
+  gap: 9px !important;
+  border: 1px solid #d7e2d9 !important;
+  border-radius: 12px !important;
+  background: #f7fbf8 !important;
+  color: var(--ux-ink) !important;
+  box-shadow: none !important;
+}
+.rpg-season-career-hud small { color: #64748b !important; opacity: 1 !important; font-size: 9px !important; }
+.rpg-season-career-hud strong { color: #172033 !important; font-size: 13px !important; }
+.rpg-season-career-hud span { color: #475569 !important; opacity: 1 !important; font-size: 11px !important; }
+.career-hud-table,
+.career-hud-development { border-left-color: #dbe5dd !important; }
+
+/* Match context becomes visually quiet; the current action remains dominant. */
+.rpg-context-drawer {
+  background: #fbfcfd;
+  border-color: #e3e8ef;
+}
+.rpg-context-drawer > summary { padding: 8px 10px; }
+.rpg-context-drawer > summary strong { font-size: 12px; }
+.rpg-context-drawer > summary small { font-size: 10px; color: #718096; }
+.rpg-context-drawer > summary em { background: #eef2f6; color: #526174; }
+.rpg-action-panel {
+  margin-top: 4px;
+  padding: 15px;
+  border: 1px solid #dce5ee;
+  border-radius: 15px;
+  background: #fff;
+}
+.rpg-action-heading { margin-bottom: 9px; }
+.rpg-action-heading strong { font-size: 20px; }
+.rpg-actions { gap: 9px; }
+.rpg-action { min-height: 0; padding: 12px; }
+.rpg-action p { margin-top: 3px; }
+
+/* Question chrome is quieter: content and answer buttons win. */
+.quiz .meta { gap: 6px; }
+.quiz .meta span { padding: 4px 7px; font-size: 10px; }
+#question-type-label { display: none; }
+.quiz h2 { line-height: 1.25; }
+.answers { gap: 9px; }
+.answers button { min-height: 48px; }
+
+/* Career results: one result card, table on demand. */
+.career-round-summary { display: grid; gap: 10px; }
+.career-round-card,
+.career-season-finale {
+  margin: 0 !important;
+  padding: 14px !important;
+  border-color: #dce4dd !important;
+  background: #f8fbf8 !important;
+  color: var(--ux-ink) !important;
+}
+.career-round-card > span,
+.career-season-finale > span,
+.career-round-card small { color: #64748b !important; opacity: 1 !important; }
+.career-round-card h3,
+.career-season-finale h3 { color: #172033; margin: 5px 0 !important; }
+.career-round-card p,
+.career-season-finale p { color: #475569; }
+.career-table-details,
+.president-trust-details,
+.president-option-details {
+  border: 1px solid var(--ux-line);
+  border-radius: 12px;
+  background: var(--ux-soft);
+  color: var(--ux-ink);
+  overflow: hidden;
+}
+.career-table-details > summary,
+.president-trust-details > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.career-table-details > summary::-webkit-details-marker,
+.president-trust-details > summary::-webkit-details-marker { display: none; }
+.career-table-details > summary span,
+.president-trust-details > summary span { display: grid; gap: 1px; }
+.career-table-details > summary strong,
+.president-trust-details > summary strong { color: #1e293b; font-size: 12px; }
+.career-table-details > summary small,
+.president-trust-details > summary small { color: #64748b; font-size: 10px; }
+.career-table-details > summary em,
+.president-trust-details > summary em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  color: #475569;
+}
+.career-table-details .career-table-wrap {
+  margin: 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--ux-line) !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  color: #172033 !important;
+}
+.career-table-details .career-table-head,
+.career-table-details .career-table th,
+.career-table-details .career-table td { color: #334155; }
+.career-table-details .career-table th,
+.career-table-details .career-table td { border-top-color: #e7ecf2 !important; }
+.career-own-row { background: #f0fdf4 !important; }
+.career-next-match,
+.career-new-season { margin-top: 0 !important; min-height: 48px; }
+
+/* President: situation first, decision second, metrics only on request. */
+.president-decision-panel { margin: 10px 0 !important; }
+.president-decision-card {
+  padding: 16px !important;
+  border-radius: 18px !important;
+  border-color: #dce4eb !important;
+  background: #fff !important;
+  color: var(--ux-ink) !important;
+  box-shadow: 0 12px 38px rgba(15,23,42,.08) !important;
+}
+.president-decision-head { margin-bottom: 10px !important; }
+.president-decision-head small,
+.president-decision-head em,
+.president-budget small { color: #64748b !important; opacity: 1 !important; }
+.president-decision-head strong,
+.president-budget strong { color: #172033 !important; }
+.president-budget {
+  border-color: #dce4eb !important;
+  background: #f8fafc !important;
+  color: #172033 !important;
+}
+.president-trust-details { margin: 0 0 12px; }
+.president-trust-details[open] > summary { border-bottom: 1px solid var(--ux-line); background: #fff; }
+.president-trust-details .president-trust-grid,
+.president-trust-details .president-report-trust { margin: 0 !important; padding: 10px 12px; background: #fff; }
+.president-trust-details .president-trust-row > span,
+.president-trust-details .president-trust-row > strong { color: #334155; opacity: 1; }
+.president-trust-details .president-trust-track { background: #e2e8f0; }
+.president-trust-details .president-trust-track i { background: #64748b; }
+.president-case {
+  grid-template-columns: 52px 1fr !important;
+  gap: 12px !important;
+  padding: 14px !important;
+  border-color: #cdebd5 !important;
+  background: #f2fbf5 !important;
+  color: #172033 !important;
+}
+.president-case-icon { width: 52px !important; height: 52px !important; border-radius: 13px !important; background: #dcfce7 !important; }
+.president-case small { color: #4b6b56 !important; opacity: 1 !important; }
+.president-case h2 { margin: 2px 0 5px !important; color: #173328; }
+.president-case p { color: #3f5f49 !important; opacity: 1 !important; }
+.president-options-heading { display: grid; gap: 1px; margin: 14px 0 8px; color: #172033; }
+.president-options-heading strong { font-size: 14px; }
+.president-options-heading small { color: #64748b; font-size: 11px; }
+.president-options { gap: 9px !important; margin-top: 0 !important; }
+.president-option-wrap {
+  display: grid;
+  align-content: start;
+  border: 1px solid #dce4eb;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.president-option {
+  min-height: 0 !important;
+  padding: 13px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  color: #172033 !important;
+}
+.president-option:hover:not(:disabled) { background: #f8fbf9 !important; }
+.president-option strong { color: #172033; font-size: 14px !important; }
+.president-option span { color: #475569; opacity: 1 !important; font-size: 12px !important; }
+.president-option-cta { margin-top: 4px; color: #166534; font-size: 11px; }
+.president-option-unavailable { color: #9f1239 !important; opacity: 1 !important; }
+.president-option-details { border-width: 1px 0 0; border-radius: 0; background: #f8fafc; }
+.president-option-details > summary { padding: 7px 12px; cursor: pointer; color: #526174; font-size: 10px; font-weight: 800; }
+.president-option-details small { display: block; padding: 0 12px 9px; color: #64748b; font-size: 10px; line-height: 1.35; }
+.president-disclaimer { color: #64748b !important; opacity: 1 !important; font-size: 10px; }
+
+/* President reports should read as summaries, not another dashboard wall. */
+.president-round-card {
+  margin: 0 !important;
+  padding: 13px !important;
+  border-color: #dce4eb !important;
+  background: #fff !important;
+  color: #172033 !important;
+}
+.president-report-head > span,
+.president-finale-grid > span { background: #f8fafc !important; color: #172033 !important; }
+.president-report-head small,
+.president-finale-grid small,
+.president-report-head em,
+.president-finale-grid em,
+.president-round-card > small { color: #64748b !important; opacity: 1 !important; }
+
+/* Dark HUDs inside the context drawer keep guaranteed contrast. */
+.rpg-context-content .rpg-president-hud,
+.rpg-context-content .rpg-character-hud,
+.rpg-context-content .rpg-player-mental-hud,
+.rpg-context-content .rpg-rivalry-hud,
+.rpg-context-content .rpg-tactical-hud,
+.rpg-context-content .rpg-a-class-event-hud,
+.rpg-context-content .rpg-powerup-hud { color: #f8fafc !important; }
+
+@media (max-width: 820px) {
+  .ux-season-mode .match-settings-grid { grid-template-columns: 1fr 1fr; }
+  .president-options { grid-template-columns: 1fr !important; }
+  .rpg-season-career-hud { grid-template-columns: 1fr 1fr !important; }
+  .rpg-season-career-hud .career-hud-main { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+  .landing-copy { display: none; }
+  .landing-inner { display: block; }
+  .mode-picker { width: 100%; }
+  .ux-mode-heading { align-items: center; }
+  .mode-card { min-height: 58px; padding: 9px 10px; }
+  .mode-card small { -webkit-line-clamp: 1; }
+  .ux-setup-guide { align-items: flex-start; }
+  .ux-season-mode .match-settings-grid { grid-template-columns: 1fr; }
+  .rpg-season-career-hud { grid-template-columns: 1fr 1fr !important; padding: 8px !important; }
+  .career-hud-main { grid-column: 1 / -1; }
+  .president-decision-card { padding: 12px !important; }
+  .president-decision-head { gap: 8px !important; }
+  .president-case { grid-template-columns: 42px 1fr !important; padding: 11px !important; }
+  .president-case-icon { width: 42px !important; height: 42px !important; }
+  .president-case h2 { font-size: 17px !important; }
+}
