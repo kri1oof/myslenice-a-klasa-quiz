@@ -2,8 +2,8 @@
 const aClassLifelinesCore = globalThis.QuestionSanityCore;
 
 function normalizeLoadedQuestions() {
-  if (!aClassLifelinesCore || state.aClassQuestionSanityApplied) return;
-  state.all = aClassLifelinesCore.normalizeQuestions(state.all || []);
+  if (!aClassLifelinesCore || state.aClassQuestionSanityApplied || !Array.isArray(state.all) || !state.all.length) return;
+  state.all = aClassLifelinesCore.normalizeQuestions(state.all);
   state.aClassQuestionSanityApplied = true;
 }
 
@@ -76,10 +76,6 @@ if (typeof useRpgHint === 'function') {
   const aClassBaseUseRpgHint = useRpgHint;
   useRpgHint = function aClassUseRpgHint() {
     const result = aClassBaseUseRpgHint();
-    const phase = el('phase-card');
-    if (phase && !phase.classList.contains('hidden')) {
-      phase.textContent = '📣 Krzyk z ławki: dwie błędne odpowiedzi odpadają.';
-    }
     renderAClassLifelineButtons();
     return result;
   };
