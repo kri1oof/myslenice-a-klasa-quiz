@@ -6,6 +6,7 @@ const source = fs.readFileSync(new URL('../web/dev-tools.js', import.meta.url), 
 
 function makeContext(search = '?dev=1') {
   const logs = [];
+  const mediaCalls = [];
   const ctx = {
     console,
     URLSearchParams,
@@ -56,6 +57,10 @@ function makeContext(search = '?dev=1') {
     },
     renderArcadeHud: () => { ctx.renderHudCalls += 1; },
     LOCAL_MATCH_AMBIENT: [['📣 TEST', 'TESTOWY OKRZYK']],
+    localMediaForce: sourceId => {
+      mediaCalls.push(sourceId);
+      return { source: sourceId, effect: 'test_effect' };
+    },
     renderBoardCalls: 0,
     renderPanelCalls: 0,
     renderHudCalls: 0,
@@ -63,11 +68,11 @@ function makeContext(search = '?dev=1') {
   ctx.globalThis = ctx;
   vm.createContext(ctx);
   vm.runInContext(source, ctx, { filename: 'web/dev-tools.js' });
-  return { ctx, logs };
+  return { ctx, logs, mediaCalls };
 }
 
 {
-  const { ctx, logs } = makeContext('?dev=1');
+  const { ctx, logs, mediaCalls } = makeContext('?dev=1');
   assert.equal(vm.runInContext('RPG_DEV_ENABLED', ctx), true, 'dev mode should be enabled');
   assert.ok(ctx.window.RPG_DEV, 'public developer API should exist in dev mode');
 
@@ -84,6 +89,18 @@ function makeContext(search = '?dev=1') {
     assert.equal(ctx.state.rpgPossession, possession, `${key} possession`);
     assert.equal(ctx.state.rpgZone, zone, `${key} zone`);
     assert.equal(ctx.state.rpgSetPiece?.type, type, `${key} type`);
+  }
+
+  const mediaExpected = {
+    media_koneserzy: 'koneserzy',
+    media_fotopstryki: 'fotopstryki',
+    media_zatrzymaj: 'zatrzymaj',
+    media_futmal: 'futmal',
+  };
+  for (const [key, sourceId] of Object.entries(mediaExpected)) {
+    assert.equal(vm.runInContext(`rpgDevApply(${JSON.stringify(key)}, false)`, ctx), true, `${key} should apply`);
+    assert.equal(mediaCalls.at(-1), sourceId, `${key} should force ${sourceId}`);
+    assert.ok(ctx.window.RPG_DEV.events.includes(key), `${key} should be exposed in developer API`);
   }
 
   ctx.state.rpgMomentum = 17;
@@ -112,10 +129,18 @@ function makeContext(search = '?dev=1') {
 }
 
 {
+  const { ctx, mediaCalls } = makeContext('?dev=1&event=media_futmal');
+  vm.runInContext('resetRpgState()', ctx);
+  vm.runInContext('renderActionPanel()', ctx);
+  assert.equal(mediaCalls.at(-1), 'futmal', 'URL should be able to queue a Futmal media event');
+}
+
+{
   const { ctx } = makeContext('');
   assert.equal(vm.runInContext('RPG_DEV_ENABLED', ctx), false, 'dev mode must be off by default');
   assert.equal(ctx.window.RPG_DEV, undefined, 'developer API must not leak into normal mode');
   assert.equal(vm.runInContext("rpgDevApply('penalty', false)", ctx), false, 'normal mode must reject forced events');
+  assert.equal(vm.runInContext("rpgDevApply('media_koneserzy', false)", ctx), false, 'normal mode must reject forced media events');
 }
 
 console.log('dev-tools smoke: OK');
