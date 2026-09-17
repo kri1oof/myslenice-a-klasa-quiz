@@ -7,9 +7,9 @@ ensureLandingScreen = function arcadeFrontEnsureLandingScreen() {
   const kicker = screen?.querySelector('.landing-kicker');
   const subtitle = screen?.querySelector('.landing-subtitle');
   const matchCard = screen?.querySelector('.mode-card[data-mode="match90"] small');
-  if (kicker) kicker.textContent = 'MYŚLENICKA A-KLASA · ARCADE RPG · v0.3';
-  if (subtitle) subtitle.textContent = 'Rozgrywaj akcje, buduj formę i combo, odpalaj zagrania specjalne oraz reaguj na styl rywala, stałe fragmenty i losowe wydarzenia meczu.';
-  if (matchCard) matchCard.textContent = 'Arcade RPG: momentum, sekwencje akcji, specjalne zagrania, style rywali i wydarzenia meczowe.';
+  if (kicker) kicker.textContent = 'MYŚLENICKA A-KLASA · SWOJSKIE ARCADE RPG · v0.3.1';
+  if (subtitle) subtitle.textContent = 'Laga, klepka, wrzutka na aferę, strzał życia po widłach i trochę piłkarskiej wiedzy. Rozgrywaj akcje, buduj ogień i przeżyj pełne 90 minut lokalnego futbolu.';
+  if (matchCard) matchCard.textContent = 'Arcade RPG po A-klasowemu: laga i do przodu, murarka, stałe fragmenty, ogień, combo i wydarzenia z lokalnego boiska.';
   return screen;
 };
 
