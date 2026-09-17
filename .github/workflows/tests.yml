@@ -55,6 +55,7 @@ jobs:
           node --check web/president-mode-career-bridge.js
           node --check web/president-mode-core.js
           node --check web/president-mode.js
+          node --check web/president-mode-lifecycle.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
