@@ -1,0 +1,151 @@
+.rpg-player-mental-hud {
+  display: grid;
+  gap: .65rem;
+  padding: .8rem .95rem;
+  margin-top: .7rem;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  background: rgba(8,15,25,.72);
+}
+
+.mental-hud-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mental-hud-head span {
+  display: grid;
+  gap: .1rem;
+}
+
+.mental-hud-head small,
+.mental-disclaimer {
+  opacity: .68;
+  font-size: .72rem;
+  letter-spacing: .04em;
+}
+
+.mental-hud-head strong {
+  font-size: .98rem;
+}
+
+#rpg-mental-impact {
+  padding: .28rem .5rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  font-style: normal;
+  font-size: .78rem;
+  white-space: nowrap;
+}
+
+#rpg-mental-impact.positive,
+.mental-impact.positive {
+  background: rgba(35,170,95,.16);
+}
+
+#rpg-mental-impact.negative,
+.mental-impact.negative {
+  background: rgba(215,68,68,.16);
+}
+
+.mental-meters {
+  display: grid;
+  gap: .5rem;
+}
+
+.mental-meter-row {
+  display: grid;
+  grid-template-columns: minmax(105px, .9fr) minmax(120px, 2fr) 34px;
+  gap: .65rem;
+  align-items: center;
+}
+
+.mental-meter-row > span {
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+}
+
+.mental-meter-row b {
+  font-size: .82rem;
+}
+
+.mental-meter-row small {
+  opacity: .65;
+  font-size: .7rem;
+}
+
+.mental-meter-row > strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mental-meter-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.09);
+}
+
+.mental-meter-track i {
+  display: block;
+  height: 100%;
+  width: 50%;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: .82;
+  transition: width .25s ease;
+}
+
+.mental-impact {
+  margin-top: .45rem;
+  padding: .35rem .5rem;
+  border-radius: 8px;
+  background: rgba(255,255,255,.055);
+  font-size: .72rem;
+  opacity: .9;
+}
+
+.player-mental-resolution {
+  display: grid;
+  gap: .15rem;
+  margin-top: .55rem;
+  padding: .55rem .7rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,.06);
+}
+
+.player-mental-resolution.good {
+  box-shadow: inset 3px 0 0 rgba(35,170,95,.75);
+}
+
+.player-mental-resolution.bad {
+  box-shadow: inset 3px 0 0 rgba(215,68,68,.75);
+}
+
+.player-mental-resolution strong {
+  font-size: .78rem;
+}
+
+.player-mental-resolution span {
+  font-size: .75rem;
+  opacity: .82;
+}
+
+@media (max-width: 680px) {
+  .mental-hud-head {
+    align-items: flex-start;
+  }
+
+  .mental-meter-row {
+    grid-template-columns: 95px 1fr 30px;
+    gap: .45rem;
+  }
+
+  .mental-meter-row > span {
+    display: grid;
+    gap: 0;
+  }
+}
