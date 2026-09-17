@@ -4,57 +4,80 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const core = require('../web/president-mode-core.js');
 
-assert.equal(core.DECISIONS.length, 18, 'first president-mode version should expose 18 organizational decisions');
-assert.equal(new Set(core.DECISIONS.map(item => item.id)).size, 18, 'decision ids must be unique');
+assert.equal(core.DECISIONS.length, 26, 'president v2 should cover a full A-class season with varied club issues');
+assert.equal(new Set(core.DECISIONS.map(item => item.id)).size, 26, 'decision ids must be unique');
 assert.ok(core.DECISIONS.every(item => Array.isArray(item.choices) && item.choices.length === 3), 'every decision should have three choices');
-assert.ok(core.DECISIONS.every(item => item.choices.some(choice => Number(choice.effect?.budget || 0) >= 0)), 'every decision needs at least one no-debt fallback');
+assert.ok(core.DECISIONS.every(item => item.choices.every(choice => !('match' in (choice.effect || {})))), 'president decisions must not contain in-match action bonuses');
+
+const categories = new Set(core.DECISIONS.map(item => item.category));
+for (const category of ['finance','staff','squad','academy','facilities','organization','community']) {
+  assert.ok(categories.has(category), `missing president category: ${category}`);
+}
 
 const initial = core.initialState(26, () => 0.42);
 assert.equal(initial.budget, 12000);
+assert.equal(initial.recurring, 0);
 assert.deepEqual(initial.trust, { players:55, coach:55, supporters:50, sponsors:50 });
-assert.equal(initial.order.length, 18);
-assert.equal(new Set(initial.order).size, 18);
+assert.deepEqual(initial.areas, { squad:55, staff:55, academy:45, facilities:45, organization:55, community:50 });
+assert.equal(initial.order.length, 26);
+assert.equal(new Set(initial.order).size, 26);
+assert.equal('currentMatchEffect' in initial, false, 'v2 must not keep an in-match president modifier');
 
-const first = core.pickDecision(initial, 0);
-assert.ok(first);
-const applied = core.applyChoice(initial, first, 0, 0);
+const sponsor = core.decisionById('shirt_sponsor');
+assert.ok(sponsor);
+const applied = core.applyChoice(initial, sponsor, 0, 0);
 assert.equal(applied.ok, true);
-assert.equal(applied.profile.usedIds.includes(first.id), true);
+assert.equal(applied.profile.budget, 16200);
+assert.equal(applied.profile.recurring, 220);
+assert.equal(applied.profile.trust.sponsors, 58);
+assert.equal(applied.profile.areas.community, 53);
 assert.equal(applied.profile.history.length, 1);
-assert.equal(applied.profile.decidedRound, 0);
-assert.notEqual(core.pickDecision(applied.profile, 1)?.id, first.id, 'used decisions should not repeat');
+assert.equal(applied.profile.history[0].category, 'finance');
+assert.equal(applied.profile.usedIds.includes('shirt_sponsor'), true);
+assert.notEqual(core.pickDecision(applied.profile, 1)?.id, 'shirt_sponsor', 'fresh decisions should be preferred');
 
 const broke = { ...initial, budget:100 };
-const expensiveDecision = core.DECISIONS.find(item => item.choices.some(choice => Number(choice.effect?.budget || 0) < -100));
-const expensiveIndex = expensiveDecision.choices.findIndex(choice => Number(choice.effect?.budget || 0) < -100);
-assert.equal(core.canChoose(broke, expensiveDecision.choices[expensiveIndex]), false);
-assert.deepEqual(core.applyChoice(broke, expensiveDecision, expensiveIndex, 0), { ok:false, reason:'budget' });
+const expensive = core.decisionById('pitch_renovation');
+assert.equal(core.canChoose(broke, expensive.choices[0]), false);
+assert.deepEqual(core.applyChoice(broke, expensive, 0, 0), { ok:false, reason:'budget' });
+assert.equal(core.canChoose(broke, expensive.choices[2]), true, 'free fallback should keep the decision playable');
 
-assert.equal(core.chanceModifier({ all:0.02, attack:0.03, defence:-0.01 }, 'player'), 0.05);
-assert.equal(core.chanceModifier({ all:0.02, attack:0.03, defence:-0.01 }, 'opponent'), 0.01);
-assert.equal(core.adjustedChance(0.94, { all:0.08 }, 'player'), 0.97, 'chance should stay capped');
-assert.equal(core.adjustedChance(0.05, { all:-0.08 }, 'player'), 0.04, 'chance should keep a minimum');
+const healthy = {
+  ...initial,
+  areas:{ squad:80, staff:80, academy:70, facilities:70, organization:75, community:65 },
+  trust:{ players:75, coach:75, supporters:60, sponsors:60 },
+};
+const struggling = {
+  ...initial,
+  areas:{ squad:25, staff:25, academy:30, facilities:30, organization:25, community:35 },
+  trust:{ players:30, coach:30, supporters:40, sponsors:40 },
+};
+assert.ok(core.managementStrengthModifier(healthy) > 0);
+assert.ok(core.managementStrengthModifier(struggling) < 0);
+assert.ok(core.managementStrengthModifier(healthy) <= 5);
+assert.ok(core.managementStrengthModifier(struggling) >= -5);
+assert.ok(core.adjustedClubStrength(65, healthy) > 65);
+assert.ok(core.adjustedClubStrength(65, struggling) < 65);
 
-assert.equal(core.matchFinance({ venue:'DOM', result:'W' }), 1000);
-assert.equal(core.matchFinance({ venue:'DOM', result:'D' }), 800);
-assert.equal(core.matchFinance({ venue:'WYJAZD', result:'L' }), -250);
+const sponsorProfile = applied.profile;
+const homeWinFinance = core.roundFinance(sponsorProfile, { venue:'DOM', result:'W' });
+const awayLossFinance = core.roundFinance(sponsorProfile, { venue:'WYJAZD', result:'L' });
+assert.ok(homeWinFinance > awayLossFinance, 'home/win background economics should differ from away/loss');
 
-const afterWin = core.applyPostMatch(initial, { venue:'DOM', result:'W' });
-assert.equal(afterWin.budget, 13000);
-assert.deepEqual(afterWin.trust, { players:58, coach:57, supporters:53, sponsors:52 });
-assert.equal(afterWin.matches, 1);
-assert.equal(afterWin.currentMatchEffect, null);
-
-const afterLoss = core.applyPostMatch(initial, { venue:'WYJAZD', result:'L' });
-assert.equal(afterLoss.budget, 11750);
-assert.deepEqual(afterLoss.trust, { players:53, coach:53, supporters:47, sponsors:49 });
+const afterWin = core.applyPostRound(sponsorProfile, {
+  venue:'DOM', result:'W', match:{ home:'A', away:'B', homeGoals:2, awayGoals:1 },
+});
+assert.equal(afterWin.roundsCompleted, 1);
+assert.equal(afterWin.lastResult, 'W');
+assert.equal(afterWin.lastMatch.homeGoals, 2);
+assert.equal(afterWin.budget, sponsorProfile.budget + homeWinFinance);
+assert.equal(afterWin.trust.supporters, sponsorProfile.trust.supporters + 2);
 
 assert.equal(core.averageTrust(initial), 53);
+assert.equal(core.averageAreas(initial), 51);
 assert.equal(core.trustLabel(80), 'bardzo wysokie');
-assert.equal(core.trustLabel(65), 'wysokie');
-assert.equal(core.trustLabel(50), 'stabilne');
-assert.equal(core.trustLabel(30), 'niskie');
-assert.equal(core.trustLabel(10), 'kryzysowe');
+assert.equal(core.areaLabel(65), 'mocne');
+assert.equal(core.financeLabel({ budget:-1 }), 'zadłużenie');
 assert.match(core.money(12000), /12.*000.*zł/);
 
 console.log('president mode smoke: ok');
