@@ -42,6 +42,7 @@ jobs:
           LNP_CHUNK: '24'
         run: node scripts/lnp_sync.mjs
       - name: Validate incremental snapshot
+        id: validate
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -51,7 +52,16 @@ jobs:
             if (!data.seasons?.[label]) throw new Error(`Missing season ${label}`);
           }
           if ((data.errors || []).length) throw new Error(`ŁNP errors: ${JSON.stringify(data.errors.slice(0, 10))}`);
+
+          let changed = true;
+          if (fs.existsSync('lnp_cache.json')) {
+            const cached = JSON.parse(fs.readFileSync('lnp_cache.json', 'utf8'));
+            changed = JSON.stringify(cached.seasons || {}) !== JSON.stringify(data.seasons || {});
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\n`);
+
           console.log('SYNC_STATS', JSON.stringify(data.syncStats || {}));
+          console.log('DATA_CHANGED', changed);
           console.log('2025_EVENTS', Object.keys(data.seasons['2025/26'].events || {}).length);
           console.log('2026_EVENTS', Object.keys(data.seasons['2026/27'].events || {}).length);
           NODE
@@ -63,5 +73,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
       - name: Trigger question rebuild
-        if: success()
+        if: success() && steps.validate.outputs.changed == 'true'
         run: gh workflow run 'LNP build questions' --ref lnp-data-2025-2027
+      - name: Skip unchanged question rebuild
+        if: success() && steps.validate.outputs.changed != 'true'
+        run: echo 'ŁNP season data unchanged; question rebuild skipped.'
