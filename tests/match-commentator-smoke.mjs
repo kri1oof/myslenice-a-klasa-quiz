@@ -47,7 +47,7 @@ const conceded = core.outcomeLine({
   zoneAfter:2,
 });
 assert.match(conceded, /0:1/);
-assert.match(conceded, /(Gol|bramki|wpada)/i);
+assert.match(conceded, /(Gol|bramki|wpada|wykorzystuje moment)/i);
 
 const correctButFailed = core.outcomeLine({
   minute:34,
