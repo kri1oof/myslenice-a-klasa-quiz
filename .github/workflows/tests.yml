@@ -27,6 +27,7 @@ jobs:
           node --check web/match-mode.js
           node --check web/match-rpg.js
           node --check web/match-arcade.js
+          node --check web/local-football-flavour.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
       - name: Lint (advisory)
