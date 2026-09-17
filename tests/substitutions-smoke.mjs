@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const core = require('../web/substitutions-core.js');
+const closeTo = (actual, expected, epsilon = 1e-9) => assert.ok(Math.abs(actual - expected) < epsilon, `${actual} != ${expected}`);
 
 const active = {
   id: 'starter', player: 'Starter', club: 'Clavia', season: '2025/26', sample_reliable: true,
@@ -58,13 +59,13 @@ assert.ok(picked.every(p => p.club === 'Clavia' && p.season === '2025/26'));
 
 const good = core.knowledgeEffect(true);
 const bad = core.knowledgeEffect(false);
-assert.equal(core.adjustedChance(0.70, good), 0.76);
-assert.equal(core.adjustedChance(0.70, bad), 0.67);
+closeTo(core.adjustedChance(0.70, good), 0.76);
+closeTo(core.adjustedChance(0.70, bad), 0.67);
 assert.equal(core.tickEffect(good).actionsLeft, 1);
 assert.equal(core.tickEffect(core.tickEffect(good)), null);
 assert.match(core.effectLabel(good), /^\+6 pp/);
 assert.match(core.effectLabel(bad), /^-3 pp/);
-assert.equal(core.adjustedChance(0.95, good), 0.97);
-assert.equal(core.adjustedChance(0.05, bad), 0.04);
+closeTo(core.adjustedChance(0.95, good), 0.97);
+closeTo(core.adjustedChance(0.05, bad), 0.04);
 
 console.log('substitution core smoke test: OK');
