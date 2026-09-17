@@ -25,23 +25,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download latest successful full ŁNP snapshot
+      - name: Download latest ŁNP snapshot for this branch
         run: |
           mkdir -p /tmp/lnp
-          RUN_ID="$(gh run list --workflow 'LNP full sync' --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          RUN_ID="$(gh run list --workflow 'LNP full sync' --branch "$GITHUB_REF_NAME" --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
           test -n "$RUN_ID"
-          echo "Using LNP full sync run: $RUN_ID"
-          gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp
-          cp /tmp/lnp/lnp_myslenice.json lnp_myslenice_2025_26_2026_27.json
+          echo "Trying latest branch LNP full sync run: $RUN_ID"
+          if ! gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp; then
+            rm -rf /tmp/lnp/*
+            RUN_ID="$(gh run list --workflow 'LNP full sync' --branch "$GITHUB_REF_NAME" --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+            test -n "$RUN_ID"
+            echo "Latest artifact unavailable; falling back to successful branch run: $RUN_ID"
+            gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp
+          fi
+          cp /tmp/lnp/lnp_myslenice.json lnp_myslenice_all.json
       - name: Normalize snapshot
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          path = Path('lnp_myslenice_2025_26_2026_27.json')
+          path = Path('lnp_myslenice_all.json')
           data = json.loads(path.read_text(encoding='utf-8'))
-          required = {'2025/26', '2026/27'}
+          required = {'2024/25', '2025/26', '2026/27'}
           missing = required - set(data.get('seasons') or {})
           assert not missing, f'Missing seasons: {sorted(missing)}'
 
@@ -80,7 +86,7 @@ jobs:
         run: |
           START_TS=$(date +%s)
           python scripts/build_lnp_questions.py \
-            --raw lnp_myslenice_2025_26_2026_27.json \
+            --raw lnp_myslenice_all.json \
             --db lnp_build.db \
             --lnp-export lnp_questions.json \
             --existing web/data/questions.json \
@@ -103,8 +109,8 @@ jobs:
           assert any('laczynaspilka.pl' in src for q in lnp['questions'] for src in (q.get('sources') or []))
 
           seasons = Counter(q.get('season') for q in lnp['questions'])
-          assert seasons['2025/26'] > 0, seasons
-          assert seasons['2026/27'] > 0, seasons
+          for label in ('2024/25', '2025/26', '2026/27'):
+              assert seasons[label] > 0, seasons
 
           types = Counter(q.get('type') for q in lnp['questions'])
           required_types = {
@@ -135,7 +141,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No question database changes to commit.'
           else
-            git commit -m 'Expand quiz with ŁNP player decision questions'
+            git commit -m 'Expand quiz with ŁNP historical seasons'
             git push origin HEAD:"$GITHUB_REF_NAME"
           fi
       - name: Deploy updated quiz on Pages
@@ -146,7 +152,7 @@ jobs:
         with:
           name: lnp-built-quiz-data
           path: |
-            lnp_myslenice_2025_26_2026_27.json
+            lnp_myslenice_all.json
             lnp_questions.json
             lnp_build_summary.txt
           if-no-files-found: warn
