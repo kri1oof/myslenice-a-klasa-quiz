@@ -75,6 +75,7 @@ function resetTransferQuiz(questions) {
   el('match-hud')?.classList.add('hidden');
   el('rpg-board')?.classList.add('hidden');
   el('result')?.classList.add('hidden');
+  document.getElementById('transfer-case-file')?.remove();
 }
 
 function launchTransferInvestigation() {
@@ -96,7 +97,7 @@ function launchTransferInvestigation() {
   const transitionCount = state.transferInvestigationTransitions.length;
   const scope = selectedClub ? selectedClub : 'cała A-klasa Myślenice';
   if (el('status')) {
-    el('status').textContent = `🕵️ Śledztwo transferowe · ${scope} · ${transitionCount} potwierdzonych zmian klubowych · ${state.pool.length} spraw do rozwiązania.`;
+    el('status').textContent = `🕵️ Śledztwo transferowe · ${scope} · ${transitionCount} pewnych zmian klubowych · ${state.pool.length} spraw do rozwiązania.`;
     el('status').classList.remove('hidden');
   }
   el('quiz')?.classList.remove('hidden');
@@ -105,6 +106,7 @@ function launchTransferInvestigation() {
 
 startGame = function transferInvestigationStartGame() {
   document.body.classList.remove('transfer-investigation-active');
+  document.getElementById('transfer-case-file')?.remove();
   if (!transferInvestigationActive()) return transferInvestigationBaseStartGame();
 
   const token = ++state.transferInvestigationStartToken;
@@ -138,15 +140,18 @@ showQuestion = function transferInvestigationShowQuestion() {
   if (el('season')) el('season').textContent = `${meta.fromSeason} → ${meta.toSeason}`;
 
   const questionBox = el('question');
-  if (questionBox && !document.getElementById('transfer-case-file')) {
-    const dossier = document.createElement('div');
-    dossier.id = 'transfer-case-file';
-    dossier.className = 'transfer-case-file';
+  if (questionBox) {
+    let dossier = document.getElementById('transfer-case-file');
+    if (!dossier) {
+      dossier = document.createElement('div');
+      dossier.id = 'transfer-case-file';
+      dossier.className = 'transfer-case-file';
+      questionBox.insertAdjacentElement('beforebegin', dossier);
+    }
     dossier.innerHTML = `
       <span>SPRAWA ${state.index + 1}/${state.pool.length}</span>
       <strong>${escapeCharacterHtml(meta.player)}</strong>
       <small>${escapeCharacterHtml(meta.fromSeason)} → ${escapeCharacterHtml(meta.toSeason)} · identyfikacja po profilu ŁNP</small>`;
-    questionBox.insertAdjacentElement('beforebegin', dossier);
   }
   return result;
 };
@@ -161,20 +166,25 @@ finishGame = function transferInvestigationFinishGame() {
   if (el('result-title')) el('result-title').textContent = 'Śledztwo zakończone';
   if (el('result-rank')) {
     const percent = state.pool.length ? Math.round((state.correct / state.pool.length) * 100) : 0;
-    const rank = percent >= 80 ? '🕵️ SKAUT Z NOTESem' : percent >= 50 ? '📋 DOBRY TROP' : '🔎 AKTA DO PONOWNEJ ANALIZY';
+    const rank = percent >= 80 ? '🕵️ SKAUT Z NOTESEM' : percent >= 50 ? '📋 DOBRY TROP' : '🔎 AKTA DO PONOWNEJ ANALIZY';
     el('result-rank').textContent = rank;
     el('result-rank').classList.remove('hidden');
   }
   if (el('result-details')) {
-    el('result-details').textContent += ` · wykryte pewne zmiany klubowe w zakresie: ${transitions}`;
+    el('result-details').textContent += ` · pewne zmiany klubowe w wybranym zakresie: ${transitions}`;
   }
   if (el('status')) el('status').textContent = 'Śledztwo transferowe — akta zamknięte.';
   return result;
 };
 
 ensureTransferRoundOption();
-el('special-round')?.addEventListener('change', updateTransferRoundDescription);
+el('special-round')?.addEventListener('change', () => {
+  document.body.classList.remove('transfer-investigation-active');
+  document.getElementById('transfer-case-file')?.remove();
+  updateTransferRoundDescription();
+});
 el('game-format')?.addEventListener('change', () => {
   document.body.classList.remove('transfer-investigation-active');
+  document.getElementById('transfer-case-file')?.remove();
   updateTransferRoundDescription();
 });
