@@ -63,6 +63,7 @@ jobs:
           node --check web/match-commentator-core.js
           node --check web/match-commentator.js
           node --check web/readability.js
+          node --check web/ux-polish.js
           node --check web/dev-tools.js
       - name: Match situations smoke test
         run: node tests/match-scenarios-smoke.mjs
@@ -90,6 +91,8 @@ jobs:
         run: node tests/achievements-smoke.mjs
       - name: Match commentator and readability smoke test
         run: node tests/match-commentator-smoke.mjs
+      - name: Focused UX smoke test
+        run: node tests/ux-polish-smoke.mjs
       - name: ŁNP incremental sync smoke test
         run: |
           node --check scripts/lnp_sync_helpers.mjs
