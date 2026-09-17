@@ -112,15 +112,16 @@ jobs:
           missing_types = required_types - set(types)
           assert not missing_types, f'Missing new question types: {sorted(missing_types)}'
 
+          printable_seasons = {str(key): value for key, value in seasons.items()}
           print('MERGED_COUNT', merged['count'])
           print('LNP_COUNT', lnp['count'])
-          print('LNP_SEASONS', json.dumps(seasons, ensure_ascii=False, sort_keys=True))
-          print('LNP_TYPES', json.dumps(types, ensure_ascii=False, sort_keys=True))
+          print('LNP_SEASONS', json.dumps(printable_seasons, ensure_ascii=False, sort_keys=True))
+          print('LNP_TYPES', json.dumps(dict(types), ensure_ascii=False, sort_keys=True))
           with Path('lnp_build_summary.txt').open('a', encoding='utf-8') as f:
               print('MERGED_COUNT', merged['count'], file=f)
               print('LNP_COUNT', lnp['count'], file=f)
-              print('LNP_SEASONS', json.dumps(seasons, ensure_ascii=False, sort_keys=True), file=f)
-              print('LNP_TYPES', json.dumps(types, ensure_ascii=False, sort_keys=True), file=f)
+              print('LNP_SEASONS', json.dumps(printable_seasons, ensure_ascii=False, sort_keys=True), file=f)
+              print('LNP_TYPES', json.dumps(dict(types), ensure_ascii=False, sort_keys=True), file=f)
           PY
       - name: Commit enriched question database
         run: |
