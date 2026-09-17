@@ -2,104 +2,157 @@
   'use strict';
 
   const TRUST_KEYS = Object.freeze(['players', 'coach', 'supporters', 'sponsors']);
-  const choice = (label, desc, result, budget = 0, trust = {}, match = null) => ({ label, desc, result, effect:{ budget, trust, ...(match ? { match } : {}) } });
-  const decision = (id, icon, title, copy, choices) => ({ id, icon, title, copy, choices });
+  const AREA_KEYS = Object.freeze(['squad', 'staff', 'academy', 'facilities', 'organization', 'community']);
+  const CATEGORY_LABELS = Object.freeze({
+    finance:'Finanse i partnerzy', staff:'Sztab', squad:'Kadra', academy:'Akademia',
+    facilities:'Obiekt', organization:'Organizacja', community:'Klub i otoczenie',
+  });
+
+  const choice = (label, desc, result, budget = 0, trust = {}, areas = {}, recurring = 0) => ({
+    label, desc, result, effect:{ budget, trust, areas, recurring },
+  });
+  const decision = (id, category, icon, title, copy, choices) => ({ id, category, icon, title, copy, choices });
 
   const DECISIONS = Object.freeze([
-    decision('shirt_sponsor','🤝','Sponsor chce większej ekspozycji','Lokalna firma proponuje dodatkowe środki, ale chce mocniej zaznaczyć swoją obecność przy pierwszej drużynie.',[
-      choice('Bierzemy pełny pakiet','+4 500 zł, więcej zobowiązań wobec sponsora.','Sponsor wchodzi szerzej w klub.',4500,{sponsors:8,supporters:-1}),
-      choice('Negocjujemy mniejszy pakiet','+2 800 zł i spokojniejsze warunki.','Udaje się znaleźć kompromis.',2800,{sponsors:4,supporters:1}),
-      choice('Zostajemy przy swoim','Bez dodatkowych pieniędzy.','Klub zachowuje pełną swobodę.',0,{sponsors:-4,supporters:2}),
+    decision('shirt_sponsor','finance','🤝','Nowa umowa sponsorska','Lokalna firma chce wejść szerzej w klub. Trzeba ustalić skalę ekspozycji i zobowiązań.',[
+      choice('Pełny pakiet sponsorski','Duży zastrzyk gotówki i stała współpraca.','Sponsor zostaje partnerem głównym.',4200,{sponsors:8,supporters:-1},{community:3,organization:1},220),
+      choice('Pakiet lokalny','Mniejsza umowa i mniej obowiązków.','Klub podpisuje spokojniejszą współpracę.',2400,{sponsors:5,supporters:1},{community:2},120),
+      choice('Nie podpisujemy teraz','Zachowujemy pełną swobodę.','Klub zostaje przy obecnych partnerach.',0,{sponsors:-3,supporters:2},{community:1},0),
     ]),
-    decision('winter_hall','🏟️','Trzeba zabezpieczyć treningi zimą','Pogoda zaczyna ograniczać normalny trening. Trener chce zarezerwować halę z wyprzedzeniem.',[
-      choice('Stała hala','Koszt 2 600 zł. Lepsza regularność treningów.','Sztab ma pewny plan na zimę.',-2600,{players:6,coach:8},{all:0.02}),
-      choice('Tylko najgorsze tygodnie','Koszt 1 200 zł.','Jest plan awaryjny, ale bez komfortu.',-1200,{players:2,coach:3},{all:0.01}),
-      choice('Trenujemy na zewnątrz','Bez kosztu.','Budżet zostaje cały, sztab nie jest zachwycony.',0,{players:-2,coach:-3},{all:-0.01}),
+    decision('municipal_grant','finance','🏛️','Można złożyć wniosek o dotację','Program wymaga wkładu własnego i dokumentacji, ale może sfinansować część klubowych działań.',[
+      choice('Duży projekt','Więcej pracy i wkładu własnego, ale największy potencjał.','Wniosek przechodzi do realizacji.',1800,{sponsors:3,supporters:4},{organization:5,facilities:3,academy:3},0),
+      choice('Mniejszy projekt','Bezpieczniejszy zakres i prostsze rozliczenie.','Klub korzysta z mniejszego programu.',800,{sponsors:2,supporters:2},{organization:3,academy:2},0),
+      choice('Odpuszczamy nabór','Nie dokładamy papierologii.','Klub nie składa wniosku.',0,{supporters:-2},{organization:-1},0),
     ]),
-    decision('young_player','🌱','Dać szansę młodemu zawodnikowi?','Sztab wskazuje wyróżniającego się młodego gracza. Można włączyć go do pracy z pierwszą drużyną.',[
-      choice('Włączamy go na stałe','Mały koszt organizacyjny, mocny sygnał dla klubu.','Młody zawodnik trafia do szerszej kadry.',-400,{players:2,coach:3,supporters:5},{all:0.005}),
-      choice('Najpierw kilka treningów','Bez presji i bez dużego kosztu.','Sztab spokojnie sprawdza zawodnika.',-100,{coach:2,supporters:2}),
-      choice('Jeszcze nie teraz','Stawiamy na obecną kadrę.','Temat wraca na później.',0,{coach:-2,supporters:-2}),
+    decision('overdue_invoice','finance','🧾','Do zapłaty została zaległa faktura','W księgowości pojawia się koszt, którego nie można już dłużej odkładać.',[
+      choice('Płacimy od razu','Czyścimy temat kosztem bieżącego budżetu.','Zobowiązanie znika z listy.',-1600,{sponsors:1},{organization:5},0),
+      choice('Rozkładamy na raty','Mniejszy wydatek dziś, ale stałe obciążenie przez kilka kolejek.','Firma zgadza się na harmonogram.',-500,{sponsors:0},{organization:2},-120),
+      choice('Negocjujemy termin','Bez kosztu teraz, ale ryzykujemy relacją.','Termin przesunięty, temat wróci później.',0,{sponsors:-3},{organization:-2},0),
     ]),
-    decision('training_balls','⚽','Sprzęt treningowy jest już mocno zużyty','Kilka piłek nadaje się bardziej do muzeum A-klasy niż do normalnego treningu.',[
-      choice('Kupujemy porządny komplet','Koszt 900 zł.','Trening od razu wygląda normalniej.',-900,{players:4,coach:3},{attack:0.01}),
-      choice('Tylko najpotrzebniejsze sztuki','Koszt 400 zł.','Minimum sprzętowe jest zabezpieczone.',-400,{players:1,coach:1}),
-      choice('Jeszcze wytrzymają','Bez wydatku.','Budżet oszczędzony, cierpliwość sztabu trochę mniej.',0,{players:-2,coach:-2}),
+    decision('membership_policy','finance','💳','Składki członkowskie wymagają uporządkowania','Część wpłat jest spóźniona, a klub potrzebuje przewidywalnego finansowania.',[
+      choice('Porządkujemy system wpłat','Wdrażamy jasne terminy i przypomnienia.','Wpłaty stają się bardziej regularne.',-250,{supporters:2},{organization:5,community:1},90),
+      choice('Zostawiamy elastyczność','Mniej formalnie, mniejsza przewidywalność.','Klub dalej działa na dotychczasowych zasadach.',0,{supporters:2},{organization:-1},20),
+      choice('Podnosimy składkę','Więcej pieniędzy, większe ryzyko niezadowolenia.','Wpływy rosną, ale część środowiska protestuje.',0,{supporters:-5},{community:-2,organization:1},170),
     ]),
-    decision('pitch_work','🌿','Murawa wymaga pracy przed serią meczów domowych','Po deszczu boisko jest nierówne i miękkie. Trzeba zdecydować, ile klub wkłada w przygotowanie płyty.',[
-      choice('Pełne prace','Koszt 1 800 zł.','Boisko zostaje solidnie przygotowane.',-1800,{coach:4,supporters:3},{all:0.015}),
-      choice('Robota społeczna + materiały','Koszt 600 zł.','Ludzie z klubu wspólnie ratują murawę.',-600,{supporters:6,coach:1},{all:0.005}),
-      choice('Gramy jak jest','Bez kosztu.','Oszczędzamy, ale warunki nie pomagają drużynie.',0,{coach:-4,supporters:-2},{all:-0.02}),
+
+    decision('coach_contract','staff','📋','Trzeba ustalić przyszłość trenera','Kończy się okres obecnych ustaleń ze szkoleniowcem. Prezes musi zdecydować o modelu współpracy.',[
+      choice('Dłuższa umowa','Stabilność sztabu kosztuje, ale daje jasny kierunek.','Trener dostaje mocny mandat.',-900,{coach:8,players:3},{staff:6,squad:2},-90),
+      choice('Do końca sezonu','Kontynuujemy bez długiego zobowiązania.','Obie strony zostają przy krótszym porozumieniu.',-300,{coach:3},{staff:2},-30),
+      choice('Szukamy nowego kierunku','Bez natychmiastowego kosztu, ale rośnie niepewność.','Klub rozpoczyna rozeznanie rynku.',0,{coach:-8,players:-2},{staff:-4,organization:-1},0),
     ]),
-    decision('away_transport','🚌','Wyjazd logistycznie robi się trudny','Kilku zawodników ma problem z dojazdem na dalszy mecz. Klub może zorganizować wspólny transport.',[
-      choice('Autokar dla całej drużyny','Koszt 1 400 zł.','Wszyscy jadą razem i bez kombinowania.',-1400,{players:5,coach:3},{all:0.015}),
-      choice('Busy i samochody klubowe','Koszt 500 zł.','Nie jest luksusowo, ale działa.',-500,{players:1,coach:1}),
-      choice('Każdy organizuje dojazd sam','Klub nie ponosi kosztu.','Budżet oszczędzony, szatnia trochę mniej zadowolona.',0,{players:-3,coach:-2},{all:-0.015}),
+    decision('assistant_staff','staff','🧠','Sztab chce dodatkowej osoby do pomocy','Trener prosi o wsparcie organizacyjne i szkoleniowe podczas treningów.',[
+      choice('Bierzemy asystenta','Stałe wsparcie sztabu.','Sztab ma lepszy podział obowiązków.',-700,{coach:6,players:2},{staff:6},-80),
+      choice('Pomoc dorywcza','Kilka godzin wsparcia tygodniowo.','Najpilniejsze obowiązki są zabezpieczone.',-250,{coach:3},{staff:3},-30),
+      choice('Zostajemy w obecnym składzie','Bez nowych kosztów.','Sztab musi dzielić obowiązki między siebie.',0,{coach:-3},{staff:-2},0),
     ]),
-    decision('late_work','🕒','Część kadry kończy pracę tuż przed meczem','A-klasowa codzienność: kilku zawodników może dotrzeć na zbiórkę na ostatnią chwilę.',[
-      choice('Organizujemy szybki transport','Koszt 600 zł.','Zawodnicy docierają razem i bez nerwów.',-600,{players:5},{all:0.015}),
-      choice('Przesuwamy odprawę','Bez kosztu, mniej czasu na przygotowanie.','Szatnia dostosowuje plan dnia.',0,{players:2,coach:-1}),
-      choice('Szykujemy zmienników','Stawiamy na dostępnych ludzi.','Trener ma jasny plan B.',0,{coach:3,players:-1},{all:-0.005}),
+    decision('physio_contract','staff','🩹','Klub potrzebuje lepszej opieki fizjoterapeutycznej','Przy dużej liczbie treningów i meczów sztab chce stałej współpracy z fizjoterapeutą.',[
+      choice('Stała współpraca','Regularne dyżury i szybsza reakcja na urazy.','Klub zabezpiecza stałą opiekę.',-1100,{players:7,coach:5},{staff:5,squad:3},-100),
+      choice('Dyżur raz w tygodniu','Tańsza wersja podstawowego wsparcia.','Najważniejsze przypadki mają opiekę.',-450,{players:3,coach:2},{staff:2,squad:1},-40),
+      choice('Zostajemy przy obecnym modelu','Bez kosztu, ale sztab oczekiwał więcej.','Opieka pozostaje doraźna.',0,{players:-3,coach:-2},{staff:-2},0),
     ]),
-    decision('extra_session','📋','Trener prosi o dodatkowy trening','Przed ważnym meczem sztab chce dołożyć jedną jednostkę i przećwiczyć stałe fragmenty.',[
-      choice('Dajemy dodatkowy termin','Koszt 500 zł.','Sztab dostaje warunki do dodatkowej pracy.',-500,{coach:5,players:1},{all:0.015}),
-      choice('Zostajemy przy planie','Bez dodatkowych kosztów.','Tydzień przebiega standardowo.',0,{}),
-      choice('Zamiast tego regeneracja','Koszt 300 zł.','Mniej taktyki, więcej świeżości.',-300,{players:4,coach:1},{defence:0.01}),
+    decision('staff_courses','staff','🎓','Trenerzy mogą pojechać na szkolenie','Pojawia się możliwość podniesienia kwalifikacji sztabu i wymiany doświadczeń.',[
+      choice('Finansujemy pełne szkolenie','Klub pokrywa koszty kilku osób.','Sztab wraca z nowymi pomysłami.',-900,{coach:6},{staff:7,academy:2},0),
+      choice('Jedzie jedna osoba','Mniejszy koszt i częściowy efekt.','Wiedza wraca do klubu przez jednego trenera.',-350,{coach:3},{staff:3,academy:1},0),
+      choice('Nie w tym roku','Budżet zostaje nienaruszony.','Sztab musi poczekać na kolejną okazję.',0,{coach:-2},{staff:-1},0),
     ]),
-    decision('academy_grant','🎓','Pojawia się możliwość dofinansowania akademii','Projekt wymaga wkładu własnego, ale może zostawić w klubie więcej sprzętu i zajęć dla dzieci.',[
-      choice('Wchodzimy w projekt','Wkład własny, ale projekt daje klubowi większą wartość.','Akademia dostaje mocny impuls.',1000,{supporters:6,sponsors:4,coach:1}),
-      choice('Mniejszy zakres','Skromniejszy projekt.','Klub korzysta, ale ostrożniej.',300,{supporters:3,sponsors:2}),
-      choice('Odpuśćmy w tym sezonie','Brak ryzyka finansowego.','Budżet pierwszej drużyny pozostaje nietknięty.',0,{supporters:-3,sponsors:-1}),
+
+    decision('key_player_offer','squad','📞','Ważny zawodnik ma ofertę z wyższej ligi','Anonimowy scenariusz gry: nie dotyczy konkretnej osoby z danych ŁNP. Klub musi zdecydować, jak podejść do odejścia.',[
+      choice('Nie blokujemy transferu','Dobra relacja z szatnią, ale kadra robi się cieńsza.','Klub pozwala zawodnikowi zrobić krok wyżej.',500,{players:7,coach:-2,supporters:-2},{squad:-5,community:2},0),
+      choice('Proponujemy pozostanie','Koszt premii i mocniejsza kadra.','Zawodnik zostaje na kolejny okres.',-1000,{players:3,coach:4,supporters:3},{squad:5},-40),
+      choice('Dogadujemy odejście po sezonie','Kompromis dla obu stron.','Zawodnik zostaje do końca rozgrywek.',0,{players:2,coach:2},{squad:1},0),
     ]),
-    decision('higher_league_offer','📞','Podstawowy zawodnik ma propozycję z wyższej ligi','To anonimowy scenariusz organizacyjny trybu prezesa, niezwiązany z konkretną osobą z bazy ŁNP.',[
-      choice('Nie blokujemy odejścia','Dobra relacja z szatnią, sportowo trudniej.','Klub zachowuje się fair wobec zawodnika.',500,{players:6,supporters:-3,coach:-2},{all:-0.02}),
-      choice('Premia za pozostanie','Koszt 1 000 zł.','Zawodnik zostaje do końca sezonu.',-1000,{players:2,coach:4,supporters:3},{all:0.015}),
-      choice('Dogadujemy się do końca rundy','Bez dodatkowego kosztu.','Obie strony odkładają decyzję.',0,{players:1,coach:1}),
+    decision('local_recruitment','squad','🧲','Można wzmocnić kadrę lokalnym zawodnikiem','Sztab wskazuje dostępnego gracza z okolicy. To fikcyjny kandydat w mechanice gry, nie realna informacja transferowa.',[
+      choice('Działamy od razu','Koszt rejestracji i ustaleń, ale kadra zyskuje głębię.','Nowy zawodnik dołącza do zespołu.',-850,{players:2,coach:5,supporters:3},{squad:6,organization:1},-30),
+      choice('Najpierw treningi testowe','Mniejszy koszt, ostrożniejsza decyzja.','Sztab sprawdza zawodnika przed ruchem.',-200,{coach:3},{squad:2},0),
+      choice('Zostajemy przy obecnej kadrze','Bez wydatku i bez wzmocnienia.','Klub nie wykonuje ruchu.',0,{coach:-2},{squad:-1},0),
     ]),
-    decision('win_bonus','💰','Szatnia pyta o premię za ważny mecz','Przed trudnym spotkaniem pojawia się temat dodatkowej motywacji finansowej.',[
-      choice('Pełna premia meczowa','Koszt 1 200 zł.','Szatnia dostaje dodatkowy bodziec.',-1200,{players:6},{all:0.025}),
-      choice('Symboliczna premia','Koszt 400 zł.','Gest jest zauważony, budżet cierpi mniej.',-400,{players:2},{all:0.01}),
-      choice('Gramy bez premii','Bez kosztu.','Nic się nie zmienia poza kilkoma komentarzami w szatni.',0,{players:-2}),
+    decision('youth_pathway','squad','🌱','Najlepsi juniorzy potrzebują ścieżki do seniorów','Akademia pyta, jak klub ma przygotowywać starszych zawodników do pierwszej drużyny.',[
+      choice('Stały program przejścia','Wspólne treningi i plan wdrażania.','Akademia dostaje jasną drogę do seniorów.',-500,{players:2,coach:4,supporters:4},{squad:3,academy:6,staff:2},0),
+      choice('Pojedyncze zaproszenia','Mniej formalny model.','Najlepsi juniorzy pojawiają się okresowo na treningach.',-150,{coach:2,supporters:2},{squad:1,academy:3},0),
+      choice('Seniorzy i akademia osobno','Prostsza organizacja, słabsza ciągłość.','Ścieżka pozostaje nieformalna.',0,{supporters:-3},{academy:-3,squad:-1},0),
     ]),
-    decision('match_partner','📣','Partner chce zrobić akcję podczas meczu domowego','Firma proponuje aktywację przy boisku i dodatkowy wkład do klubowej kasy.',[
-      choice('Robimy pełną akcję','+1 800 zł, trochę pracy organizacyjnej.','Mecz ma sponsorską oprawę, klub zarabia.',1800,{sponsors:7,supporters:2,coach:-1}),
-      choice('Mała ekspozycja','+800 zł.','Partner jest widoczny, organizacja pozostaje prosta.',800,{sponsors:3,supporters:1}),
-      choice('Nie dokładamy obowiązków','Bez dodatkowego przychodu.','Dzień meczowy pozostaje prostszy.',0,{sponsors:-4,coach:1}),
+    decision('registrations','squad','🗂️','Trzeba uporządkować zgłoszenia i badania','Kilku zawodnikom kończą się ważne dokumenty albo badania. To praca administracyjna, nie decyzja meczowa.',[
+      choice('Robimy wszystko z wyprzedzeniem','Koszt badań i obsługi, pełny porządek.','Dokumentacja kadry jest kompletna.',-650,{players:3,coach:3},{organization:7,squad:3},0),
+      choice('Najpilniejsze przypadki','Minimum potrzebne na teraz.','Najważniejsze dokumenty są zabezpieczone.',-250,{players:1},{organization:3,squad:1},0),
+      choice('Odkładamy część spraw','Oszczędzamy dziś, ryzykujemy bałagan później.','Administracja zostaje z zaległościami.',0,{coach:-2},{organization:-5,squad:-2},0),
     ]),
-    decision('physio_support','🩹','Sztab chce lepszego zabezpieczenia medycznego','Przy napiętym terminarzu trener proponuje dodatkową opiekę fizjoterapeutyczną dla pierwszej drużyny.',[
-      choice('Regularna współpraca','Koszt 1 500 zł.','Zespół ma lepsze warunki regeneracji.',-1500,{players:6,coach:5},{all:0.02}),
-      choice('Tylko po meczach','Koszt 600 zł.','Podstawowe wsparcie jest zabezpieczone.',-600,{players:2,coach:2},{all:0.005}),
-      choice('Zostajemy przy obecnym modelu','Bez kosztu.','Budżet bez zmian, sztab chciałby więcej.',0,{players:-2,coach:-2},{all:-0.005}),
+
+    decision('academy_coach','academy','🧒','Akademia potrzebuje dodatkowego trenera','Rosnąca liczba dzieci powoduje, że jedna osoba nie jest w stanie prowadzić wszystkich zajęć komfortowo.',[
+      choice('Zatrudniamy trenera','Większy koszt, stabilniejsza akademia.','Grupy dostają lepszą opiekę.',-1200,{supporters:6,sponsors:3},{academy:8,staff:2,community:2},-110),
+      choice('Pomocnik na część zajęć','Mniejszy koszt i częściowe odciążenie.','Największa grupa dostaje wsparcie.',-450,{supporters:3},{academy:4,staff:1},-40),
+      choice('Łączymy grupy','Bez kosztu, ale jakość organizacji spada.','Akademia działa dalej w większych grupach.',0,{supporters:-4},{academy:-4},0),
     ]),
-    decision('lights','💡','Oświetlenie boiska zaczyna odmawiać współpracy','Wieczorne treningi są coraz trudniejsze. Trzeba zdecydować, czy robić naprawę od razu.',[
-      choice('Naprawiamy porządnie','Koszt 2 200 zł.','Problem z oświetleniem znika.',-2200,{coach:4,supporters:2},{all:0.01}),
-      choice('Naprawa tymczasowa','Koszt 700 zł.','Do końca rundy powinno wystarczyć.',-700,{coach:1}),
-      choice('Przesuwamy treningi wcześniej','Bez kosztu finansowego.','Da się trenować, ale plan jest mniej wygodny.',0,{players:-2,coach:-3},{all:-0.01}),
+    decision('academy_equipment','academy','🎒','Dzieciom brakuje części sprzętu treningowego','Piłki, pachołki i znaczniki są mocno zużyte. Trzeba ustalić skalę zakupów.',[
+      choice('Pełny zestaw','Kupujemy komplet na cały sezon.','Akademia dostaje świeży sprzęt.',-1000,{supporters:5,sponsors:2},{academy:6,community:1},0),
+      choice('Najpilniejsze rzeczy','Kupujemy tylko to, czego naprawdę brakuje.','Treningi są zabezpieczone.',-400,{supporters:2},{academy:3},0),
+      choice('Jeszcze wytrzyma','Bez wydatku.','Sprzęt zostaje w użyciu mimo zużycia.',0,{supporters:-3},{academy:-3},0),
     ]),
-    decision('club_media','📱','Klub potrzebuje lepszej komunikacji','Sponsorzy pytają o zasięgi, kibice chcą więcej informacji, a ktoś musi to wszystko prowadzić.',[
-      choice('Mały budżet na media','Koszt 700 zł.','Komunikacja zaczyna wyglądać regularnie.',-700,{supporters:5,sponsors:5}),
-      choice('Robimy społecznie','Koszt 150 zł.','Jest mniej profesjonalnie, ale regularnie.',-150,{supporters:3,sponsors:2}),
-      choice('Wyniki wystarczą','Bez kosztu.','Klub oszczędza, partnerzy chcieliby większej widoczności.',0,{supporters:-2,sponsors:-3}),
+    decision('new_youth_group','academy','👶','Rodzice pytają o nową grupę dla najmłodszych','Jest zainteresowanie, ale uruchomienie grupy oznacza dodatkowego trenera, sprzęt i terminy.',[
+      choice('Otwieramy grupę','Inwestycja w rozwój akademii i społeczności.','Nowa grupa rusza.',-900,{supporters:7,sponsors:3},{academy:7,community:5,organization:1},-60),
+      choice('Lista chętnych i start później','Budujemy bazę bez natychmiastowych kosztów.','Klub przygotowuje start na kolejny okres.',-100,{supporters:3},{academy:3,community:2},0),
+      choice('Nie mamy zasobów','Nie otwieramy kolejnej grupy.','Klub skupia się na obecnych zespołach.',0,{supporters:-4},{academy:-2,community:-2},0),
     ]),
-    decision('locker_room_conflict','🗣️','Po treningu iskrzy w szatni','Dwóch zawodników mocno się spiera. To anonimowy scenariusz gry, niezwiązany z realnymi osobami.',[
-      choice('Prezes rozmawia z obiema stronami','Bez kosztu, potrzebny czas.','Emocje opadają bez publicznej awantury.',0,{players:4,coach:1},{all:0.005}),
-      choice('Trener ma pełną odpowiedzialność','Wzmacniamy pozycję szkoleniowca.','Sztab rozwiązuje temat po swojemu.',0,{coach:4,players:-2}),
-      choice('Twarda dyscyplina','Jasne zasady, ale szatnia czuje presję.','Konflikt ucina się szybko.',0,{players:-4,coach:2},{defence:0.01}),
+    decision('academy_tournament','academy','🏅','Można zorganizować turniej akademii','Wolny termin na boisku można wykorzystać na wydarzenie dla dzieci, rodziców i partnerów.',[
+      choice('Duży turniej','Więcej organizacji, ale mocny efekt społeczny.','Turniej przyciąga kilka klubów i lokalnych partnerów.',-600,{supporters:7,sponsors:5},{academy:5,community:6,organization:2},80),
+      choice('Mały turniej wewnętrzny','Prościej i taniej.','Dzieci grają, rodzice zostają przy klubie na dłużej.',-200,{supporters:4},{academy:3,community:3},20),
+      choice('Odpuszczamy termin','Zero ryzyka i pracy.','Boisko zostaje wolne.',0,{supporters:-2},{community:-1},0),
     ]),
-    decision('club_day','🍔','Pomysł na klubowy dzień z kibicami','Można zrobić rodzinny dzień przy boisku, mały turniej i zbiórkę na działalność klubu.',[
-      choice('Robimy pełne wydarzenie','Koszt organizacji, ale potencjalny przychód większy.','Frekwencja dopisuje i klub zyskuje społecznie.',1700,{supporters:8,sponsors:4,players:1}),
-      choice('Mały grill po meczu','Niski koszt, mniejszy efekt.','Prosto, lokalnie i skutecznie.',600,{supporters:4,sponsors:1}),
-      choice('Nie dokładamy wydarzeń','Zero ryzyka organizacyjnego.','Weekend zostaje wyłącznie meczowy.',0,{supporters:-2}),
+
+    decision('pitch_renovation','facilities','🌿','Murawa potrzebuje większych prac','Płyta jest nierówna i wymaga inwestycji wykraczającej poza zwykłe koszenie.',[
+      choice('Robimy pełną regenerację','Duży wydatek, ale realna poprawa obiektu.','Boisko przechodzi większe prace.',-2600,{supporters:4,coach:3},{facilities:9,community:2},0),
+      choice('Materiały + praca własna','Tańsza poprawa przy pomocy ludzi z klubu.','Najgorsze miejsca zostają naprawione.',-850,{supporters:6},{facilities:5,community:4},0),
+      choice('Tylko bieżące łatanie','Bez większej inwestycji.','Murawa pozostaje słabym punktem obiektu.',0,{coach:-3,supporters:-2},{facilities:-4},0),
     ]),
-    decision('academy_coach','🧒','Akademia potrzebuje dodatkowego trenera','Rosnąca grupa dzieci wymaga więcej uwagi. Decyzja wpływa na klub, ale nie daje automatycznego gola pierwszej drużynie.',[
-      choice('Zatrudniamy dodatkowego trenera','Koszt 1 800 zł.','Akademia dostaje stabilniejsze warunki.',-1800,{supporters:6,sponsors:3,coach:1}),
-      choice('Łączymy role w obecnym sztabie','Koszt 600 zł, większe obciążenie.','Problem rozwiązany na teraz.',-600,{supporters:3,coach:-2}),
-      choice('Czekamy do kolejnego sezonu','Bez wydatku.','Budżet bez zmian, otoczenie klubu oczekiwało więcej.',0,{supporters:-4,sponsors:-1}),
+    decision('lights','facilities','💡','Oświetlenie wymaga modernizacji','Wieczorne zajęcia są coraz trudniejsze, a część lamp działa tylko wtedy, kiedy ma ochotę.',[
+      choice('Modernizacja całego systemu','Duży koszt, trwałe rozwiązanie.','Oświetlenie przestaje być problemem.',-2400,{coach:4,supporters:2},{facilities:8,organization:2},0),
+      choice('Naprawa sekcji awaryjnej','Tańsza poprawa na ten sezon.','Najgorsze punkty zostają naprawione.',-750,{coach:2},{facilities:4},0),
+      choice('Przesuwamy zajęcia wcześniej','Bez inwestycji, mniej wygodny harmonogram.','Klub dostosowuje godziny treningów.',0,{players:-2,coach:-3},{facilities:-2,organization:-1},0),
+    ]),
+    decision('dressing_room','facilities','🚪','Szatnie wymagają odświeżenia','Prysznice, ławki i drobne wyposażenie proszą się o remont od dłuższego czasu.',[
+      choice('Remontujemy całość','Wyraźna poprawa zaplecza.','Szatnie zaczynają wyglądać jak klubowe zaplecze, a nie magazyn.',-1900,{players:5,supporters:3},{facilities:7,community:2},0),
+      choice('Naprawiamy najpilniejsze','Mniejszy koszt i widoczna poprawa.','Największe problemy znikają.',-650,{players:2},{facilities:3},0),
+      choice('Jeszcze sezon wytrzyma','Bez wydatku.','Remont znów trafia na później.',0,{players:-3,supporters:-2},{facilities:-3},0),
+    ]),
+    decision('safety_fence','facilities','🛠️','Ogrodzenie i zabezpieczenia obiektu wymagają pracy','Kilka elementów przy boisku trzeba poprawić, zanim zrobi się z tego większy problem.',[
+      choice('Pełny przegląd i naprawa','Klub zamyka temat kompleksowo.','Obiekt jest bezpieczniejszy i lepiej przygotowany.',-1400,{supporters:2},{facilities:5,organization:5},0),
+      choice('Naprawiamy pilne miejsca','Największe ryzyka znikają.','Podstawowe zabezpieczenia są poprawione.',-500,{supporters:1},{facilities:3,organization:2},0),
+      choice('Oznaczamy i odkładamy','Bez kosztu dziś.','Problem zostaje pod kontrolą tylko na papierze.',0,{supporters:-3},{facilities:-3,organization:-3},0),
+    ]),
+
+    decision('insurance','organization','🛡️','Kończy się klubowe ubezpieczenie','Trzeba wybrać zakres polisy dla zawodników, sprzętu i działalności klubu.',[
+      choice('Pełny pakiet','Drożej, ale z szerokim zakresem.','Klub zabezpiecza najważniejsze ryzyka.',-1200,{players:3,sponsors:2},{organization:8},-40),
+      choice('Pakiet podstawowy','Najważniejsze elementy są objęte ochroną.','Klub wybiera rozsądne minimum.',-550,{players:1},{organization:4},-15),
+      choice('Najtańsza opcja','Minimalny koszt, minimalny zakres.','Budżet oszczędzony kosztem bezpieczeństwa organizacyjnego.',-180,{players:-2},{organization:-3},0),
+    ]),
+    decision('federation_paperwork','organization','📚','Związkowa dokumentacja wymaga uporządkowania','Terminy zgłoszeń, licencje i formalności zaczynają się nakładać.',[
+      choice('Porządkujemy wszystko teraz','Kilka godzin pracy i drobne opłaty.','Dokumentacja zostaje zamknięta z wyprzedzeniem.',-350,{coach:2},{organization:8},0),
+      choice('Tylko pilne sprawy','Największe ryzyka są załatwione.','Część papierów zostaje na później.',-120,{},{organization:4},0),
+      choice('Robimy na ostatnią chwilę','Oszczędzamy czas dziś.','Stres administracyjny rośnie.',0,{coach:-2},{organization:-5},0),
+    ]),
+    decision('volunteer_network','organization','🙋','Klub potrzebuje więcej osób do pomocy','Organizacja dnia klubowego, akademii i obiektu opiera się stale na tych samych kilku osobach.',[
+      choice('Budujemy ekipę wolontariuszy','Organizujemy nabór i jasny podział ról.','Klub przestaje być zależny od dwóch osób od wszystkiego.',-250,{supporters:5,sponsors:2},{organization:7,community:5},0),
+      choice('Lista dyżurów rodziców i działaczy','Proste rozwiązanie bez formalnego naboru.','Obowiązki rozkładają się trochę szerzej.',0,{supporters:2},{organization:4,community:2},0),
+      choice('Działamy jak dotąd','Bez dodatkowej pracy dziś.','Najbardziej zaangażowani nadal biorą wszystko na siebie.',0,{supporters:-2},{organization:-4,community:-1},0),
+    ]),
+
+    decision('club_media','community','📱','Komunikacja klubu wymaga regularności','Kibice i partnerzy pytają o wyniki, zapowiedzi, akademię i życie klubu.',[
+      choice('Stała osoba do komunikacji','Regularne materiały i lepsza obsługa partnerów.','Klub zaczyna komunikować się systematycznie.',-700,{supporters:6,sponsors:6},{community:7,organization:2},-50),
+      choice('Robimy społecznie','Mniej profesjonalnie, ale regularnie.','Kilka osób dzieli obowiązki.',-150,{supporters:3,sponsors:2},{community:4},0),
+      choice('Wyniki wystarczą','Zero kosztu i minimum komunikacji.','Klub publikuje tylko podstawowe informacje.',0,{supporters:-3,sponsors:-4},{community:-4},0),
+    ]),
+    decision('club_day','community','🍔','Pomysł na rodzinny dzień klubowy','Turniej dzieci, grill, prezentacja drużyn i partnerzy mogą przyciągnąć ludzi na obiekt.',[
+      choice('Robimy pełne wydarzenie','Więcej pracy, ale duża szansa na przychód i integrację.','Dzień klubowy przyciąga lokalną społeczność.',900,{supporters:9,sponsors:5,players:2},{community:9,organization:2,academy:2},80),
+      choice('Małe spotkanie przy boisku','Mniej skali, nadal dobry efekt.','Klub robi prostą lokalną imprezę.',250,{supporters:5,sponsors:2},{community:5},20),
+      choice('Nie dokładamy wydarzeń','Zero ryzyka organizacyjnego.','Weekend zostaje bez dodatkowej aktywności.',0,{supporters:-2},{community:-2},0),
+    ]),
+    decision('school_partnership','community','🏫','Szkoła proponuje współpracę z klubem','Można zrobić wspólne nabory, zajęcia pokazowe i promocję akademii.',[
+      choice('Wchodzimy szeroko','Kilka wspólnych działań w ciągu roku.','Klub zyskuje stały kanał dotarcia do dzieci i rodziców.',-450,{supporters:6,sponsors:2},{community:7,academy:6,organization:2},0),
+      choice('Jedna akcja naborowa','Sprawdzamy współpracę bez dużych zobowiązań.','Pierwsze wspólne zajęcia dochodzą do skutku.',-120,{supporters:3},{community:3,academy:3},0),
+      choice('Nie mamy zasobów','Klub odmawia w tym sezonie.','Szansa przechodzi na kolejny rok.',0,{supporters:-3},{community:-2,academy:-1},0),
     ]),
   ]);
 
   function clamp(value, min, max) { return Math.max(min, Math.min(max, Number(value) || 0)); }
-
   function shuffle(items, random = Math.random) {
     const result = [...items];
     for (let i = result.length - 1; i > 0; i -= 1) {
@@ -109,107 +162,130 @@
     }
     return result;
   }
-
-  function initialState(totalRounds = 0, random = Math.random) {
-    return {
-      active:true, budget:12000,
-      trust:{ players:55, coach:55, supporters:50, sponsors:50 },
-      usedIds:[], order:shuffle(DECISIONS.map(item => item.id), random), history:[],
-      currentDecision:null, currentMatchEffect:null, decidedRound:-1,
-      matches:0, totalRounds:Number(totalRounds || 0), lastFinance:0,
-    };
-  }
-
-  function decisionById(id) { return DECISIONS.find(item => item.id === id) || null; }
-
-  function pickDecision(profile) {
-    const used = new Set(profile?.usedIds || []);
-    const order = Array.isArray(profile?.order) ? profile.order : DECISIONS.map(item => item.id);
-    const nextId = order.find(id => !used.has(id));
-    return nextId ? decisionById(nextId) : null;
-  }
-
-  function canChoose(profile, selectedChoice) {
-    return Number(profile?.budget || 0) + Number(selectedChoice?.effect?.budget || 0) >= 0;
-  }
-
   function normalizedTrust(trust = {}) {
     const result = {};
     TRUST_KEYS.forEach(key => { result[key] = clamp(trust[key] ?? 50, 0, 100); });
     return result;
   }
-
-  function applyTrust(trust, delta = {}) {
-    const next = normalizedTrust(trust);
-    TRUST_KEYS.forEach(key => { next[key] = clamp(next[key] + Number(delta[key] || 0), 0, 100); });
+  function normalizedAreas(areas = {}) {
+    const defaults = { squad:55, staff:55, academy:45, facilities:45, organization:55, community:50 };
+    const result = {};
+    AREA_KEYS.forEach(key => { result[key] = clamp(areas[key] ?? defaults[key], 0, 100); });
+    return result;
+  }
+  function applyMap(base, delta, keys, normalizer) {
+    const next = normalizer(base);
+    keys.forEach(key => { next[key] = clamp(next[key] + Number(delta?.[key] || 0), 0, 100); });
     return next;
   }
 
-  function normalizeMatchEffect(effect = null) {
-    if (!effect) return null;
+  function initialState(totalRounds = 0, random = Math.random) {
     return {
-      all:clamp(effect.all || 0, -0.08, 0.08),
-      attack:clamp(effect.attack || 0, -0.08, 0.08),
-      defence:clamp(effect.defence || 0, -0.08, 0.08),
+      active:true,
+      budget:12000,
+      recurring:0,
+      trust:normalizedTrust({ players:55, coach:55, supporters:50, sponsors:50 }),
+      areas:normalizedAreas(),
+      order:shuffle(DECISIONS.map(item => item.id), random),
+      usedIds:[],
+      lastUsedRound:{},
+      history:[],
+      currentDecision:null,
+      decidedRound:-1,
+      roundsCompleted:0,
+      totalRounds:Number(totalRounds || 0),
+      lastFinance:0,
+      lastResult:null,
+      lastMatch:null,
     };
   }
 
+  function decisionById(id) { return DECISIONS.find(item => item.id === id) || null; }
+  function pickDecision(profile, roundIndex = 0) {
+    const used = new Set(profile?.usedIds || []);
+    const order = Array.isArray(profile?.order) && profile.order.length ? profile.order : DECISIONS.map(item => item.id);
+    const fresh = order.find(id => !used.has(id));
+    if (fresh) return decisionById(fresh);
+    const lastUsed = profile?.lastUsedRound || {};
+    const candidates = DECISIONS
+      .map(item => ({ item, last:Number(lastUsed[item.id] ?? -999) }))
+      .sort((a,b) => a.last - b.last || a.item.id.localeCompare(b.item.id));
+    const rested = candidates.find(row => Number(roundIndex) - row.last >= 4);
+    return (rested || candidates[0])?.item || null;
+  }
+  function canChoose(profile, selectedChoice) {
+    return Number(profile?.budget || 0) + Number(selectedChoice?.effect?.budget || 0) >= 0;
+  }
   function applyChoice(profile, selectedDecision, choiceIndex, roundIndex = 0) {
     const selectedChoice = selectedDecision?.choices?.[choiceIndex];
     if (!profile || !selectedDecision || !selectedChoice) return { ok:false, reason:'invalid' };
     if (!canChoose(profile, selectedChoice)) return { ok:false, reason:'budget' };
     const budgetDelta = Number(selectedChoice.effect?.budget || 0);
+    const recurringDelta = Number(selectedChoice.effect?.recurring || 0);
     const next = {
       ...profile,
       budget:Number(profile.budget || 0) + budgetDelta,
-      trust:applyTrust(profile.trust, selectedChoice.effect?.trust),
+      recurring:Number(profile.recurring || 0) + recurringDelta,
+      trust:applyMap(profile.trust, selectedChoice.effect?.trust, TRUST_KEYS, normalizedTrust),
+      areas:applyMap(profile.areas, selectedChoice.effect?.areas, AREA_KEYS, normalizedAreas),
       usedIds:[...new Set([...(profile.usedIds || []), selectedDecision.id])],
+      lastUsedRound:{ ...(profile.lastUsedRound || {}), [selectedDecision.id]:Number(roundIndex) },
       currentDecision:null,
-      currentMatchEffect:normalizeMatchEffect(selectedChoice.effect?.match),
       decidedRound:Number(roundIndex),
       history:[...(profile.history || []), {
-        round:Number(roundIndex) + 1, decisionId:selectedDecision.id, title:selectedDecision.title,
-        choice:selectedChoice.label, result:selectedChoice.result, budgetDelta,
+        round:Number(roundIndex) + 1,
+        decisionId:selectedDecision.id,
+        category:selectedDecision.category,
+        title:selectedDecision.title,
+        choice:selectedChoice.label,
+        result:selectedChoice.result,
+        budgetDelta,
+        recurringDelta,
         trustDelta:{ ...(selectedChoice.effect?.trust || {}) },
-        matchEffect:normalizeMatchEffect(selectedChoice.effect?.match),
+        areaDelta:{ ...(selectedChoice.effect?.areas || {}) },
       }],
     };
-    return { ok:true, profile:next, choice:selectedChoice, budgetDelta };
+    return { ok:true, profile:next, choice:selectedChoice, budgetDelta, recurringDelta };
   }
 
-  function chanceModifier(effect, possession = 'player') {
-    const normalized = normalizeMatchEffect(effect);
-    if (!normalized) return 0;
-    const side = possession === 'opponent' ? normalized.defence : normalized.attack;
-    return clamp(normalized.all + side, -0.08, 0.08);
+  function managementStrengthModifier(profile) {
+    const areas = normalizedAreas(profile?.areas);
+    const trust = normalizedTrust(profile?.trust);
+    const sporting = areas.squad * .36 + areas.staff * .28 + areas.facilities * .14 + areas.organization * .14 + areas.academy * .08;
+    const climate = (trust.players + trust.coach) / 2;
+    const modifier = (sporting - 50) * .09 + (climate - 50) * .025;
+    return clamp(modifier, -5, 5);
+  }
+  function adjustedClubStrength(baseStrength, profile) {
+    return clamp(Number(baseStrength || 65) + managementStrengthModifier(profile), 45, 90);
   }
 
-  function adjustedChance(baseChance, effect, possession = 'player') {
-    return clamp(Number(baseChance || 0) + chanceModifier(effect, possession), 0.04, 0.97);
+  function roundFinance(profile, { venue = 'DOM', result = 'D' } = {}) {
+    const trust = normalizedTrust(profile?.trust);
+    const areas = normalizedAreas(profile?.areas);
+    const venueBase = String(venue).toUpperCase() === 'DOM' ? 620 : -320;
+    const resultBonus = result === 'W' ? 150 : result === 'D' ? 50 : 0;
+    const supporterEffect = String(venue).toUpperCase() === 'DOM' ? Math.round((trust.supporters - 50) * 4) : 0;
+    const sponsorEffect = Math.round((trust.sponsors - 50) * 2.5);
+    const organizationEffect = Math.round((areas.organization - 50) * 2);
+    return Math.round(Number(profile?.recurring || 0) + venueBase + resultBonus + supporterEffect + sponsorEffect + organizationEffect);
   }
-
-  function matchFinance({ venue = 'DOM', result = 'D' } = {}) {
-    const base = String(venue).toUpperCase() === 'DOM' ? 700 : -250;
-    const bonus = result === 'W' ? 300 : result === 'D' ? 100 : 0;
-    return base + bonus;
+  function postRoundTrustDelta(result) {
+    if (result === 'W') return { players:1, coach:1, supporters:2, sponsors:1 };
+    if (result === 'L') return { players:-1, coach:-1, supporters:-2, sponsors:-1 };
+    return { players:0, coach:0, supporters:0, sponsors:0 };
   }
-
-  function postMatchTrustDelta(result) {
-    if (result === 'W') return { players:3, coach:2, supporters:3, sponsors:2 };
-    if (result === 'L') return { players:-2, coach:-2, supporters:-3, sponsors:-1 };
-    return { players:1, coach:0, supporters:0, sponsors:0 };
-  }
-
-  function applyPostMatch(profile, context = {}) {
+  function applyPostRound(profile, context = {}) {
     if (!profile) return null;
-    const finance = matchFinance(context);
+    const finance = roundFinance(profile, context);
     return {
       ...profile,
       budget:Number(profile.budget || 0) + finance,
-      trust:applyTrust(profile.trust, postMatchTrustDelta(context.result)),
-      currentMatchEffect:null,
-      matches:Number(profile.matches || 0) + 1,
+      trust:applyMap(profile.trust, postRoundTrustDelta(context.result), TRUST_KEYS, normalizedTrust),
+      roundsCompleted:Number(profile.roundsCompleted || 0) + 1,
       lastFinance:finance,
+      lastResult:context.result || null,
+      lastMatch:context.match ? { ...context.match } : null,
     };
   }
 
@@ -217,7 +293,10 @@
     const trust = normalizedTrust(profile?.trust);
     return Math.round(TRUST_KEYS.reduce((sum, key) => sum + trust[key], 0) / TRUST_KEYS.length);
   }
-
+  function averageAreas(profile) {
+    const areas = normalizedAreas(profile?.areas);
+    return Math.round(AREA_KEYS.reduce((sum, key) => sum + areas[key], 0) / AREA_KEYS.length);
+  }
   function trustLabel(value) {
     const score = Number(value || 0);
     if (score >= 75) return 'bardzo wysokie';
@@ -226,13 +305,30 @@
     if (score >= 25) return 'niskie';
     return 'kryzysowe';
   }
-
+  function areaLabel(value) {
+    const score = Number(value || 0);
+    if (score >= 75) return 'bardzo mocne';
+    if (score >= 60) return 'mocne';
+    if (score >= 40) return 'stabilne';
+    if (score >= 25) return 'słabe';
+    return 'kryzysowe';
+  }
+  function financeLabel(profile) {
+    const budget = Number(profile?.budget || 0);
+    if (budget >= 16000) return 'duża rezerwa';
+    if (budget >= 8000) return 'bezpiecznie';
+    if (budget >= 3000) return 'ciasno';
+    if (budget >= 0) return 'bardzo ciasno';
+    return 'zadłużenie';
+  }
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, DECISIONS, initialState, decisionById, pickDecision, canChoose, applyChoice,
-    normalizedTrust, chanceModifier, adjustedChance, matchFinance, applyPostMatch,
-    averageTrust, trustLabel, money,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, DECISIONS,
+    initialState, decisionById, pickDecision, canChoose, applyChoice,
+    normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
+    roundFinance, applyPostRound, applyPostMatch:applyPostRound,
+    averageTrust, averageAreas, trustLabel, areaLabel, financeLabel, money,
   };
 
   global.PresidentModeCore = api;

@@ -5,7 +5,7 @@ function uxMode() { return el('game-format')?.value || null; }
 function uxModeMeta(mode = uxMode()) {
   return ({
     career:{ label:'Kariera — cały sezon', settings:'Ustawienia kariery', instruction:'Wybierz klub i sezon. Zakres ligi ustawiamy automatycznie.' },
-    president:{ label:'Tryb prezesa', settings:'Ustawienia prezesa', instruction:'Wybierz klub i sezon. Budżet i decyzje pojawią się w trakcie kariery.' },
+    president:{ label:'Tryb prezesa', settings:'Ustawienia prezesa', instruction:'Wybierz klub i sezon. Ty zarządzasz klubem, a mecze są automatycznie rozgrywane w tle.' },
     match90:{ label:'Symulowany mecz RPG', settings:'Ustawienia meczu', instruction:'Ustaw zakres, klub i sezon, a potem rozpocznij mecz.' },
     special:{ label:'Runda specjalna', settings:'Ustawienia rundy', instruction:'Wybierz typ rundy i zakres pytań.' },
     quick:{ label:'Szybki quiz', settings:'Ustawienia quizu', instruction:'Ustaw zakres i długość serii pytań.' },
@@ -42,7 +42,7 @@ function uxSetupSummary() {
   if (!UX_SEASON_MODES.has(uxMode())) return typeof setupSummaryText === 'function' ? setupSummaryText() : '';
   const club = el('club')?.selectedOptions?.[0]?.textContent?.trim() || 'wybierz klub';
   const season = el('season-from')?.selectedOptions?.[0]?.textContent?.trim() || 'wybierz sezon';
-  const style = el('game-style')?.selectedOptions?.[0]?.textContent?.trim() || 'Stadionowa';
+  const style = uxMode() === 'president' ? 'mecze w tle' : (el('game-style')?.selectedOptions?.[0]?.textContent?.trim() || 'Stadionowa');
   return `${club} · ${season} · ${style}`;
 }
 
@@ -68,6 +68,7 @@ function uxSyncSetup() {
   document.body.classList.toggle('ux-career-mode', mode === 'career');
   el('scope-mode')?.closest('label')?.classList.toggle('ux-auto-hidden', seasonMode);
   el('season-mode')?.closest('label')?.classList.toggle('ux-auto-hidden', seasonMode);
+  el('game-style')?.closest('label')?.classList.toggle('ux-auto-hidden', mode === 'president');
 
   const settings = el('match-settings');
   const title = settings?.querySelector('summary strong');
@@ -110,6 +111,10 @@ function uxRefreshContextCount() {
 
 function uxCollapseCareerTables(root = document) {
   root.querySelectorAll?.('.career-table-wrap:not([data-ux-collapsed])').forEach(table => {
+    if (table.closest('.president-table-details')) {
+      table.dataset.uxCollapsed = '1';
+      return;
+    }
     table.dataset.uxCollapsed = '1';
     const own = table.querySelector('.career-own-row');
     const pos = own?.querySelector('td:first-child')?.textContent?.trim();
@@ -134,6 +139,10 @@ function uxAverageTrust(grid) {
 
 function uxCollapsePresidentTrust(root = document) {
   root.querySelectorAll?.('.president-trust-grid:not([data-ux-collapsed]), .president-report-trust:not([data-ux-collapsed])').forEach(grid => {
+    if (grid.closest('.president-club-details')) {
+      grid.dataset.uxCollapsed = '1';
+      return;
+    }
     grid.dataset.uxCollapsed = '1';
     const avg = uxAverageTrust(grid);
     const details = document.createElement('details');
@@ -155,7 +164,7 @@ function uxPolishPresidentOptions(root = document) {
   grid.dataset.uxPolished = '1';
   const heading = document.createElement('div');
   heading.className = 'president-options-heading';
-  heading.innerHTML = '<strong>Wybierz jedną decyzję</strong><small>Najpierw decyzja. Szczegółowy wpływ możesz rozwinąć osobno.</small>';
+  heading.innerHTML = '<strong>Wybierz jedną decyzję prezesa</strong><small>Najpierw decyzja. Szczegółowe skutki możesz rozwinąć osobno.</small>';
   grid.insertAdjacentElement('beforebegin', heading);
 
   [...grid.querySelectorAll(':scope > .president-option')].forEach(button => {
@@ -187,8 +196,14 @@ function uxPolishPresidentDecision() {
   if (!panel || panel.classList.contains('hidden')) return;
   uxCollapsePresidentTrust(panel);
   uxPolishPresidentOptions(panel);
+  uxCollapseCareerTables(panel);
 }
 function uxPolishPresidentReports() {
+  const panel = el('president-decision-panel');
+  if (panel && !panel.classList.contains('hidden')) {
+    uxCollapsePresidentTrust(panel);
+    uxCollapseCareerTables(panel);
+  }
   const box = el('career-round-summary');
   if (!box) return;
   uxCollapsePresidentTrust(box);
@@ -211,11 +226,11 @@ if (typeof renderPresidentDecision === 'function') {
 }
 if (typeof renderPresidentRoundOutcome === 'function') {
   const base = renderPresidentRoundOutcome;
-  renderPresidentRoundOutcome = function(context) { const result = base(context); uxPolishPresidentReports(); return result; };
+  renderPresidentRoundOutcome = function(context) { const result = base(context); uxPolishPresidentDecision(); uxPolishPresidentReports(); return result; };
 }
 if (typeof renderPresidentSeasonFinal === 'function') {
   const base = renderPresidentSeasonFinal;
-  renderPresidentSeasonFinal = function() { const result = base(); uxPolishPresidentReports(); return result; };
+  renderPresidentSeasonFinal = function(...args) { const result = base(...args); uxPolishPresidentDecision(); uxPolishPresidentReports(); return result; };
 }
 if (typeof renderCareerRoundResult === 'function') {
   const base = renderCareerRoundResult;
