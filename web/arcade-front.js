@@ -24,4 +24,24 @@ actionSplashScenario = function arcadeSplashScenario(correct, action, possession
   return arcadeFrontBaseSplashScenario(correct, action, possessionBefore, scoreBefore);
 };
 
+const arcadeFrontBaseShowActionSplash = showActionSplash;
+showActionSplash = function arcadeShowActionSplash(correct, action, possessionBefore, scoreBefore) {
+  arcadeFrontBaseShowActionSplash(correct, action, possessionBefore, scoreBefore);
+  if (!action?.refereeRobbery) return;
+
+  const splash = document.getElementById('action-splash');
+  splash?.classList.remove('success', 'goal');
+  splash?.classList.add('failure');
+  if (splash) splash.dataset.scenario = 'refereeRobbery';
+
+  const icon = document.getElementById('action-splash-icon');
+  const title = document.getElementById('action-splash-title');
+  const tag = document.getElementById('action-splash-tag');
+  const copy = document.getElementById('action-splash-copy');
+  if (icon) icon.textContent = '🧑‍⚖️';
+  if (title) title.textContent = 'PAN SĘDZIA?!';
+  if (tag) tag.textContent = `WAŁEK SĘDZIOWSKI · ${action.label || 'Akcja'}`;
+  if (copy) copy.textContent = 'Odpowiedź była prawidłowa i zagranie się udało, ale decyzja sędziego kasuje efekt boiskowy. Wiedza zostaje zaliczona — pretensje prosimy kierować do człowieka z gwizdkiem.';
+};
+
 if (document.getElementById('landing-screen')) ensureLandingScreen();
