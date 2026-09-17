@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 await import('../web/transfer-investigations-core.js');
 const core = globalThis.TransferInvestigationCore;
@@ -84,4 +85,10 @@ assert.equal(core.questionMatchesSelectedSeasons(fromQuestion, ['2025/26']), tru
 assert.equal(core.questionMatchesSelectedSeasons(fromQuestion, ['2026/27']), true);
 assert.equal(core.questionMatchesSelectedSeasons(fromQuestion, ['2024/25']), false);
 
+const production = JSON.parse(fs.readFileSync(new URL('../web/data/player-characters.json', import.meta.url), 'utf8'));
+const productionTransitions = core.detectTransitions(production.players || []);
+const productionQuestions = core.buildQuestions(production.players || []);
+assert.ok(productionTransitions.length >= 1, 'production profile set should contain at least one certain club change');
+assert.ok(productionQuestions.length >= 3, 'production profile set should create playable transfer investigations');
+console.log(`Transfer investigations production data: transitions=${productionTransitions.length}, questions=${productionQuestions.length}`);
 console.log('Transfer investigations smoke: OK');
