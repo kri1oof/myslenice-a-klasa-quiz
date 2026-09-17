@@ -40,6 +40,6 @@ export function selectEventMatches(matches, cachedMatches = [], cachedEvents = {
   });
 }
 
-export function shouldFreezeSeason(label, cachedSeason, force = false) {
-  return label === '2025/26' && Boolean(cachedSeason) && !force;
+export function shouldFreezeSeason(label, cachedSeason, force = false, currentSeason = '2026/27') {
+  return label !== currentSeason && Boolean(cachedSeason) && !force;
 }
