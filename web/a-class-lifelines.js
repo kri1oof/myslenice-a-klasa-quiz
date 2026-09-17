@@ -25,7 +25,7 @@ function ensureAClassLifelinesUi() {
   if (!tools.querySelector('.rpg-lifelines-head')) {
     const head = document.createElement('div');
     head.className = 'rpg-lifelines-head';
-    head.innerHTML = '<span>🛟</span><div><strong>Koła ratunkowe</strong><small>Po jednym użyciu na mecz</small></div>';
+    head.innerHTML = '<span>🛟</span><div><strong>A-klasowe koła ratunkowe</strong><small>Po jednym użyciu na mecz</small></div>';
     tools.prepend(head);
   }
   if (tools.parentElement !== answers.parentElement || tools.nextElementSibling !== answers) {
@@ -46,11 +46,19 @@ function renderAClassLifelineButtons() {
   hint.classList.add('rpg-lifeline-card');
   swap.classList.add('rpg-lifeline-card');
   hint.innerHTML = state.rpgHintAvailable
-    ? '<span class="rpg-lifeline-icon">📣</span><span><strong>Krzyk z ławki</strong><small>Odrzuć 2 błędne odpowiedzi</small></span>'
-    : '<span class="rpg-lifeline-icon">📣</span><span><strong>Krzyk wykorzystany</strong><small>To koło już zagrało</small></span>';
+    ? '<span class="rpg-lifeline-icon">📣</span><span><strong>Kibic za bramką</strong><small>Podpowiada i odrzuca 2 błędne odpowiedzi</small></span>'
+    : '<span class="rpg-lifeline-icon">📣</span><span><strong>Kibic już pomógł</strong><small>To koło zostało wykorzystane</small></span>';
   swap.innerHTML = state.rpgSwapAvailable
-    ? '<span class="rpg-lifeline-icon">🔁</span><span><strong>Zmiana z ławki</strong><small>Nowe pytanie do tej samej akcji</small></span>'
-    : '<span class="rpg-lifeline-icon">🔁</span><span><strong>Zmiana wykorzystana</strong><small>Ławka jest już zamknięta</small></span>';
+    ? '<span class="rpg-lifeline-icon">🧢</span><span><strong>Kierownik drużyny</strong><small>Wyciąga inne pytanie do tej samej akcji</small></span>'
+    : '<span class="rpg-lifeline-icon">🧢</span><span><strong>Kierownik już interweniował</strong><small>To koło zostało wykorzystane</small></span>';
+}
+
+function rewriteLatestRpgLog(text) {
+  if (!Array.isArray(state.rpgLogs) || !state.rpgLogs.length) return;
+  const latest = state.rpgLogs[0];
+  const minute = String(latest.text || '').match(/^\S+\s/)?.[0] || '';
+  latest.text = `${minute}${text}`;
+  if (typeof renderRpgLog === 'function') renderRpgLog();
 }
 
 if (typeof ensureRpgUi === 'function') {
@@ -75,7 +83,11 @@ if (typeof updateRpgTools === 'function') {
 if (typeof useRpgHint === 'function') {
   const aClassBaseUseRpgHint = useRpgHint;
   useRpgHint = function aClassUseRpgHint() {
+    const wasAvailable = Boolean(state.rpgHintAvailable);
     const result = aClassBaseUseRpgHint();
+    if (wasAvailable && !state.rpgHintAvailable) {
+      rewriteLatestRpgLog('📣 Kibic za bramką podpowiada: dwie błędne odpowiedzi odpadają.');
+    }
     renderAClassLifelineButtons();
     return result;
   };
@@ -84,7 +96,11 @@ if (typeof useRpgHint === 'function') {
 if (typeof useRpgQuestionSwap === 'function') {
   const aClassBaseUseRpgQuestionSwap = useRpgQuestionSwap;
   useRpgQuestionSwap = function aClassUseRpgQuestionSwap() {
+    const wasAvailable = Boolean(state.rpgSwapAvailable);
     const result = aClassBaseUseRpgQuestionSwap();
+    if (wasAvailable && !state.rpgSwapAvailable) {
+      rewriteLatestRpgLog('🧢 Kierownik drużyny wyciąga inny protokół: dostajesz nowe pytanie do tej samej akcji.');
+    }
     renderAClassLifelineButtons();
     return result;
   };
