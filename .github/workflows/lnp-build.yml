@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/lnp-build.yml'
       - 'scripts/build_lnp_questions.py'
+      - 'src/myslenice_quiz/export.py'
       - 'src/myslenice_quiz/ingest/laczynaspilka.py'
       - 'src/myslenice_quiz/questions/**'
   workflow_dispatch:
@@ -77,12 +78,15 @@ jobs:
           pip install -e '.[dev]'
       - name: Generate and merge quiz questions
         run: |
+          START_TS=$(date +%s)
           python scripts/build_lnp_questions.py \
             --raw lnp_myslenice_2025_26_2026_27.json \
             --db lnp_build.db \
             --lnp-export lnp_questions.json \
             --existing web/data/questions.json \
             --output web/data/questions.json | tee lnp_build_summary.txt
+          END_TS=$(date +%s)
+          echo "BUILD_SECONDS $((END_TS - START_TS))" | tee -a lnp_build_summary.txt
           cp web/data/questions.json docs/data/questions.json
       - name: Validate generated database
         run: |
