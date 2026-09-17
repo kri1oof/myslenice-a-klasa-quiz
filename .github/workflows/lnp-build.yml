@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  actions: read
+  actions: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -138,6 +138,9 @@ jobs:
             git commit -m 'Expand quiz with ŁNP player decision questions'
             git push origin HEAD:"$GITHUB_REF_NAME"
           fi
+      - name: Deploy updated quiz on Pages
+        if: success() && github.ref_name == 'main'
+        run: gh workflow run pages.yml --ref "$GITHUB_REF_NAME"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
