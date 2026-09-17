@@ -1,0 +1,80 @@
+name: LNP full sync
+on:
+  push:
+    branches: [main, lnp-data-2025-2027]
+    paths:
+      - 'scripts/lnp_sync.mjs'
+      - 'scripts/lnp_sync_helpers.mjs'
+      - '.github/workflows/lnp-sync.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore previous ŁNP snapshot
+        run: |
+          mkdir -p /tmp/lnp-cache
+          RUN_ID="$(gh run list --workflow 'LNP full sync' --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [ -n "$RUN_ID" ]; then
+            echo "Using cache from LNP full sync run: $RUN_ID"
+            gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp-cache || true
+          else
+            echo 'No previous successful snapshot found; a full bootstrap will be used.'
+          fi
+          if [ -f /tmp/lnp-cache/lnp_myslenice.json ]; then
+            cp /tmp/lnp-cache/lnp_myslenice.json lnp_cache.json
+          fi
+      - run: npm install playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - name: Fetch official ŁNP data incrementally
+        env:
+          LNP_CACHE: lnp_cache.json
+          LNP_CHUNK: '24'
+        run: node scripts/lnp_sync.mjs
+      - name: Validate incremental snapshot
+        id: validate
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('lnp_myslenice.json', 'utf8'));
+          const required = ['2025/26', '2026/27'];
+          for (const label of required) {
+            if (!data.seasons?.[label]) throw new Error(`Missing season ${label}`);
+          }
+          if ((data.errors || []).length) throw new Error(`ŁNP errors: ${JSON.stringify(data.errors.slice(0, 10))}`);
+
+          let changed = true;
+          if (fs.existsSync('lnp_cache.json')) {
+            const cached = JSON.parse(fs.readFileSync('lnp_cache.json', 'utf8'));
+            changed = JSON.stringify(cached.seasons || {}) !== JSON.stringify(data.seasons || {});
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\n`);
+
+          console.log('SYNC_STATS', JSON.stringify(data.syncStats || {}));
+          console.log('DATA_CHANGED', changed);
+          console.log('2025_EVENTS', Object.keys(data.seasons['2025/26'].events || {}).length);
+          console.log('2026_EVENTS', Object.keys(data.seasons['2026/27'].events || {}).length);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lnp-myslenice-data
+          path: lnp_myslenice.json
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Trigger question rebuild
+        if: success() && steps.validate.outputs.changed == 'true'
+        run: gh workflow run 'LNP build questions' --ref "$GITHUB_REF_NAME"
+      - name: Skip unchanged question rebuild
+        if: success() && steps.validate.outputs.changed != 'true'
+        run: echo 'ŁNP season data unchanged; question rebuild skipped.'

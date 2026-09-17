@@ -31,9 +31,15 @@ jobs:
           node --check web/local-football-chaos.js
           node --check web/local-media-events.js
           node --check web/local-club-events.js
+          node --check web/player-decision-questions.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
+      - name: ŁNP incremental sync smoke test
+        run: |
+          node --check scripts/lnp_sync_helpers.mjs
+          node --check scripts/lnp_sync.mjs
+          node tests/lnp-sync-incremental-smoke.mjs
       - name: Developer controls smoke test
         run: node tests/dev-tools-smoke.mjs
       - name: Media events smoke test
