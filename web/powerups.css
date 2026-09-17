@@ -1,0 +1,173 @@
+.rpg-powerup-hud {
+  margin: 10px 0;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(28,24,55,.92), rgba(13,18,34,.92));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.powerup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.powerup-head span {
+  display: grid;
+  gap: 2px;
+}
+
+.powerup-head small,
+.powerup-rule {
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .7;
+}
+
+.powerup-head strong {
+  font-size: .95rem;
+}
+
+.powerup-head em {
+  font-size: .78rem;
+  font-style: normal;
+  opacity: .75;
+}
+
+.powerup-head em.active {
+  opacity: 1;
+  font-weight: 800;
+}
+
+.powerup-hand {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.powerup-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 13px;
+  background: rgba(255,255,255,.055);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .14s ease, border-color .14s ease, background .14s ease, opacity .14s ease;
+}
+
+.powerup-card:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,.3);
+  background: rgba(255,255,255,.09);
+}
+
+.powerup-card.active {
+  border-color: rgba(255,215,90,.7);
+  background: rgba(255,215,90,.12);
+  box-shadow: 0 0 0 1px rgba(255,215,90,.12) inset;
+}
+
+.powerup-card.used {
+  opacity: .38;
+  filter: grayscale(.5);
+}
+
+.powerup-card:disabled {
+  cursor: default;
+}
+
+.powerup-icon {
+  font-size: 1.55rem;
+}
+
+.powerup-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.powerup-copy strong {
+  font-size: .86rem;
+}
+
+.powerup-copy small {
+  font-size: .72rem;
+  line-height: 1.25;
+  opacity: .72;
+}
+
+.powerup-card em {
+  font-size: .62rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .05em;
+  opacity: .72;
+  white-space: nowrap;
+}
+
+.powerup-rule {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.powerup-active-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border: 1px solid rgba(255,215,90,.38);
+  border-radius: 999px;
+  background: rgba(255,215,90,.11);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.powerup-resolution {
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+  padding: 9px 11px;
+  border-radius: 11px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+}
+
+.powerup-resolution.good {
+  border-color: rgba(83,214,131,.38);
+}
+
+.powerup-resolution.bad {
+  border-color: rgba(255,108,108,.36);
+}
+
+.powerup-resolution strong {
+  font-size: .8rem;
+}
+
+.powerup-resolution span {
+  font-size: .76rem;
+  opacity: .78;
+}
+
+@media (max-width: 860px) {
+  .powerup-hand {
+    grid-template-columns: 1fr;
+  }
+
+  .powerup-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
