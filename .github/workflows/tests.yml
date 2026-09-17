@@ -40,6 +40,8 @@ jobs:
           node --check web/player-characters.js
           node --check web/substitutions-core.js
           node --check web/substitutions.js
+          node --check web/player-form-morale-core.js
+          node --check web/player-form-morale.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
@@ -51,6 +53,8 @@ jobs:
         run: node tests/player-characters-smoke.mjs
       - name: Substitutions smoke test
         run: node tests/substitutions-smoke.mjs
+      - name: Player form and morale smoke test
+        run: node tests/player-form-morale-smoke.mjs
       - name: ŁNP incremental sync smoke test
         run: |
           node --check scripts/lnp_sync_helpers.mjs
