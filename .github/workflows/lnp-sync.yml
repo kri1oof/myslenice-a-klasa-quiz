@@ -1,7 +1,7 @@
 name: LNP full sync
 on:
   push:
-    branches: [lnp-data-2025-2027]
+    branches: [main, lnp-data-2025-2027]
     paths:
       - 'scripts/lnp_sync.mjs'
       - 'scripts/lnp_sync_helpers.mjs'
@@ -24,7 +24,7 @@ jobs:
       - name: Restore previous ŁNP snapshot
         run: |
           mkdir -p /tmp/lnp-cache
-          RUN_ID="$(gh run list --workflow 'LNP full sync' --branch lnp-data-2025-2027 --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          RUN_ID="$(gh run list --workflow 'LNP full sync' --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
           if [ -n "$RUN_ID" ]; then
             echo "Using cache from LNP full sync run: $RUN_ID"
             gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp-cache || true
@@ -74,7 +74,7 @@ jobs:
           retention-days: 90
       - name: Trigger question rebuild
         if: success() && steps.validate.outputs.changed == 'true'
-        run: gh workflow run 'LNP build questions' --ref lnp-data-2025-2027
+        run: gh workflow run 'LNP build questions' --ref "$GITHUB_REF_NAME"
       - name: Skip unchanged question rebuild
         if: success() && steps.validate.outputs.changed != 'true'
         run: echo 'ŁNP season data unchanged; question rebuild skipped.'
