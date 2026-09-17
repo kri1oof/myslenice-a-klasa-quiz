@@ -1,43 +1,43 @@
 name: LNP 2026-27 sync
 on:
-  push:
-    branches: [lnp-data-2025-2027]
-    paths:
-      - '.github/workflows/lnp-sync-2026.yml'
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   sync-current:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Restore latest full snapshot as cache
+        run: |
+          mkdir -p /tmp/lnp-cache
+          RUN_ID="$(gh run list --workflow 'LNP full sync' --branch lnp-data-2025-2027 --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [ -n "$RUN_ID" ]; then
+            echo "Using cache from LNP full sync run: $RUN_ID"
+            gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp-cache || true
+          fi
+          if [ -f /tmp/lnp-cache/lnp_myslenice.json ]; then
+            cp /tmp/lnp-cache/lnp_myslenice.json lnp_cache.json
+          fi
       - run: npm install playwright@1.55.0
       - run: npx playwright install --with-deps chromium
-      - name: Prepare current-season-only scraper
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('scripts/lnp_sync.mjs')
-          s = p.read_text(encoding='utf-8')
-          start = s.index('const SEASONS = [')
-          end = s.index('];', start) + 2
-          replacement = "const SEASONS = [\n  { label: '2026/27', id: '3c77d143-8010-4073-9842-d6b63365ffce' },\n];"
-          s = s[:start] + replacement + s[end:]
-          Path('scripts/lnp_sync_2026_runtime.mjs').write_text(s, encoding='utf-8')
-          PY
-      - name: Fetch official ŁNP 2026/27 data
+      - name: Incremental official ŁNP update
         env:
           LNP_OUT: lnp_2026_27.json
+          LNP_CACHE: lnp_cache.json
           LNP_CHUNK: '24'
-        run: node scripts/lnp_sync_2026_runtime.mjs
+        run: node scripts/lnp_sync.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: lnp-2026-27-data
           path: lnp_2026_27.json
           if-no-files-found: warn
+          retention-days: 90
