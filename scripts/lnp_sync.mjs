@@ -1,20 +1,35 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs';
+import { played, selectEventMatches, shouldFreezeSeason } from './lnp_sync_helpers.mjs';
 
 const SEASONS = [
-  { label: '2025/26', id: 'e9d66181-d03e-4bb3-b889-4da848f4831d' },
-  { label: '2026/27', id: '3c77d143-8010-4073-9842-d6b63365ffce' },
+  { label: '2025/26', id: 'e9d66181-d03e-4bb3-b889-4da848f4831d', playId: '83230fb6-b571-4c0d-ac1b-77d1a5d42475', playName: 'Myślenice: Klasa A "KEEZA"' },
+  { label: '2026/27', id: '3c77d143-8010-4073-9842-d6b63365ffce', playId: '081b0700-ae25-4be8-a2bd-e38cad5bfc50', playName: 'Myślenice: Klasa A' },
 ];
-const MALOPOLSKIE = '143a5a9a-5aa8-4186-ac19-d39e1d198ddb';
-const CLASS_A = '63d04023-727a-4c0c-a8c6-4154fe1104b7';
-const START_URL = 'https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&leagueGroup=e978c8e5-d903-4a89-b6b5-8d5da6c567ee&leagueId=337bb869-0b42-484f-8eca-0c8842a13ec9&subLeague=63d04023-727a-4c0c-a8c6-4154fe1104b7&enumType=ZpnAndLeagueAndPlay&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&voivodeship=143a5a9a-5aa8-4186-ac19-d39e1d198ddb&isAdvanceMode=true&genderType=Male';
+const START_URL = 'https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male';
 const OUT = process.env.LNP_OUT || 'lnp_myslenice.json';
-const CHUNK = Number(process.env.LNP_CHUNK || 32);
+const CACHE = process.env.LNP_CACHE || '';
+const FORCE_FULL = /^(1|true|yes)$/i.test(process.env.LNP_FORCE_FULL || '');
+const CHUNK = Number(process.env.LNP_CHUNK || 24);
 const EVENT_RETRIES = Number(process.env.LNP_EVENT_RETRIES || 3);
 const EVENT_RETRY_BASE_MS = Number(process.env.LNP_EVENT_RETRY_BASE_MS || 15000);
 const PLAYER_RETRIES = Number(process.env.LNP_PLAYER_RETRIES || 3);
 const PLAYER_RETRY_BASE_MS = Number(process.env.LNP_PLAYER_RETRY_BASE_MS || 15000);
 
+function loadCache() {
+  if (!CACHE || !fs.existsSync(CACHE)) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(CACHE, 'utf8'));
+    if (!parsed?.seasons || typeof parsed.seasons !== 'object') return null;
+    console.log('CACHE_LOADED', CACHE, Object.keys(parsed.seasons).join(','));
+    return parsed;
+  } catch (e) {
+    console.log('CACHE_INVALID', CACHE, String(e));
+    return null;
+  }
+}
+
+const cached = loadCache();
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
 const page = await context.newPage();
@@ -22,7 +37,7 @@ page.setDefaultNavigationTimeout(90000);
 
 let token = null;
 let tokenAt = 0;
-let apiBase = null;
+let apiBase = cached?.apiBase || null;
 let authStatus = null;
 page.on('response', async (resp) => {
   if (!resp.url().includes('/Authorize/recaptcha')) return;
@@ -90,6 +105,7 @@ async function fire(endpoints, tk) {
 }
 
 async function fetchChunk(endpoints) {
+  if (!endpoints.length) return [];
   let tk = await mintToken();
   let out = await fire(endpoints, tk);
   if (out.some((x) => x.status === 401 || x.status === 403)) {
@@ -119,26 +135,21 @@ async function fetchAll(endpoints, label, checkpoint) {
   return out;
 }
 
-function pickMyslenicePlay(items) {
-  const candidates = (Array.isArray(items) ? items : []).filter((x) =>
-    /Myślenice:\s*Klasa A/i.test(x?.name || '') && !/baraż/i.test(x?.name || '')
-  );
-  return candidates.find((x) => /KEEZA/i.test(x.name || '')) || candidates[0] || null;
-}
-
-function played(match) {
-  const state = (match?.state || '').trim().toLowerCase();
-  return state === 'rozegrany';
-}
-
-async function one(endpoint) {
-  const [r] = await fetchChunk([endpoint]);
-  if (!r || r.status !== 200) throw new Error(`${endpoint}: status ${r?.status}`);
-  return r.data;
-}
-
 function save(result) {
+  result.apiBase = apiBase;
+  result.fetchedAt = new Date().toISOString();
   fs.writeFileSync(OUT, JSON.stringify(result, null, 2));
+}
+
+function collectPlayerIds(seasonData) {
+  const ids = new Set();
+  for (const event of Object.values(seasonData?.events || {})) {
+    if (!event) continue;
+    for (const side of ['host', 'guest']) {
+      for (const p of event?.[side]?.squad || []) if (p?.id) ids.add(p.id);
+    }
+  }
+  return ids;
 }
 
 function attachPlayerProfile(result, playerIdsBySeason, id, row) {
@@ -150,56 +161,83 @@ function attachPlayerProfile(result, playerIdsBySeason, id, row) {
   }
 }
 
+function copyReusableEvents(matches, cachedSeason) {
+  const currentPlayedIds = new Set(matches.filter(played).map((m) => m.matchId));
+  return Object.fromEntries(Object.entries(cachedSeason?.events || {}).filter(([id]) => currentPlayedIds.has(id)));
+}
+
 console.log('OPEN', START_URL);
 await page.goto(START_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await waitToken(15000);
 console.log('PAGE', await page.title(), page.url());
 
 const result = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   fetchedAt: new Date().toISOString(),
   source: 'https://www.laczynaspilka.pl/rozgrywki',
-  apiBase: apiBase,
+  apiBase,
   competition: 'Myślenice: Klasa A',
+  cacheSource: cached ? CACHE : null,
+  forceFull: FORCE_FULL,
   seasons: {},
   errors: [],
+  syncStats: {},
 };
-save(result);
 
 const playerIdsBySeason = {};
-const allPlayerIds = new Set();
 
 for (const season of SEASONS) {
   console.log('\nSEASON', season.label);
-  const dictionaries = await one(`leagues/${CLASS_A}/seasons/${season.id}/ZPNs/${MALOPOLSKIE}/play-dictionaries`);
-  const play = pickMyslenicePlay(dictionaries);
-  if (!play) {
-    result.errors.push(`${season.label}: nie znaleziono Myślenice Klasa A`);
+  const cachedSeason = cached?.seasons?.[season.label] || null;
+
+  if (shouldFreezeSeason(season.label, cachedSeason, FORCE_FULL)) {
+    result.seasons[season.label] = structuredClone(cachedSeason);
+    const ids = collectPlayerIds(result.seasons[season.label]);
+    playerIdsBySeason[season.label] = ids;
+    result.syncStats[season.label] = {
+      mode: 'frozen-cache',
+      matches: result.seasons[season.label].matches?.length || 0,
+      eventRequests: 0,
+      cachedEvents: Object.keys(result.seasons[season.label].events || {}).length,
+      playerIds: ids.size,
+    };
+    console.log('FROZEN_CACHE', season.label, 'events', result.syncStats[season.label].cachedEvents, 'players', ids.size);
     save(result);
     continue;
   }
-  console.log('PLAY', play.id, play.name);
+
   const [tableRes, matchesRes] = await fetchChunk([
-    `plays/${play.id}/advanced-tables`,
-    `plays/${play.id}/matches`,
+    `plays/${season.playId}/advanced-tables`,
+    `plays/${season.playId}/matches`,
   ]);
   if (matchesRes?.status !== 200 || !Array.isArray(matchesRes.data)) {
     result.errors.push(`${season.label}: matches status ${matchesRes?.status}`);
+    if (cachedSeason) {
+      console.log('MATCH_LIST_FALLBACK_TO_CACHE', season.label);
+      result.seasons[season.label] = structuredClone(cachedSeason);
+      playerIdsBySeason[season.label] = collectPlayerIds(result.seasons[season.label]);
+      result.syncStats[season.label] = { mode: 'cache-fallback', eventRequests: 0 };
+    }
     save(result);
     continue;
   }
+
   const matches = matchesRes.data;
-  const eventMatches = matches.filter(played);
-  console.log('MATCHES', matches.length, 'EVENTS_TO_FETCH', eventMatches.length);
+  const events = FORCE_FULL ? {} : copyReusableEvents(matches, cachedSeason);
+  const players = FORCE_FULL ? {} : structuredClone(cachedSeason?.players || {});
   result.seasons[season.label] = {
     seasonId: season.id,
-    playId: play.id,
-    playName: play.name,
-    table: tableRes?.status === 200 ? tableRes.data : null,
+    playId: season.playId,
+    playName: season.playName,
+    table: tableRes?.status === 200 ? tableRes.data : (cachedSeason?.table || null),
     matches,
-    events: {},
-    players: {},
+    events,
+    players,
   };
+
+  const playedMatches = matches.filter(played);
+  const eventMatches = selectEventMatches(matches, cachedSeason?.matches || [], cachedSeason?.events || {}, FORCE_FULL);
+  console.log('MATCHES', matches.length, 'PLAYED', playedMatches.length, 'EVENTS_TO_FETCH', eventMatches.length, 'EVENTS_FROM_CACHE', Object.keys(events).length);
   save(result);
 
   const eventEndpoints = eventMatches.map((m) => `matches/${m.matchId}/events`);
@@ -213,53 +251,51 @@ for (const season of SEASONS) {
 
   for (let attempt = 1; attempt <= EVENT_RETRIES; attempt++) {
     const retryIndexes = [];
-    eventRows.forEach((r, idx) => {
-      if (r?.status === 429) retryIndexes.push(idx);
-    });
+    eventRows.forEach((r, idx) => { if (r?.status === 429) retryIndexes.push(idx); });
     if (!retryIndexes.length) break;
-
     const waitMs = EVENT_RETRY_BASE_MS * attempt;
     console.log('EVENT_RATE_LIMIT_RETRY', season.label, attempt, 'pending', retryIndexes.length, 'waitMs', waitMs);
     await sleep(waitMs);
-    const retryRows = await fetchAll(
-      retryIndexes.map((idx) => eventEndpoints[idx]),
-      `${season.label} events retry ${attempt}`,
-      null,
-    );
+    const retryRows = await fetchAll(retryIndexes.map((idx) => eventEndpoints[idx]), `${season.label} events retry ${attempt}`, null);
     retryIndexes.forEach((originalIdx, retryIdx) => {
       const row = retryRows[retryIdx];
       if (row) eventRows[originalIdx] = row;
       const match = eventMatches[originalIdx];
-      if (match && row?.status === 200 && row.data) {
-        result.seasons[season.label].events[match.matchId] = row.data;
-      }
+      if (match && row?.status === 200 && row.data) result.seasons[season.label].events[match.matchId] = row.data;
     });
     save(result);
   }
 
-  const playerIds = new Set();
   eventMatches.forEach((m, i) => {
     const r = eventRows[i];
-    if (r?.status === 200 && r.data) {
-      for (const side of ['host', 'guest']) {
-        for (const p of r.data?.[side]?.squad || []) {
-          if (p?.id) {
-            playerIds.add(p.id);
-            allPlayerIds.add(p.id);
-          }
-        }
-      }
-    } else {
-      result.errors.push(`${season.label} match ${m.matchId}: events status ${r?.status}`);
-    }
+    if (r?.status !== 200 || !r.data) result.errors.push(`${season.label} match ${m.matchId}: events status ${r?.status}`);
   });
-  playerIdsBySeason[season.label] = playerIds;
-  console.log('PLAYERS_DISCOVERED', season.label, playerIds.size);
+
+  const ids = collectPlayerIds(result.seasons[season.label]);
+  playerIdsBySeason[season.label] = ids;
+  result.syncStats[season.label] = {
+    mode: cachedSeason && !FORCE_FULL ? 'incremental' : 'full',
+    matches: matches.length,
+    playedMatches: playedMatches.length,
+    eventRequests: eventMatches.length,
+    cachedEvents: playedMatches.length - eventMatches.length,
+    playerIds: ids.size,
+  };
+  console.log('PLAYERS_DISCOVERED', season.label, ids.size);
   save(result);
 }
 
-console.log('\nUNIQUE_PLAYERS_TO_FETCH', allPlayerIds.size);
-const allIds = [...allPlayerIds];
+const missingProfileIds = new Set();
+for (const season of SEASONS) {
+  const data = result.seasons[season.label];
+  if (!data) continue;
+  for (const id of playerIdsBySeason[season.label] || []) {
+    if (!data.players?.[id]) missingProfileIds.add(id);
+  }
+}
+
+const allIds = [...missingProfileIds];
+console.log('\nPLAYER_PROFILES_TO_FETCH', allIds.length);
 const playerEndpoints = allIds.map((id) => `players/${id}`);
 const playerRows = await fetchAll(playerEndpoints, 'players', (partial) => {
   partial.forEach((r, idx) => attachPlayerProfile(result, playerIdsBySeason, allIds[idx], r));
@@ -268,19 +304,12 @@ const playerRows = await fetchAll(playerEndpoints, 'players', (partial) => {
 
 for (let attempt = 1; attempt <= PLAYER_RETRIES; attempt++) {
   const retryIndexes = [];
-  playerRows.forEach((r, idx) => {
-    if (r?.status === 429) retryIndexes.push(idx);
-  });
+  playerRows.forEach((r, idx) => { if (r?.status === 429) retryIndexes.push(idx); });
   if (!retryIndexes.length) break;
-
   const waitMs = PLAYER_RETRY_BASE_MS * attempt;
   console.log('PLAYER_RATE_LIMIT_RETRY', attempt, 'pending', retryIndexes.length, 'waitMs', waitMs);
   await sleep(waitMs);
-  const retryRows = await fetchAll(
-    retryIndexes.map((idx) => playerEndpoints[idx]),
-    `players retry ${attempt}`,
-    null,
-  );
+  const retryRows = await fetchAll(retryIndexes.map((idx) => playerEndpoints[idx]), `players retry ${attempt}`, null);
   retryIndexes.forEach((originalIdx, retryIdx) => {
     const row = retryRows[retryIdx];
     if (row) playerRows[originalIdx] = row;
@@ -293,7 +322,12 @@ allIds.forEach((id, i) => {
   const r = playerRows[i];
   if (r?.status !== 200 || !r.data) result.errors.push(`player ${id}: status ${r?.status}`);
 });
+result.syncStats.playerProfileRequests = allIds.length;
+result.syncStats.totalEventRequests = Object.values(result.syncStats)
+  .filter((x) => x && typeof x === 'object' && Number.isFinite(x.eventRequests))
+  .reduce((sum, x) => sum + x.eventRequests, 0);
 
 save(result);
+console.log('SYNC_STATS', JSON.stringify(result.syncStats));
 console.log('DONE', OUT, 'errors', result.errors.length);
 await browser.close();
