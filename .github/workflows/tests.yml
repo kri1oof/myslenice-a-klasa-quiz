@@ -48,6 +48,8 @@ jobs:
           node --check web/rivalry-matches.js
           node --check web/season-career-core.js
           node --check web/season-career.js
+          node --check web/transfer-investigations-core.js
+          node --check web/transfer-investigations.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
@@ -67,6 +69,8 @@ jobs:
         run: node tests/rivalry-matches-smoke.mjs
       - name: Season career smoke test
         run: node tests/season-career-smoke.mjs
+      - name: Transfer investigations smoke test
+        run: node tests/transfer-investigations-smoke.mjs
       - name: ŁNP incremental sync smoke test
         run: |
           node --check scripts/lnp_sync_helpers.mjs
