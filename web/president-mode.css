@@ -1,0 +1,371 @@
+.president-decision-panel {
+  margin: 18px 0;
+}
+
+.president-decision-panel.hidden {
+  display: none;
+}
+
+.president-decision-card {
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 22px;
+  padding: 20px;
+  background: linear-gradient(155deg, rgba(19,25,37,.98), rgba(10,14,23,.98));
+  box-shadow: 0 22px 60px rgba(0,0,0,.28);
+}
+
+.president-decision-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.president-decision-head > span,
+.president-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.president-decision-head small,
+.president-budget small,
+.president-case small,
+.president-report-head small,
+.president-finale-grid small {
+  font-size: .72rem;
+  letter-spacing: .08em;
+  opacity: .72;
+}
+
+.president-decision-head strong {
+  font-size: 1.2rem;
+}
+
+.president-decision-head em {
+  font-size: .84rem;
+  font-style: normal;
+  opacity: .72;
+}
+
+.president-budget {
+  min-width: 150px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 14px;
+  text-align: right;
+  background: rgba(255,255,255,.04);
+}
+
+.president-budget strong {
+  font-size: 1.25rem;
+}
+
+.president-trust-grid,
+.president-report-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin: 14px 0 18px;
+}
+
+.president-trust-row {
+  display: grid;
+  grid-template-columns: minmax(88px, auto) 1fr 30px;
+  align-items: center;
+  gap: 8px;
+  font-size: .8rem;
+}
+
+.president-trust-row > span {
+  opacity: .82;
+}
+
+.president-trust-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.09);
+}
+
+.president-trust-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(255,255,255,.55), rgba(255,255,255,.9));
+}
+
+.president-trust-row strong {
+  text-align: right;
+  font-size: .78rem;
+}
+
+.president-case {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 15px;
+  align-items: start;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.president-case-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  font-size: 2rem;
+  background: rgba(255,255,255,.07);
+}
+
+.president-case h2 {
+  margin: 3px 0 7px;
+  font-size: 1.25rem;
+}
+
+.president-case p {
+  margin: 0;
+  opacity: .8;
+  line-height: 1.45;
+}
+
+.president-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.president-option {
+  min-height: 142px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.045);
+  color: inherit;
+  cursor: pointer;
+}
+
+.president-option:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.075);
+}
+
+.president-option:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.president-option strong {
+  font-size: .95rem;
+}
+
+.president-option span {
+  font-size: .8rem;
+  line-height: 1.4;
+  opacity: .82;
+}
+
+.president-option small {
+  margin-top: auto;
+  font-size: .72rem;
+  line-height: 1.35;
+  opacity: .68;
+}
+
+.president-option em {
+  font-size: .72rem;
+  font-style: normal;
+}
+
+.president-disclaimer {
+  display: block;
+  margin-top: 12px;
+  opacity: .55;
+  line-height: 1.35;
+}
+
+.rpg-president-hud {
+  margin: 9px 0;
+  padding: 11px 13px;
+  display: grid;
+  grid-template-columns: minmax(170px, .8fr) 1.8fr;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 14px;
+  background: rgba(255,255,255,.035);
+}
+
+.rpg-president-hud.hidden {
+  display: none;
+}
+
+.president-hud-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.president-hud-main small {
+  font-size: .68rem;
+  letter-spacing: .08em;
+  opacity: .64;
+}
+
+.president-hud-main strong {
+  font-size: 1.08rem;
+}
+
+.president-hud-main span {
+  font-size: .72rem;
+  opacity: .7;
+}
+
+.president-hud-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+}
+
+.president-hud-trust .president-trust-row {
+  grid-template-columns: minmax(76px, auto) 1fr 26px;
+  font-size: .68rem;
+}
+
+.president-hud-trust .president-trust-track {
+  height: 5px;
+}
+
+.president-match-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: .72rem;
+  background: rgba(255,255,255,.08);
+}
+
+.president-match-chip.positive {
+  border: 1px solid rgba(255,255,255,.16);
+}
+
+.president-match-chip.negative {
+  border: 1px dashed rgba(255,255,255,.18);
+}
+
+.president-round-card {
+  margin: 14px 0;
+  padding: 16px;
+  border-radius: 17px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+}
+
+.president-report-head {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.president-report-head > span,
+.president-finale-grid > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+}
+
+.president-report-head em,
+.president-finale-grid em {
+  font-size: .72rem;
+  font-style: normal;
+  opacity: .68;
+}
+
+.president-round-card p {
+  margin: 10px 0 5px;
+  line-height: 1.4;
+}
+
+.president-round-card > small {
+  opacity: .55;
+}
+
+.president-finale-kicker {
+  font-size: .76rem;
+  letter-spacing: .08em;
+  opacity: .72;
+}
+
+.president-round-card.season-final h3 {
+  margin: 6px 0 12px;
+  font-size: 1.2rem;
+}
+
+.president-finale-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.president-mode-card .mode-icon {
+  filter: none;
+}
+
+@media (max-width: 820px) {
+  .president-options,
+  .president-finale-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .president-decision-head,
+  .rpg-president-hud {
+    grid-template-columns: 1fr;
+  }
+
+  .president-decision-head {
+    display: grid;
+  }
+
+  .president-budget {
+    text-align: left;
+  }
+}
+
+@media (max-width: 600px) {
+  .president-decision-card {
+    padding: 14px;
+    border-radius: 17px;
+  }
+
+  .president-trust-grid,
+  .president-report-trust,
+  .president-hud-trust,
+  .president-report-head {
+    grid-template-columns: 1fr;
+  }
+
+  .president-case {
+    grid-template-columns: 48px 1fr;
+    padding: 14px;
+  }
+
+  .president-case-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    font-size: 1.55rem;
+  }
+}
