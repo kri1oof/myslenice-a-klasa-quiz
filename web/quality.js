@@ -205,6 +205,14 @@ const supplementalTypeLabels = {
   roster_member: 'Kadra drużyny',
   roster_role: 'Pozycja lub rola w kadrze',
   higher_finish: 'Która drużyna była wyżej w tabeli',
+  social_opening_scorer: 'Kto otworzył wynik',
+  social_debut_player: 'Debiut zawodnika',
+  social_return_to_club: 'Powrót do klubu',
+  social_transfer_in: 'Nowy transfer',
+  social_transfer_from: 'Skąd przyszedł zawodnik',
+  social_photo_report_source: 'Fotorelacja z meczu',
+  social_coverage_source: 'Źródło relacji',
+  social_source_profile: 'Lokalne media i fotografowie',
 };
 
 const baseLabelType = labelType;
