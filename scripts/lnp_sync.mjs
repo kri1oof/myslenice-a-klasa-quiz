@@ -10,6 +10,8 @@ const CLASS_A = '63d04023-727a-4c0c-a8c6-4154fe1104b7';
 const START_URL = 'https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&leagueGroup=e978c8e5-d903-4a89-b6b5-8d5da6c567ee&leagueId=337bb869-0b42-484f-8eca-0c8842a13ec9&subLeague=63d04023-727a-4c0c-a8c6-4154fe1104b7&enumType=ZpnAndLeagueAndPlay&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&voivodeship=143a5a9a-5aa8-4186-ac19-d39e1d198ddb&isAdvanceMode=true&genderType=Male';
 const OUT = process.env.LNP_OUT || 'lnp_myslenice.json';
 const CHUNK = Number(process.env.LNP_CHUNK || 32);
+const EVENT_RETRIES = Number(process.env.LNP_EVENT_RETRIES || 3);
+const EVENT_RETRY_BASE_MS = Number(process.env.LNP_EVENT_RETRY_BASE_MS || 15000);
 const PLAYER_RETRIES = Number(process.env.LNP_PLAYER_RETRIES || 3);
 const PLAYER_RETRY_BASE_MS = Number(process.env.LNP_PLAYER_RETRY_BASE_MS || 15000);
 
@@ -208,6 +210,32 @@ for (const season of SEASONS) {
     });
     save(result);
   });
+
+  for (let attempt = 1; attempt <= EVENT_RETRIES; attempt++) {
+    const retryIndexes = [];
+    eventRows.forEach((r, idx) => {
+      if (r?.status === 429) retryIndexes.push(idx);
+    });
+    if (!retryIndexes.length) break;
+
+    const waitMs = EVENT_RETRY_BASE_MS * attempt;
+    console.log('EVENT_RATE_LIMIT_RETRY', season.label, attempt, 'pending', retryIndexes.length, 'waitMs', waitMs);
+    await sleep(waitMs);
+    const retryRows = await fetchAll(
+      retryIndexes.map((idx) => eventEndpoints[idx]),
+      `${season.label} events retry ${attempt}`,
+      null,
+    );
+    retryIndexes.forEach((originalIdx, retryIdx) => {
+      const row = retryRows[retryIdx];
+      if (row) eventRows[originalIdx] = row;
+      const match = eventMatches[originalIdx];
+      if (match && row?.status === 200 && row.data) {
+        result.seasons[season.label].events[match.matchId] = row.data;
+      }
+    });
+    save(result);
+  }
 
   const playerIds = new Set();
   eventMatches.forEach((m, i) => {
