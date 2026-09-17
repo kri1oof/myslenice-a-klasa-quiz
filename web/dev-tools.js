@@ -16,6 +16,13 @@ const RPG_DEV_EVENTS = Object.freeze({
   opponent_free_kick: { icon:'🎯', label:'Wolny dla rywala', possession:'opponent', zone:1, type:'opponent_free_kick', desc:'DEV: rywal ma groźny rzut wolny.' },
 });
 
+const RPG_DEV_MEDIA_EVENTS = Object.freeze({
+  media_koneserzy: 'koneserzy',
+  media_fotopstryki: 'fotopstryki',
+  media_zatrzymaj: 'zatrzymaj',
+  media_futmal: 'futmal',
+});
+
 function rpgDevStatus(text) {
   if (!RPG_DEV_ENABLED) return;
   const box = document.getElementById('rpg-dev-status');
@@ -56,6 +63,19 @@ function rpgDevForceAmbient() {
 function rpgDevApply(key, render = true) {
   if (!RPG_DEV_ENABLED) return false;
   if (RPG_DEV_EVENTS[key]) return rpgDevApplySetPiece(key, render);
+
+  if (RPG_DEV_MEDIA_EVENTS[key]) {
+    if (typeof localMediaForce !== 'function') return false;
+    const sourceId = RPG_DEV_MEDIA_EVENTS[key];
+    const result = localMediaForce(sourceId);
+    if (!result) return false;
+    rpgDevStatus(`Media: ${sourceId} · efekt ${result.effect}`);
+    if (render) {
+      renderRpgBoard();
+      renderActionPanel();
+    }
+    return true;
+  }
 
   if (key === 'robbery') {
     state.rpgDevForceRefereeRobbery = true;
@@ -127,7 +147,7 @@ function ensureRpgDevPanel() {
   if (!RPG_DEV_ENABLED || document.getElementById('rpg-dev-panel')) return;
   const style = document.createElement('style');
   style.textContent = `
-    #rpg-dev-panel{position:fixed;right:10px;bottom:10px;z-index:12000;width:min(420px,calc(100vw - 20px));padding:10px;border:1px solid #f6c344;border-radius:12px;background:rgba(8,10,12,.96);color:#fff;font:12px/1.25 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+    #rpg-dev-panel{position:fixed;right:10px;bottom:10px;z-index:12000;width:min(460px,calc(100vw - 20px));padding:10px;border:1px solid #f6c344;border-radius:12px;background:rgba(8,10,12,.96);color:#fff;font:12px/1.25 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.45)}
     #rpg-dev-panel .dev-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}#rpg-dev-panel .dev-head strong{color:#f6c344}#rpg-dev-panel .dev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}#rpg-dev-panel button{min-height:34px;padding:6px;border:1px solid #3b4248;border-radius:8px;background:#171b1f;color:#fff;cursor:pointer;font-weight:700}#rpg-dev-panel button:hover{border-color:#f6c344}#rpg-dev-panel .dev-close{min-height:auto;border:0;background:transparent;font-size:18px;padding:0 4px}#rpg-dev-status{display:block;margin-top:8px;color:#bbc3ca}`;
   document.head.appendChild(style);
 
@@ -145,6 +165,10 @@ function ensureRpgDevPanel() {
       <button data-dev-event="robbery">🧑‍⚖️ Wałek</button>
       <button data-dev-event="fire">🔥 Ogień 100%</button>
       <button data-dev-event="ambient">📣 Okrzyk</button>
+      <button data-dev-event="media_koneserzy">🎥 Koneserzy</button>
+      <button data-dev-event="media_fotopstryki">📸 Fotopstryki</button>
+      <button data-dev-event="media_zatrzymaj">📷 ZatrzymajCzas</button>
+      <button data-dev-event="media_futmal">📰 Futmal</button>
     </div>
     <small id="rpg-dev-status">Tryb testowy aktywny. Zdarzenia nie są zapisywane jako osobna wersja gry.</small>`;
   document.body.appendChild(panel);
@@ -157,7 +181,11 @@ function ensureRpgDevPanel() {
 if (RPG_DEV_ENABLED) {
   window.RPG_DEV = Object.freeze({
     force: rpgDevQueue,
-    events: [...Object.keys(RPG_DEV_EVENTS), 'robbery', 'fire', 'ambient'],
+    events: [
+      ...Object.keys(RPG_DEV_EVENTS),
+      ...Object.keys(RPG_DEV_MEDIA_EVENTS),
+      'robbery', 'fire', 'ambient',
+    ],
   });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureRpgDevPanel);
   else ensureRpgDevPanel();
