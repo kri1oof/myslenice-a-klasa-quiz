@@ -13,4 +13,15 @@ ensureLandingScreen = function arcadeFrontEnsureLandingScreen() {
   return screen;
 };
 
+const arcadeFrontBaseSplashScenario = actionSplashScenario;
+actionSplashScenario = function arcadeSplashScenario(correct, action, possessionBefore, scoreBefore) {
+  if ((state.rpgPlayerGoals || 0) > (scoreBefore?.player || 0)) return 'goal';
+  if ((state.rpgOpponentGoals || 0) > (scoreBefore?.opponent || 0)) return 'defenseFailure';
+  const kind = String(action?.kind || '');
+  if (kind.includes('shot') || kind.includes('penalty') || kind.includes('finish')) {
+    return correct ? 'attackSuccess' : 'shotFailure';
+  }
+  return arcadeFrontBaseSplashScenario(correct, action, possessionBefore, scoreBefore);
+};
+
 if (document.getElementById('landing-screen')) ensureLandingScreen();
