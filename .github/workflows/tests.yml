@@ -32,6 +32,8 @@ jobs:
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
+      - name: Developer controls smoke test
+        run: node tests/dev-tools-smoke.mjs
       - name: Lint (advisory)
         run: ruff check src tests
         continue-on-error: true
