@@ -5,12 +5,11 @@ const SEASONS = [
   { label: '2025/26', id: 'e9d66181-d03e-4bb3-b889-4da848f4831d' },
   { label: '2026/27', id: '3c77d143-8010-4073-9842-d6b63365ffce' },
 ];
-const LOWER_GROUP = 'e978c8e5-d903-4a89-b6b5-8d5da6c567ee';
 const MALOPOLSKIE = '143a5a9a-5aa8-4186-ac19-d39e1d198ddb';
 const CLASS_A = '63d04023-727a-4c0c-a8c6-4154fe1104b7';
 const START_URL = 'https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&leagueGroup=e978c8e5-d903-4a89-b6b5-8d5da6c567ee&leagueId=337bb869-0b42-484f-8eca-0c8842a13ec9&subLeague=63d04023-727a-4c0c-a8c6-4154fe1104b7&enumType=ZpnAndLeagueAndPlay&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&voivodeship=143a5a9a-5aa8-4186-ac19-d39e1d198ddb&isAdvanceMode=true&genderType=Male';
 const OUT = process.env.LNP_OUT || 'lnp_myslenice.json';
-const CHUNK = Number(process.env.LNP_CHUNK || 8);
+const CHUNK = Number(process.env.LNP_CHUNK || 32);
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
@@ -40,30 +39,33 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function waitToken(maxMs = 12000) {
   for (let t = 0; t < maxMs; t += 100) {
-    if (token && Date.now() - tokenAt < 1200) return token;
-    if (authStatus === 403) break;
+    if (token && Date.now() - tokenAt < 1500) return token;
+    if (authStatus === 403 || authStatus === 429) break;
     await sleep(100);
   }
   return null;
 }
 
 async function mintToken() {
-  token = null;
-  tokenAt = 0;
-  authStatus = null;
-  if (!page.url().includes('laczynaspilka.pl/rozgrywki')) {
-    await page.goto(START_URL, { waitUntil: 'commit', timeout: 90000 }).catch(() => undefined);
-  } else {
-    await page.reload({ waitUntil: 'commit', timeout: 90000 }).catch(() => undefined);
-  }
-  let tk = await waitToken();
-  if (!tk) {
-    console.log('TOKEN_MISS', authStatus, page.url());
+  for (let attempt = 0; attempt < 3; attempt++) {
+    token = null;
+    tokenAt = 0;
+    authStatus = null;
+    if (!page.url().includes('laczynaspilka.pl/rozgrywki')) {
+      await page.goto(START_URL, { waitUntil: 'commit', timeout: 90000 }).catch(() => undefined);
+    } else {
+      await page.reload({ waitUntil: 'commit', timeout: 90000 }).catch(() => undefined);
+    }
+    let tk = await waitToken();
+    if (tk) return tk;
+    console.log('TOKEN_MISS', authStatus, 'attempt', attempt + 1, page.url());
+    if (authStatus === 429) await sleep(15000 * (attempt + 1));
+    else await sleep(1500);
     await page.goto(START_URL, { waitUntil: 'commit', timeout: 90000 }).catch(() => undefined);
     tk = await waitToken();
+    if (tk) return tk;
   }
-  if (!tk) throw new Error(`Brak świeżego tokenu ŁNP (status ${authStatus ?? 'n/a'})`);
-  return tk;
+  throw new Error(`Brak świeżego tokenu ŁNP (status ${authStatus ?? 'n/a'})`);
 }
 
 async function fire(endpoints, tk) {
@@ -94,15 +96,21 @@ async function fetchChunk(endpoints) {
   return out;
 }
 
-async function fetchAll(endpoints, label) {
+async function fetchAll(endpoints, label, checkpoint) {
   const out = [];
   for (let i = 0; i < endpoints.length; i += CHUNK) {
     const eps = endpoints.slice(i, i + CHUNK);
-    const rows = await fetchChunk(eps);
-    out.push(...rows);
-    const ok = rows.filter((x) => x.status === 200).length;
-    console.log(`${label} ${Math.min(i + eps.length, endpoints.length)}/${endpoints.length}: ${ok}/${eps.length} OK`);
-    if (i + CHUNK < endpoints.length) await sleep(700);
+    try {
+      const rows = await fetchChunk(eps);
+      out.push(...rows);
+      const ok = rows.filter((x) => x.status === 200).length;
+      console.log(`${label} ${Math.min(i + eps.length, endpoints.length)}/${endpoints.length}: ${ok}/${eps.length} OK`);
+    } catch (e) {
+      console.log('CHUNK_ERROR', label, i, String(e));
+      out.push(...eps.map((endpoint) => ({ endpoint, status: 0, data: null, error: String(e) })));
+    }
+    if (checkpoint) checkpoint(out);
+    if (i + CHUNK < endpoints.length) await sleep(900);
   }
   return out;
 }
@@ -125,6 +133,10 @@ async function one(endpoint) {
   return r.data;
 }
 
+function save(result) {
+  fs.writeFileSync(OUT, JSON.stringify(result, null, 2));
+}
+
 console.log('OPEN', START_URL);
 await page.goto(START_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
 await waitToken(15000);
@@ -139,6 +151,10 @@ const result = {
   seasons: {},
   errors: [],
 };
+save(result);
+
+const playerIdsBySeason = {};
+const allPlayerIds = new Set();
 
 for (const season of SEASONS) {
   console.log('\nSEASON', season.label);
@@ -146,7 +162,7 @@ for (const season of SEASONS) {
   const play = pickMyslenicePlay(dictionaries);
   if (!play) {
     result.errors.push(`${season.label}: nie znaleziono Myślenice Klasa A`);
-    console.log('NO_PLAY');
+    save(result);
     continue;
   }
   console.log('PLAY', play.id, play.name);
@@ -156,49 +172,72 @@ for (const season of SEASONS) {
   ]);
   if (matchesRes?.status !== 200 || !Array.isArray(matchesRes.data)) {
     result.errors.push(`${season.label}: matches status ${matchesRes?.status}`);
+    save(result);
     continue;
   }
   const matches = matchesRes.data;
   const eventMatches = matches.filter(played);
   console.log('MATCHES', matches.length, 'EVENTS_TO_FETCH', eventMatches.length);
-  const eventRows = await fetchAll(eventMatches.map((m) => `matches/${m.matchId}/events`), `${season.label} events`);
-  const events = {};
-  const playerIds = new Set();
-  eventMatches.forEach((m, i) => {
-    const r = eventRows[i];
-    if (r?.status === 200 && r.data) {
-      events[m.matchId] = r.data;
-      for (const side of ['host', 'guest']) {
-        for (const p of r.data?.[side]?.squad || []) {
-          if (p?.id) playerIds.add(p.id);
-        }
-      }
-    } else {
-      result.errors.push(`${season.label} match ${m.matchId}: events status ${r?.status}`);
-    }
-  });
-  console.log('PLAYERS_TO_FETCH', playerIds.size);
-  const ids = [...playerIds];
-  const playerRows = await fetchAll(ids.map((id) => `players/${id}`), `${season.label} players`);
-  const players = {};
-  ids.forEach((id, i) => {
-    const r = playerRows[i];
-    if (r?.status === 200 && r.data) players[id] = r.data;
-    else result.errors.push(`${season.label} player ${id}: status ${r?.status}`);
-  });
   result.seasons[season.label] = {
     seasonId: season.id,
     playId: play.id,
     playName: play.name,
     table: tableRes?.status === 200 ? tableRes.data : null,
     matches,
-    events,
-    players,
+    events: {},
+    players: {},
   };
-  fs.writeFileSync(OUT, JSON.stringify(result, null, 2));
-  console.log('CHECKPOINT', OUT);
+  save(result);
+
+  const eventEndpoints = eventMatches.map((m) => `matches/${m.matchId}/events`);
+  const eventRows = await fetchAll(eventEndpoints, `${season.label} events`, (partial) => {
+    partial.forEach((r, idx) => {
+      const m = eventMatches[idx];
+      if (m && r?.status === 200 && r.data) result.seasons[season.label].events[m.matchId] = r.data;
+    });
+    save(result);
+  });
+
+  const playerIds = new Set();
+  eventMatches.forEach((m, i) => {
+    const r = eventRows[i];
+    if (r?.status === 200 && r.data) {
+      for (const side of ['host', 'guest']) {
+        for (const p of r.data?.[side]?.squad || []) {
+          if (p?.id) {
+            playerIds.add(p.id);
+            allPlayerIds.add(p.id);
+          }
+        }
+      }
+    } else {
+      result.errors.push(`${season.label} match ${m.matchId}: events status ${r?.status}`);
+    }
+  });
+  playerIdsBySeason[season.label] = playerIds;
+  console.log('PLAYERS_DISCOVERED', season.label, playerIds.size);
+  save(result);
 }
 
-fs.writeFileSync(OUT, JSON.stringify(result, null, 2));
+console.log('\nUNIQUE_PLAYERS_TO_FETCH', allPlayerIds.size);
+const allIds = [...allPlayerIds];
+const playerRows = await fetchAll(allIds.map((id) => `players/${id}`), 'players', (partial) => {
+  partial.forEach((r, idx) => {
+    const id = allIds[idx];
+    if (!id || r?.status !== 200 || !r.data) return;
+    for (const season of SEASONS) {
+      if (playerIdsBySeason[season.label]?.has(id) && result.seasons[season.label]) {
+        result.seasons[season.label].players[id] = r.data;
+      }
+    }
+  });
+  save(result);
+});
+allIds.forEach((id, i) => {
+  const r = playerRows[i];
+  if (r?.status !== 200 || !r.data) result.errors.push(`player ${id}: status ${r?.status}`);
+});
+
+save(result);
 console.log('DONE', OUT, 'errors', result.errors.length);
 await browser.close();
