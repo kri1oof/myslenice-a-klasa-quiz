@@ -32,22 +32,11 @@ function updateRpgLogDrawer() {
   if (count === 0) drawer.open = false;
 }
 
-function ensureRpgQuestionFocusNote() {
-  const question = el('question');
-  if (!question || el('rpg-question-focus-note')) return;
-  const note = document.createElement('div');
-  note.id = 'rpg-question-focus-note';
-  note.className = 'rpg-question-focus-note';
-  note.innerHTML = '<strong>TEST AKCJI</strong><span>Odpowiedź rozstrzyga powodzenie wybranego zagrania.</span>';
-  question.insertAdjacentElement('beforebegin', note);
-}
-
 function organizeRpgClarityLayout() {
   const board = el('rpg-board');
   if (!board || !rpgActive()) return;
 
   ensureRpgLogDrawer();
-  ensureRpgQuestionFocusNote();
 
   const narratorLabel = el('rpg-narrator')?.querySelector('small');
   if (narratorLabel) narratorLabel.textContent = 'Sytuacja na boisku';
