@@ -119,14 +119,14 @@ def _player_clubs(conn: sqlite3.Connection, season_id: int | None) -> list[tuple
 
 def _question_clubs(
     row: sqlite3.Row,
-    club_pairs: list[tuple[str, str]],
-    player_clubs: list[tuple[str, str]],
+    club_tokens: list[tuple[str, str, str]],
+    player_tokens: list[tuple[str, str]],
 ) -> list[str]:
     """Return canonical clubs materially involved in a question.
 
-    The caller supplies season-level caches.  Older code queried SQLite twice for
-    every exported question; with 40k+ questions that meant tens of thousands of
-    repeated identical queries and dominated build time.
+    Season context is preloaded and case-folded once.  The old exporter queried
+    SQLite twice per question and repeatedly case-folded the same hundreds of
+    player names for every row, which dominated builds with 40k+ questions.
     """
     if row["season_id"] is None:
         return []
@@ -136,12 +136,12 @@ def _question_clubs(
     ).casefold()
 
     clubs: set[str] = set()
-    for raw_club, canonical in club_pairs:
-        if raw_club.casefold() in text or canonical.casefold() in text:
+    for raw_folded, canonical_folded, canonical in club_tokens:
+        if raw_folded in text or canonical_folded in text:
             clubs.add(canonical)
 
-    for player, club in player_clubs:
-        if player.casefold() in text:
+    for player_folded, club in player_tokens:
+        if player_folded in text:
             clubs.add(club)
 
     return sorted(clubs)
@@ -153,11 +153,18 @@ def export_questions(conn: sqlite3.Connection, output: str | Path, min_confidenc
            WHERE q.enabled=1 AND q.confidence>=? ORDER BY q.question_type,q.id""", (min_confidence,)
     ).fetchall()
 
-    # Cache season context once.  There are only a handful of seasons, while the
-    # question bank contains tens of thousands of rows.
     season_ids = {int(r["season_id"]) for r in rows if r["season_id"] is not None}
-    club_pairs_by_season = {season_id: _season_club_pairs(conn, season_id) for season_id in season_ids}
-    player_clubs_by_season = {season_id: _player_clubs(conn, season_id) for season_id in season_ids}
+    club_tokens_by_season: dict[int, list[tuple[str, str, str]]] = {}
+    player_tokens_by_season: dict[int, list[tuple[str, str]]] = {}
+    for season_id in season_ids:
+        club_tokens_by_season[season_id] = [
+            (raw.casefold(), canonical.casefold(), canonical)
+            for raw, canonical in _season_club_pairs(conn, season_id)
+        ]
+        player_tokens_by_season[season_id] = [
+            (player.casefold(), club)
+            for player, club in _player_clubs(conn, season_id)
+        ]
 
     payload = []
     for r in rows:
@@ -190,8 +197,8 @@ def export_questions(conn: sqlite3.Connection, output: str | Path, min_confidenc
             "confidence": r["confidence"],
             "clubs": _question_clubs(
                 r,
-                club_pairs_by_season.get(season_id, []),
-                player_clubs_by_season.get(season_id, []),
+                club_tokens_by_season.get(season_id, []),
+                player_tokens_by_season.get(season_id, []),
             ),
             "sources": json.loads(r["provenance_json"]),
         })
