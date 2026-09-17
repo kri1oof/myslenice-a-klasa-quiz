@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="match-mode.css" />
   <link rel="stylesheet" href="match-rpg.css" />
   <link rel="stylesheet" href="match-arcade.css" />
+  <link rel="stylesheet" href="match-scenarios.css" />
   <link rel="stylesheet" href="title-screen.css" />
 </head>
 <body class="landing-active">
@@ -17,7 +18,7 @@
       <div>
         <p class="eyebrow">MYŚLENICKA A-KLASA</p>
         <h1>Rozegraj mecz wiedzą</h1>
-        <p class="lead">Jak w grze RPG: wybierasz zagranie, a pytanie zastępuje rzut kostką. Dobra odpowiedź oznacza udane podanie, odbiór albo strzał.</p>
+        <p class="lead">Wybierasz zagranie w kluczowych sytuacjach meczu. Wiedza daje dużą przewagę, ale wykonanie na boisku nadal nie jest gwarantowane.</p>
       </div>
       <div class="score-card" aria-live="polite">
         <span id="score-label">Mecz</span>
@@ -32,7 +33,7 @@
           <option value="special">🎲 Runda specjalna</option>
           <option value="quick">⚡ Szybki quiz — 10 pytań</option>
         </select>
-        <span id="format-description" class="control-help">Arcade RPG: buduj sekwencje, ładuj formę, odpalaj zagrania specjalne i reaguj na styl rywala oraz wydarzenia meczowe.</span>
+        <span id="format-description" class="control-help">Mecz składa się z 8–12 kluczowych sytuacji. Poprawna odpowiedź zwiększa szansę powodzenia zagrania, ale futbol nie daje gwarancji.</span>
       </label>
 
       <label id="special-round-control" class="hidden">Runda specjalna
@@ -183,6 +184,8 @@
   <script src="local-media-events.js"></script>
   <script src="local-club-events.js"></script>
   <script src="player-decision-questions.js"></script>
+  <script src="match-scenarios-core.js"></script>
+  <script src="match-scenarios.js"></script>
   <script src="front-controller.js"></script>
   <script src="arcade-front.js"></script>
   <script src="dev-tools.js"></script>
