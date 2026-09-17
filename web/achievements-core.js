@@ -35,6 +35,7 @@
       presidentSeasonsCompleted: 0,
       presidentHighTrustSeasons: 0,
       presidentHealthyBudgetSeasons: 0,
+      presidentStableSeasons: 0,
     };
   }
 
@@ -90,7 +91,7 @@
     { id:'objective_complete', category:'career', icon:'🎯', title:'Plan wykonany', desc:'Ukończ sezon na miejscu spełniającym cel kariery.', value:s=>s.objectivesCompleted, target:1 },
 
     { id:'president_first', category:'president', icon:'👔', title:'Pierwsza uchwała', desc:'Doprowadź do końca mecz po pierwszej decyzji prezesa.', value:s=>s.presidentDecisions, target:1 },
-    { id:'president_balance', category:'president', icon:'💼', title:'Klub na stabilnych nogach', desc:'Ukończ sezon prezesa z budżetem co najmniej 12 000 zł i średnim zaufaniem co najmniej 65/100.', value:s=>Math.min(s.presidentHealthyBudgetSeasons, s.presidentHighTrustSeasons), target:1 },
+    { id:'president_balance', category:'president', icon:'💼', title:'Klub na stabilnych nogach', desc:'Ukończ sezon prezesa z budżetem co najmniej 12 000 zł i średnim zaufaniem co najmniej 65/100.', value:s=>s.presidentStableSeasons, target:1 },
   ]);
 
   const BY_ID = new Map(ACHIEVEMENTS.map(item => [item.id, item]));
@@ -175,9 +176,12 @@
     if (event.president) {
       if (event.presidentDecisionMade) stats.presidentDecisions += 1;
       if (event.seasonCompleted) {
+        const highTrust = Number(event.presidentAverageTrust || 0) >= 65;
+        const healthyBudget = Number(event.presidentBudget || 0) >= 12000;
         stats.presidentSeasonsCompleted += 1;
-        if (Number(event.presidentAverageTrust || 0) >= 65) stats.presidentHighTrustSeasons += 1;
-        if (Number(event.presidentBudget || 0) >= 12000) stats.presidentHealthyBudgetSeasons += 1;
+        if (highTrust) stats.presidentHighTrustSeasons += 1;
+        if (healthyBudget) stats.presidentHealthyBudgetSeasons += 1;
+        if (highTrust && healthyBudget) stats.presidentStableSeasons += 1;
       }
     }
     return next;
