@@ -1,0 +1,80 @@
+/* A-klasa lifelines: visible when a knowledge question is on screen. */
+.rpg-lifelines {
+  display: grid;
+  grid-template-columns: minmax(170px, .7fr) repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  align-items: stretch;
+  margin: 12px 0 14px;
+  padding: 10px;
+  border: 2px solid #16a34a;
+  border-radius: 16px;
+  background: #f0fdf4;
+  box-shadow: 0 8px 24px rgba(22, 163, 74, .10);
+  opacity: 1 !important;
+}
+.rpg-lifelines.hidden { display: none !important; }
+.rpg-lifelines-head {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+  padding: 7px 9px;
+  color: #14532d;
+}
+.rpg-lifelines-head > span { font-size: 25px; }
+.rpg-lifelines-head div { display: grid; gap: 2px; }
+.rpg-lifelines-head strong { font-size: 13px; }
+.rpg-lifelines-head small { color: #3f6212; font-size: 10px; font-weight: 700; }
+
+.rpg-lifelines .rpg-tool.rpg-lifeline-card {
+  width: 100%;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  text-align: left;
+  opacity: 1;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+}
+.rpg-lifelines .rpg-tool.rpg-lifeline-card:hover:not(:disabled) {
+  border-color: #16a34a;
+  background: #f7fee7;
+  transform: translateY(-1px);
+}
+.rpg-lifelines .rpg-tool.rpg-lifeline-card:disabled {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  opacity: .58;
+}
+.rpg-lifeline-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #dcfce7;
+  font-size: 20px;
+}
+.rpg-lifeline-card > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.rpg-lifeline-card strong { color: #14532d; font-size: 13px; line-height: 1.15; }
+.rpg-lifeline-card small { color: #475569; font-size: 10px; line-height: 1.25; }
+.rpg-lifeline-card:disabled .rpg-lifeline-icon { background: #e2e8f0; }
+.rpg-lifeline-card:disabled strong { color: #64748b; }
+
+@media (max-width: 760px) {
+  .rpg-lifelines { grid-template-columns: 1fr 1fr; }
+  .rpg-lifelines-head { grid-column: 1 / -1; padding: 3px 5px; }
+}
+
+@media (max-width: 480px) {
+  .rpg-lifelines { grid-template-columns: 1fr; padding: 9px; }
+  .rpg-lifelines-head { grid-column: auto; }
+  .rpg-lifelines .rpg-tool.rpg-lifeline-card { min-height: 58px; }
+}
