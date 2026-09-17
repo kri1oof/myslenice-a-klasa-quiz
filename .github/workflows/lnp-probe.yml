@@ -1,10 +1,11 @@
 name: LNP probe
 on:
   push:
-    branches: [lnp-data-2025-2027]
+    branches: [main, lnp-data-2025-2027]
     paths:
       - 'scripts/lnp_probe.mjs'
       - '.github/workflows/lnp-probe.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
