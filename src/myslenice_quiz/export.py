@@ -117,10 +117,18 @@ def _player_clubs(conn: sqlite3.Connection, season_id: int | None) -> list[tuple
     return result
 
 
-def _question_clubs(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
-    """Return canonical clubs materially involved in a question."""
-    season_id = row["season_id"]
-    if season_id is None:
+def _question_clubs(
+    row: sqlite3.Row,
+    club_pairs: list[tuple[str, str]],
+    player_clubs: list[tuple[str, str]],
+) -> list[str]:
+    """Return canonical clubs materially involved in a question.
+
+    The caller supplies season-level caches.  Older code queried SQLite twice for
+    every exported question; with 40k+ questions that meant tens of thousands of
+    repeated identical queries and dominated build time.
+    """
+    if row["season_id"] is None:
         return []
     text = " ".join(
         str(_clean_public_text(value or "") or "")
@@ -128,11 +136,11 @@ def _question_clubs(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
     ).casefold()
 
     clubs: set[str] = set()
-    for raw_club, canonical in _season_club_pairs(conn, season_id):
+    for raw_club, canonical in club_pairs:
         if raw_club.casefold() in text or canonical.casefold() in text:
             clubs.add(canonical)
 
-    for player, club in _player_clubs(conn, season_id):
+    for player, club in player_clubs:
         if player.casefold() in text:
             clubs.add(club)
 
@@ -144,6 +152,13 @@ def export_questions(conn: sqlite3.Connection, output: str | Path, min_confidenc
         """SELECT q.*,s.label season FROM question_bank q LEFT JOIN seasons s ON s.id=q.season_id
            WHERE q.enabled=1 AND q.confidence>=? ORDER BY q.question_type,q.id""", (min_confidence,)
     ).fetchall()
+
+    # Cache season context once.  There are only a handful of seasons, while the
+    # question bank contains tens of thousands of rows.
+    season_ids = {int(r["season_id"]) for r in rows if r["season_id"] is not None}
+    club_pairs_by_season = {season_id: _season_club_pairs(conn, season_id) for season_id in season_ids}
+    player_clubs_by_season = {season_id: _player_clubs(conn, season_id) for season_id in season_ids}
+
     payload = []
     for r in rows:
         raw_options = json.loads(r["options_json"])
@@ -162,6 +177,7 @@ def export_questions(conn: sqlite3.Connection, output: str | Path, min_confidenc
         if len(options) < 2:
             continue
 
+        season_id = int(r["season_id"]) if r["season_id"] is not None else None
         payload.append({
             "id": r["id"],
             "type": r["question_type"],
@@ -172,7 +188,11 @@ def export_questions(conn: sqlite3.Connection, output: str | Path, min_confidenc
             "explanation": _clean_public_text(r["explanation"]),
             "season": r["season"],
             "confidence": r["confidence"],
-            "clubs": _question_clubs(conn, r),
+            "clubs": _question_clubs(
+                r,
+                club_pairs_by_season.get(season_id, []),
+                player_clubs_by_season.get(season_id, []),
+            ),
             "sources": json.loads(r["provenance_json"]),
         })
     output = Path(output)
