@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import fs from 'node:fs';
 
 const require = createRequire(import.meta.url);
 const core = require('../web/president-mode-core.js');
+const runtime = fs.readFileSync(new URL('../web/president-mode.js', import.meta.url), 'utf8');
+const achievementBridge = fs.readFileSync(new URL('../web/president-achievements-bridge.js', import.meta.url), 'utf8');
 
 assert.equal(core.DECISIONS.length, 26, 'president v2 should cover a full A-class season with varied club issues');
 assert.equal(new Set(core.DECISIONS.map(item => item.id)).size, 26, 'decision ids must be unique');
@@ -79,5 +82,16 @@ assert.equal(core.trustLabel(80), 'bardzo wysokie');
 assert.equal(core.areaLabel(65), 'mocne');
 assert.equal(core.financeLabel({ budget:-1 }), 'zadłużenie');
 assert.match(core.money(12000), /12.*000.*zł/);
+
+// Runtime contract: President v2 simulates football in the background rather than entering Match RPG.
+assert.match(runtime, /function simulatePresidentRound/);
+assert.match(runtime, /seasonCareerCore\.simulateFixture/);
+assert.match(runtime, /bez pytań i decyzji boiskowych/);
+assert.match(runtime, /MECZ W TLE/);
+assert.doesNotMatch(runtime, /scenarioOdds\s*=/, 'president mode must not alter individual RPG action odds');
+assert.doesNotMatch(runtime, /renderActionPanel\s*=/, 'president mode must not inject president decisions into pitch actions');
+assert.match(achievementBridge, /recordFinish/);
+assert.match(achievementBridge, /rpg:false/);
+assert.match(achievementBridge, /president:true/);
 
 console.log('president mode smoke: ok');
