@@ -12,10 +12,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - run: python -m pip install -U pip
       - run: pip install -e '.[dev]'
       - name: Functional tests
         run: pytest -q
+      - name: Frontend JavaScript syntax
+        run: |
+          node --check web/app.js
+          node --check web/quality.js
+          node --check web/rounds.js
+          node --check web/match-mode.js
+          node --check web/match-rpg.js
+          node --check web/match-arcade.js
+          node --check web/front-controller.js
+          node --check web/arcade-front.js
       - name: Lint (advisory)
         run: ruff check src tests
         continue-on-error: true
