@@ -7,6 +7,6 @@
     document.getElementById('play-again')?.classList.remove('hidden');
     document.getElementById('career-round-summary')?.replaceChildren();
     document.getElementById('rpg-season-career-hud')?.classList.add('hidden');
-    if (globalThis.state?.seasonCareer) globalThis.state.seasonCareer.active = false;
+    if (state?.seasonCareer) state.seasonCareer.active = false;
   });
 }());
