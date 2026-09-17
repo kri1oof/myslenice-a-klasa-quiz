@@ -14,9 +14,9 @@ page.on('response', async (resp) => {
     if (!u.includes('laczynaspilka') && !u.includes('pzpn')) return;
     if (!ct.includes('json')) return;
     let text = await resp.text();
-    if (text.length > 400000) text = text.slice(0, 400000);
+    if (text.length > 500000) text = text.slice(0, 500000);
     captured.push({status:resp.status(), url:u, contentType:ct, body:text});
-    console.log('JSON', resp.status(), u, text.slice(0, 900).replace(/\s+/g,' '));
+    if (!u.includes('/Authorize/recaptcha')) console.log('JSON', resp.status(), u, text.slice(0, 1400).replace(/\s+/g,' '));
   } catch (e) {
     console.log('CAPTURE_ERR', String(e));
   }
@@ -25,21 +25,22 @@ page.on('response', async (resp) => {
 console.log('OPEN', url);
 await page.goto(url, {waitUntil:'domcontentloaded', timeout:90000});
 await page.waitForTimeout(9000);
+await page.locator('#usercentrics-root').evaluate(el => el.remove()).catch(()=>{});
 console.log('TITLE', await page.title());
 console.log('URL', page.url());
-console.log('ROWS', await page.locator('.row-hover').count());
-if (await page.locator('.row-hover').count()) {
-  const row = page.locator('.row-hover').first();
-  console.log('FIRST_ROW', (await row.innerText().catch(()=>'' )).replace(/\s+/g,' ').slice(0,500));
-  await row.click({timeout:10000}).catch(e => console.log('ROW_CLICK_ERR', String(e)));
-  await page.waitForTimeout(6000);
+const rows = page.locator('.row-hover').filter({hasText:/\d{2}\.\d{2}\.\d{4}/});
+console.log('MATCH_ROWS', await rows.count());
+if (await rows.count()) {
+  const row = rows.first();
+  console.log('FIRST_MATCH_ROW', (await row.innerText().catch(()=>'' )).replace(/\s+/g,' ').slice(0,700));
+  await row.click({force:true, timeout:10000}).catch(e => console.log('ROW_CLICK_ERR', String(e)));
+  await page.waitForTimeout(7000);
   console.log('AFTER_CLICK_URL', page.url());
+  console.log('AFTER_CLICK_ROW', (await row.innerText().catch(()=>'' )).replace(/\s+/g,' ').slice(0,2500));
 }
 const bodyText = await page.locator('body').innerText().catch(()=>'');
-console.log('BODY_START\n' + bodyText.slice(0,26000));
-const links = await page.locator('a').evaluateAll(nodes => nodes.map(a => ({text:(a.innerText||'').trim(), href:a.href})).filter(x=>x.text||x.href));
-console.log('LINKS', JSON.stringify(links.slice(0,350)));
-fs.writeFileSync('lnp_probe.json', JSON.stringify({pageUrl:page.url(), title:await page.title(), bodyText, links, captured}, null, 2));
+console.log('BODY_TAIL\n' + bodyText.slice(-26000));
+fs.writeFileSync('lnp_probe.json', JSON.stringify({pageUrl:page.url(), title:await page.title(), bodyText, captured}, null, 2));
 fs.writeFileSync('lnp_probe.html', await page.content());
 await page.screenshot({path:'lnp_probe.png', fullPage:true});
 await browser.close();
