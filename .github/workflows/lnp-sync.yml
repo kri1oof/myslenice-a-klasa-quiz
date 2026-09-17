@@ -1,7 +1,7 @@
 name: LNP full sync
 on:
   push:
-    branches: [main, lnp-data-2025-2027]
+    branches: [main, lnp-data-2025-2027, lnp-history-2024-25]
     paths:
       - 'scripts/lnp_sync.mjs'
       - 'scripts/lnp_sync_helpers.mjs'
@@ -47,7 +47,7 @@ jobs:
           node - <<'NODE'
           const fs = require('fs');
           const data = JSON.parse(fs.readFileSync('lnp_myslenice.json', 'utf8'));
-          const required = ['2025/26', '2026/27'];
+          const required = ['2024/25', '2025/26', '2026/27'];
           for (const label of required) {
             if (!data.seasons?.[label]) throw new Error(`Missing season ${label}`);
           }
@@ -62,8 +62,10 @@ jobs:
 
           console.log('SYNC_STATS', JSON.stringify(data.syncStats || {}));
           console.log('DATA_CHANGED', changed);
-          console.log('2025_EVENTS', Object.keys(data.seasons['2025/26'].events || {}).length);
-          console.log('2026_EVENTS', Object.keys(data.seasons['2026/27'].events || {}).length);
+          for (const label of required) {
+            const season = data.seasons[label];
+            console.log(label, 'MATCHES', season.matches?.length || 0, 'EVENTS', Object.keys(season.events || {}).length, 'PLAYERS', Object.keys(season.players || {}).length);
+          }
           NODE
       - uses: actions/upload-artifact@v4
         if: always()
