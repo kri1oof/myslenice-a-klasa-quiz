@@ -41,9 +41,9 @@ assert.equal(core.normalizeQuestion({
 }), null, 'invalid squad-count questions should be removed rather than show impossible ranges');
 
 const lifelines = fs.readFileSync(new URL('../web/a-class-lifelines.js', import.meta.url), 'utf8');
-assert.match(lifelines, /Koła ratunkowe/);
-assert.match(lifelines, /Krzyk z ławki/);
-assert.match(lifelines, /Zmiana z ławki/);
+assert.match(lifelines, /A-klasowe koła ratunkowe/);
+assert.match(lifelines, /Kibic za bramką/);
+assert.match(lifelines, /Kierownik drużyny/);
 assert.match(lifelines, /insertAdjacentElement\('beforebegin', tools\)/);
 assert.match(lifelines, /normalizeQuestions/);
 
