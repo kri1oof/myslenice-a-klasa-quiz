@@ -42,6 +42,41 @@ def numeric_options(correct: int, minimum: int = 0, count: int = 4) -> list[str]
     return [str(x) for x in candidates[:count]]
 
 
+def goal_difference_options(correct: int, seed: str, count: int = 4) -> list[str]:
+    """Create less predictable distractors for season goal difference.
+
+    Goal-difference questions used to expose the same pattern every time:
+    correct, correct+1, correct-1 and -correct.  Keep the result deterministic,
+    but draw from wider, irregular offsets scaled to the magnitude of the answer.
+    """
+    span = max(3, abs(correct) // 4)
+    offsets = [
+        span,
+        -span,
+        span + 2,
+        -(span + 2),
+        span * 2,
+        -(span * 2),
+        5,
+        -5,
+        9,
+        -9,
+        13,
+        -13,
+    ]
+    rng = random.Random(f"goal-diff|{seed}|{correct}")
+    rng.shuffle(offsets)
+
+    values = [correct]
+    for delta in offsets:
+        value = correct + delta
+        if value not in values:
+            values.append(value)
+        if len(values) >= count:
+            break
+    return [str(x) for x in values[:count]]
+
+
 def score_options(home: int, away: int) -> list[str]:
     correct = f"{home}:{away}"
     candidates = [correct]
@@ -101,6 +136,13 @@ def _natural_options(q: Question) -> list[str]:
     elif q.question_type == "player_match_role":
         # A confirmed appearance with a starter flag can only be starter or bench.
         options = [x for x in options if x in {"Podstawowy skład", "Ławka rezerwowych"}]
+    elif q.question_type == "season_goal_difference":
+        try:
+            correct = int(q.correct_answer)
+        except ValueError:
+            pass
+        else:
+            options = deterministic_shuffle(goal_difference_options(correct, q.id), q.id)
 
     return options
 
