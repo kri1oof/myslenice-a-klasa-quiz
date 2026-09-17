@@ -31,6 +31,7 @@ jobs:
           node --check web/local-football-chaos.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
+          node --check web/dev-tools.js
       - name: Lint (advisory)
         run: ruff check src tests
         continue-on-error: true
