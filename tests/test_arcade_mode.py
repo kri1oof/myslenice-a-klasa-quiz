@@ -11,12 +11,14 @@ def test_arcade_layer_is_loaded_after_rpg_and_before_front_controller():
     assert 'src="local-football-flavour.js"' in html
     assert 'src="local-football-chaos.js"' in html
     assert 'src="local-media-events.js"' in html
+    assert 'src="local-club-events.js"' in html
     assert 'src="arcade-front.js"' in html
     assert html.index('src="match-rpg.js"') < html.index('src="match-arcade.js"')
     assert html.index('src="match-arcade.js"') < html.index('src="local-football-flavour.js"')
     assert html.index('src="local-football-flavour.js"') < html.index('src="local-football-chaos.js"')
     assert html.index('src="local-football-chaos.js"') < html.index('src="local-media-events.js"')
-    assert html.index('src="local-media-events.js"') < html.index('src="front-controller.js"')
+    assert html.index('src="local-media-events.js"') < html.index('src="local-club-events.js"')
+    assert html.index('src="local-club-events.js"') < html.index('src="front-controller.js"')
     assert html.index('src="front-controller.js"') < html.index('src="arcade-front.js"')
 
 
@@ -62,10 +64,28 @@ def test_local_media_layer_contains_requested_sources_and_effects():
         assert marker in js
 
 
-def test_arcade_release_is_version_032():
+def test_arcade_release_is_version_033():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     package = (ROOT / "src" / "myslenice_quiz" / "__init__.py").read_text(encoding="utf-8")
     front = (ROOT / "web" / "arcade-front.js").read_text(encoding="utf-8")
-    assert 'version = "0.3.2"' in pyproject
-    assert '__version__ = "0.3.2"' in package
-    assert "v0.3.2" in front
+    assert 'version = "0.3.3"' in pyproject
+    assert '__version__ = "0.3.3"' in package
+    assert "v0.3.3" in front
+
+
+def test_a_class_life_layer_has_categories_choices_and_delayed_effects():
+    js = (ROOT / "web" / "local-club-events.js").read_text(encoding="utf-8")
+    required_markers = [
+        "A-KLASOWE ŻYCIE",
+        "no_linesman",
+        "ball_in_river",
+        "late_player",
+        "grill_behind_goal",
+        "dog_on_pitch",
+        "coach_vs_ref",
+        "rpgLifeDelayed",
+        "localLifeChoose",
+        "LOCAL_LIFE_CATEGORIES",
+    ]
+    for marker in required_markers:
+        assert marker in js

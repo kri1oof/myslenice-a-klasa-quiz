@@ -23,6 +23,15 @@ const RPG_DEV_MEDIA_EVENTS = Object.freeze({
   media_futmal: 'futmal',
 });
 
+const RPG_DEV_LIFE_EVENTS = Object.freeze({
+  life_random: null,
+  life_linesman: 'no_linesman',
+  life_river: 'ball_in_river',
+  life_late: 'late_player',
+  life_dog: 'dog_on_pitch',
+  life_coach: 'coach_vs_ref',
+});
+
 function rpgDevStatus(text) {
   if (!RPG_DEV_ENABLED) return;
   const box = document.getElementById('rpg-dev-status');
@@ -70,6 +79,18 @@ function rpgDevApply(key, render = true) {
     const result = localMediaForce(sourceId);
     if (!result) return false;
     rpgDevStatus(`Media: ${sourceId} · efekt ${result.effect}`);
+    if (render) {
+      renderRpgBoard();
+      renderActionPanel();
+    }
+    return true;
+  }
+
+  if (Object.hasOwn(RPG_DEV_LIFE_EVENTS, key)) {
+    if (typeof localLifeForce !== 'function') return false;
+    const event = localLifeForce(RPG_DEV_LIFE_EVENTS[key], false);
+    if (!event) return false;
+    rpgDevStatus(`A-klasowe życie: ${event.title}`);
     if (render) {
       renderRpgBoard();
       renderActionPanel();
@@ -169,6 +190,12 @@ function ensureRpgDevPanel() {
       <button data-dev-event="media_fotopstryki">📸 Fotopstryki</button>
       <button data-dev-event="media_zatrzymaj">📷 ZatrzymajCzas</button>
       <button data-dev-event="media_futmal">📰 Futmal</button>
+      <button data-dev-event="life_random">🎲 Życie: losuj</button>
+      <button data-dev-event="life_linesman">🏁 Brak liniowego</button>
+      <button data-dev-event="life_river">🌊 Piłka w rzece</button>
+      <button data-dev-event="life_late">🚗 Spóźniony gracz</button>
+      <button data-dev-event="life_dog">🐕 Pies na boisku</button>
+      <button data-dev-event="life_coach">🗣️ Trener vs sędzia</button>
     </div>
     <small id="rpg-dev-status">Tryb testowy aktywny. Zdarzenia nie są zapisywane jako osobna wersja gry.</small>`;
   document.body.appendChild(panel);
@@ -184,6 +211,7 @@ if (RPG_DEV_ENABLED) {
     events: [
       ...Object.keys(RPG_DEV_EVENTS),
       ...Object.keys(RPG_DEV_MEDIA_EVENTS),
+      ...Object.keys(RPG_DEV_LIFE_EVENTS),
       'robbery', 'fire', 'ambient',
     ],
   });

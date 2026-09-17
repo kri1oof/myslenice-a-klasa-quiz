@@ -7,6 +7,7 @@ const source = fs.readFileSync(new URL('../web/dev-tools.js', import.meta.url), 
 function makeContext(search = '?dev=1') {
   const logs = [];
   const mediaCalls = [];
+  const lifeCalls = [];
   const ctx = {
     console,
     URLSearchParams,
@@ -61,6 +62,10 @@ function makeContext(search = '?dev=1') {
       mediaCalls.push(sourceId);
       return { source: sourceId, effect: 'test_effect' };
     },
+    localLifeForce: eventId => {
+      lifeCalls.push(eventId);
+      return { id:eventId || 'random_event', title:eventId || 'Losowy event' };
+    },
     renderBoardCalls: 0,
     renderPanelCalls: 0,
     renderHudCalls: 0,
@@ -68,11 +73,11 @@ function makeContext(search = '?dev=1') {
   ctx.globalThis = ctx;
   vm.createContext(ctx);
   vm.runInContext(source, ctx, { filename: 'web/dev-tools.js' });
-  return { ctx, logs, mediaCalls };
+  return { ctx, logs, mediaCalls, lifeCalls };
 }
 
 {
-  const { ctx, logs, mediaCalls } = makeContext('?dev=1');
+  const { ctx, logs, mediaCalls, lifeCalls } = makeContext('?dev=1');
   assert.equal(vm.runInContext('RPG_DEV_ENABLED', ctx), true, 'dev mode should be enabled');
   assert.ok(ctx.window.RPG_DEV, 'public developer API should exist in dev mode');
 
@@ -101,6 +106,20 @@ function makeContext(search = '?dev=1') {
     assert.equal(vm.runInContext(`rpgDevApply(${JSON.stringify(key)}, false)`, ctx), true, `${key} should apply`);
     assert.equal(mediaCalls.at(-1), sourceId, `${key} should force ${sourceId}`);
     assert.ok(ctx.window.RPG_DEV.events.includes(key), `${key} should be exposed in developer API`);
+  }
+
+  const lifeExpected = {
+    life_random: null,
+    life_linesman: 'no_linesman',
+    life_river: 'ball_in_river',
+    life_late: 'late_player',
+    life_dog: 'dog_on_pitch',
+    life_coach: 'coach_vs_ref',
+  };
+  for (const [key, eventId] of Object.entries(lifeExpected)) {
+    assert.equal(vm.runInContext(`rpgDevApply(${JSON.stringify(key)}, false)`, ctx), true, `${key} should apply`);
+    assert.equal(lifeCalls.at(-1), eventId, `${key} should force ${eventId || 'a random event'}`);
+    assert.equal(ctx.window.RPG_DEV.events.includes(key), true, `${key} should be exposed in developer API`);
   }
 
   ctx.state.rpgMomentum = 17;
@@ -136,11 +155,19 @@ function makeContext(search = '?dev=1') {
 }
 
 {
+  const { ctx, lifeCalls } = makeContext('?dev=1&event=life_dog');
+  vm.runInContext('resetRpgState()', ctx);
+  vm.runInContext('renderActionPanel()', ctx);
+  assert.equal(lifeCalls.at(-1), 'dog_on_pitch', 'URL should be able to queue a dog-on-pitch event');
+}
+
+{
   const { ctx } = makeContext('');
   assert.equal(vm.runInContext('RPG_DEV_ENABLED', ctx), false, 'dev mode must be off by default');
   assert.equal(ctx.window.RPG_DEV, undefined, 'developer API must not leak into normal mode');
   assert.equal(vm.runInContext("rpgDevApply('penalty', false)", ctx), false, 'normal mode must reject forced events');
   assert.equal(vm.runInContext("rpgDevApply('media_koneserzy', false)", ctx), false, 'normal mode must reject forced media events');
+  assert.equal(vm.runInContext("rpgDevApply('life_dog', false)", ctx), false, 'normal mode must reject forced life events');
 }
 
 console.log('dev-tools smoke: OK');

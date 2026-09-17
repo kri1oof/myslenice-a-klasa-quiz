@@ -100,3 +100,37 @@ body.rpg-match-active .rpg-ball { animation: arcade-ball-pulse 1.8s ease-in-out 
   .arcade-event-banner span { text-align: left; }
   .arcade-combo-card > small { white-space: normal; }
 }
+
+.rpg-action-panel.life-event-active { padding: 0; border: 0; background: transparent; box-shadow: none; }
+.life-event-card {
+  overflow: hidden;
+  border: 2px solid #f59e0b;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #111827, #1f2937 68%, #292018);
+  color: #fff;
+  box-shadow: 0 18px 45px rgba(17,24,39,.24);
+}
+.life-event-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 11px 15px; background: rgba(0,0,0,.25); }
+.life-event-category, .life-event-counter { font-size: 10px; font-weight: 950; letter-spacing: .1em; }
+.life-event-category { color: #fbbf24; }
+.life-event-counter { color: rgba(255,255,255,.55); }
+.life-event-story { display: flex; gap: 14px; align-items: center; padding: 18px 18px 13px; }
+.life-event-icon { flex: 0 0 auto; font-size: 38px; filter: drop-shadow(0 5px 9px rgba(0,0,0,.28)); }
+.life-event-story h3 { margin: 0 0 5px; font-size: clamp(20px, 3vw, 29px); line-height: 1.05; }
+.life-event-story p { margin: 0; color: rgba(255,255,255,.72); font-size: 14px; line-height: 1.45; }
+.life-event-question { padding: 0 18px 9px; color: #fbbf24; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.life-event-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; padding: 0 14px 14px; }
+.life-event-choice { display: grid; grid-template-columns: 27px 1fr; gap: 2px 8px; align-items: center; min-height: 86px; padding: 11px; border: 1px solid rgba(255,255,255,.17); border-radius: 12px; background: rgba(255,255,255,.07); color: #fff; text-align: left; cursor: pointer; transition: .18s ease; }
+.life-event-choice:hover, .life-event-choice:focus-visible { transform: translateY(-2px); border-color: #fbbf24; background: rgba(245,158,11,.14); outline: none; }
+.life-event-choice > span { display: grid; place-items: center; grid-row: 1 / span 2; width: 27px; height: 27px; border-radius: 50%; background: #f59e0b; color: #111827; font-size: 12px; font-weight: 950; }
+.life-event-choice strong { font-size: 13px; line-height: 1.2; }
+.life-event-choice small { color: rgba(255,255,255,.62); font-size: 10px; line-height: 1.3; }
+.life-event-note { display: block; padding: 0 16px 14px; color: rgba(255,255,255,.46); font-size: 9px; text-align: center; }
+
+@media (max-width: 700px) {
+  .life-event-top { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .life-event-story { align-items: flex-start; padding: 15px; }
+  .life-event-icon { font-size: 32px; }
+  .life-event-choices { grid-template-columns: 1fr; }
+  .life-event-choice { min-height: 70px; }
+}

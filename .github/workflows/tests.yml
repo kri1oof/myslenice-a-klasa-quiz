@@ -30,6 +30,7 @@ jobs:
           node --check web/local-football-flavour.js
           node --check web/local-football-chaos.js
           node --check web/local-media-events.js
+          node --check web/local-club-events.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
@@ -37,6 +38,8 @@ jobs:
         run: node tests/dev-tools-smoke.mjs
       - name: Media events smoke test
         run: node tests/media-events-smoke.mjs
+      - name: A-class life events smoke test
+        run: node tests/local-club-events-smoke.mjs
       - name: Lint (advisory)
         run: ruff check src tests
         continue-on-error: true
