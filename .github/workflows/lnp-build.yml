@@ -1,7 +1,7 @@
 name: LNP build questions
 on:
   push:
-    branches: [lnp-data-2025-2027]
+    branches: [main, lnp-data-2025-2027]
     paths:
       - '.github/workflows/lnp-build.yml'
       - 'scripts/build_lnp_questions.py'
@@ -28,7 +28,7 @@ jobs:
       - name: Download latest successful full ŁNP snapshot
         run: |
           mkdir -p /tmp/lnp
-          RUN_ID="$(gh run list --workflow 'LNP full sync' --branch lnp-data-2025-2027 --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          RUN_ID="$(gh run list --workflow 'LNP full sync' --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
           test -n "$RUN_ID"
           echo "Using LNP full sync run: $RUN_ID"
           gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp
@@ -136,7 +136,7 @@ jobs:
             echo 'No question database changes to commit.'
           else
             git commit -m 'Expand quiz with ŁNP player decision questions'
-            git push origin HEAD:lnp-data-2025-2027
+            git push origin HEAD:"$GITHUB_REF_NAME"
           fi
       - uses: actions/upload-artifact@v4
         if: always()
