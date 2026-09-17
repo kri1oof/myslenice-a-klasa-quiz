@@ -9,7 +9,7 @@ function secondaryHudNodes() {
   const board = el('rpg-board');
   if (!board) return [];
   return [...board.querySelectorAll(':scope > [id^="rpg-"][id$="-hud"]')]
-    .filter(node => !['rpg-scenario-hud', 'rpg-context-drawer'].includes(node.id));
+    .filter(node => !['rpg-scenario-hud', 'rpg-season-career-hud', 'rpg-context-drawer'].includes(node.id));
 }
 
 function ensureContextDrawer() {
