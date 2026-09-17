@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { played, selectEventMatches, shouldFreezeSeason } from './lnp_sync_helpers.mjs';
 
 const SEASONS = [
+  { label: '2024/25', id: '4be7b40c-84ff-4e5a-96e5-875d7f13483a', playId: 'e8609430-5f3f-4dea-8aac-c2184e985bfc', playName: 'Myślenice: Klasa A' },
   { label: '2025/26', id: 'e9d66181-d03e-4bb3-b889-4da848f4831d', playId: '83230fb6-b571-4c0d-ac1b-77d1a5d42475', playName: 'Myślenice: Klasa A "KEEZA"' },
   { label: '2026/27', id: '3c77d143-8010-4073-9842-d6b63365ffce', playId: '081b0700-ae25-4be8-a2bd-e38cad5bfc50', playName: 'Myślenice: Klasa A' },
 ];
