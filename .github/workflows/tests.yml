@@ -32,9 +32,13 @@ jobs:
           node --check web/local-media-events.js
           node --check web/local-club-events.js
           node --check web/player-decision-questions.js
+          node --check web/match-scenarios-core.js
+          node --check web/match-scenarios.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
+      - name: Match situations smoke test
+        run: node tests/match-scenarios-smoke.mjs
       - name: ŁNP incremental sync smoke test
         run: |
           node --check scripts/lnp_sync_helpers.mjs
