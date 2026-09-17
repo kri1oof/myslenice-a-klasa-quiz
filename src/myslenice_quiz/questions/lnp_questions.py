@@ -74,7 +74,10 @@ def generate_lnp_profile_questions(conn: sqlite3.Connection, min_confidence: flo
     for row in latest_by_player.values():
         age = int(row["age"])
         observed = _display_observed(row["observed_at"])
-        qid = question_id("lnp_player_age", row["player_id"], row["observed_at"] or row["season_id"])
+        # The observation timestamp is the sync time, not a stable profile version.
+        # Keep the question identity tied to the player so identical official data
+        # produces the same ID and option order across repeated builds.
+        qid = question_id("lnp_player_age", row["player_id"])
         questions.append(Question(
             qid,
             "lnp_player_age",
