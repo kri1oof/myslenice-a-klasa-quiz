@@ -52,6 +52,10 @@ jobs:
           node --check web/transfer-investigations.js
           node --check web/powerups-core.js
           node --check web/powerups.js
+          node --check web/president-mode-career-bridge.js
+          node --check web/president-mode-core.js
+          node --check web/president-mode.js
+          node --check web/president-mode-lifecycle.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
@@ -75,6 +79,8 @@ jobs:
         run: node tests/transfer-investigations-smoke.mjs
       - name: Power-up cards smoke test
         run: node tests/powerups-smoke.mjs
+      - name: President mode smoke test
+        run: node tests/president-mode-smoke.mjs
       - name: ŁNP incremental sync smoke test
         run: |
           node --check scripts/lnp_sync_helpers.mjs
