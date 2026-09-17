@@ -1,0 +1,127 @@
+name: LNP build questions
+on:
+  push:
+    branches: [lnp-data-2025-2027]
+    paths:
+      - '.github/workflows/lnp-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download official ŁNP snapshots
+        run: |
+          mkdir -p /tmp/lnp25 /tmp/lnp26
+          gh run download 35213034160 -n lnp-myslenice-data -D /tmp/lnp25
+          gh run download 35213439886 -n lnp-2026-27-data -D /tmp/lnp26
+      - name: Merge and normalize snapshots
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          a = json.loads(Path('/tmp/lnp25/lnp_myslenice.json').read_text(encoding='utf-8'))
+          b = json.loads(Path('/tmp/lnp26/lnp_2026_27.json').read_text(encoding='utf-8'))
+          current = b['seasons']['2026/27']
+
+          # ŁNP names future fixtures "Nierozegrany".  Normalize to a value
+          # that the current importer unambiguously treats as scheduled.
+          future_ids = set()
+          for m in current.get('matches') or []:
+              if (m.get('state') or '').casefold() == 'nierozegrany':
+                  future_ids.add(m.get('matchId'))
+                  m['state'] = 'Zaplanowany'
+
+          a['seasons']['2026/27'] = current
+          a['fetchedAt'] = max(a.get('fetchedAt') or '', b.get('fetchedAt') or '')
+          errors = []
+          for e in (a.get('errors') or []):
+              if not str(e).startswith('2026/27:'):
+                  errors.append(e)
+          for e in (b.get('errors') or []):
+              text = str(e)
+              if 'events status 204' in text and any(mid and mid in text for mid in future_ids):
+                  continue
+              errors.append(e)
+          a['errors'] = errors
+          Path('lnp_myslenice_2025_26_2026_27.json').write_text(
+              json.dumps(a, ensure_ascii=False, indent=2), encoding='utf-8'
+          )
+          print('SEASONS', ', '.join(a['seasons']))
+          print('RAW_ERRORS_AFTER_NORMALIZATION', len(errors))
+          for label, data in a['seasons'].items():
+              matches = data.get('matches') or []
+              events = data.get('events') or {}
+              profiles = data.get('players') or {}
+              states = {}
+              for m in matches:
+                  states[m.get('state')] = states.get(m.get('state'), 0) + 1
+              print(label, 'matches=', len(matches), 'events=', len(events), 'profiles=', len(profiles), 'states=', states)
+          PY
+      - name: Install project
+        run: |
+          python -m pip install -U pip
+          pip install -e '.[dev]'
+      - name: Generate and merge quiz questions
+        run: |
+          python scripts/build_lnp_questions.py \
+            --raw lnp_myslenice_2025_26_2026_27.json \
+            --db lnp_build.db \
+            --lnp-export lnp_questions.json \
+            --existing web/data/questions.json \
+            --output web/data/questions.json | tee lnp_build_summary.txt
+          cp web/data/questions.json docs/data/questions.json
+      - name: Validate generated database
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          merged = json.loads(Path('web/data/questions.json').read_text(encoding='utf-8'))
+          lnp = json.loads(Path('lnp_questions.json').read_text(encoding='utf-8'))
+          assert merged['count'] == len(merged['questions'])
+          assert lnp['count'] == len(lnp['questions'])
+          assert merged['count'] >= 26540, merged['count']
+          assert any('laczynaspilka.pl' in src for q in lnp['questions'] for src in (q.get('sources') or []))
+          types = Counter(q.get('type') for q in lnp['questions'])
+          print('MERGED_COUNT', merged['count'])
+          print('LNP_COUNT', lnp['count'])
+          print('LNP_TYPES', json.dumps(types, ensure_ascii=False, sort_keys=True))
+          with Path('lnp_build_summary.txt').open('a', encoding='utf-8') as f:
+              print('MERGED_COUNT', merged['count'], file=f)
+              print('LNP_COUNT', lnp['count'], file=f)
+              print('LNP_TYPES', json.dumps(types, ensure_ascii=False, sort_keys=True), file=f)
+          PY
+      - name: Commit enriched question database
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web/data/questions.json docs/data/questions.json
+          if git diff --cached --quiet; then
+            echo 'No question database changes to commit.'
+          else
+            git commit -m 'Enrich quiz with official ŁNP 2025/26 and 2026/27 data'
+            git push origin HEAD:lnp-data-2025-2027
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lnp-built-quiz-data
+          path: |
+            lnp_myslenice_2025_26_2026_27.json
+            lnp_questions.json
+            lnp_build_summary.txt
+          if-no-files-found: warn
