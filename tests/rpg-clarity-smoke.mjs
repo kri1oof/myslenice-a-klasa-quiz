@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const css = fs.readFileSync(new URL('../web/rpg-clarity.css', import.meta.url), 'utf8');
 const js = fs.readFileSync(new URL('../web/rpg-clarity.js', import.meta.url), 'utf8');
+const playerCss = fs.readFileSync(new URL('../web/player-characters.css', import.meta.url), 'utf8');
 const index = fs.readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
 
 // The final layer must provide explicit readable foreground/background pairs.
@@ -15,6 +16,12 @@ assert.match(css, /rpg-question-stage \.rpg-pitch-shell/);
 assert.match(css, /rpg-question-stage \.rpg-context-drawer/);
 assert.match(css, /rpg-question-stage \.rpg-tools/);
 assert.match(css, /#new-game:disabled[\s\S]*color: #334155/);
+
+// Player selection must not inherit black text onto an old dark character card.
+assert.match(playerCss, /\.character-selection-card[\s\S]*background:\s*#f8fafc[\s\S]*color:\s*#111827/);
+assert.match(playerCss, /\.character-option[\s\S]*background:\s*#ffffff[\s\S]*color:\s*#111827\s*!important/);
+assert.match(playerCss, /\.character-title strong[\s\S]*color:\s*#111827\s*!important/);
+assert.match(playerCss, /\.character-title small[\s\S]*color:\s*#475569\s*!important/);
 
 // Secondary match history is deliberately collapsed into a details drawer.
 assert.match(js, /function ensureRpgLogDrawer/);
