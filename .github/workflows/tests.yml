@@ -36,6 +36,8 @@ jobs:
           node --check web/match-scenarios.js
           node --check web/tactical-decisions-core.js
           node --check web/tactical-decisions.js
+          node --check web/player-characters-core.js
+          node --check web/player-characters.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
@@ -43,6 +45,8 @@ jobs:
         run: node tests/match-scenarios-smoke.mjs
       - name: Tactical decisions smoke test
         run: node tests/tactical-decisions-smoke.mjs
+      - name: Player characters smoke test
+        run: node tests/player-characters-smoke.mjs
       - name: ŁNP incremental sync smoke test
         run: |
           node --check scripts/lnp_sync_helpers.mjs

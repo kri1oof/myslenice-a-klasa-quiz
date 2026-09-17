@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from myslenice_quiz.db import connect, init_db  # noqa: E402
 from myslenice_quiz.export import export_questions  # noqa: E402
 from myslenice_quiz.ingest.laczynaspilka import import_file  # noqa: E402
+from myslenice_quiz.player_characters import export_player_characters  # noqa: E402
 from myslenice_quiz.questions import generate_all  # noqa: E402
 from myslenice_quiz.questions.base import save_questions  # noqa: E402
 
@@ -86,6 +87,7 @@ def main() -> None:
     parser.add_argument("--raw", default="lnp_myslenice.json")
     parser.add_argument("--db", default="lnp_build.db")
     parser.add_argument("--lnp-export", default="lnp_questions.json")
+    parser.add_argument("--player-export", default="web/data/player-characters.json")
     parser.add_argument("--existing", default="web/data/questions.json")
     parser.add_argument("--output", default="web/data/questions.json")
     args = parser.parse_args()
@@ -97,7 +99,7 @@ def main() -> None:
     with connect(db_path) as conn:
         stats = import_file(conn, args.raw)
 
-        # The 2025/26 competition is historical as of this importer.  ŁNP's
+        # The 2025/26 competition is historical as of this importer. ŁNP's
         # official fixture list can contain fewer rows than the theoretical
         # n*(n-1) round-robin count (withdrawals/cancellations), so do not use
         # that theoretical count to suppress final-table questions.
@@ -113,11 +115,13 @@ def main() -> None:
                 (season_id,),
             )
 
+        player_count = export_player_characters(conn, args.player_export, 0.80)
         questions = generate_all(conn, 0.80)
         conn.execute("UPDATE question_bank SET enabled=0")
         saved = save_questions(conn, questions)
         exported = export_questions(conn, args.lnp_export, 0.80)
     print("LNP_IMPORT", json.dumps(stats, ensure_ascii=False, sort_keys=True))
+    print("LNP_PLAYER_CHARACTERS", player_count)
     print("LNP_QUESTIONS", saved, "EXPORTED", exported)
 
     total, added, upgraded = merge_exports(
