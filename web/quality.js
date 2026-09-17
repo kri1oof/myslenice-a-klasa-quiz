@@ -46,6 +46,7 @@ const mechanicalQuestionTypes = new Set([
   'season_losses',
   'season_goals_for',
   'season_goals_against',
+  'season_goal_difference',
   'club_home_points',
   'club_away_points',
 ]);
@@ -76,6 +77,43 @@ function weightedQuestionOrder(values) {
   return ordered;
 }
 
+function stableStringHash(value) {
+  let hash = 2166136261;
+  for (const ch of String(value || '')) {
+    hash ^= ch.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function goalDifferenceOptions(q) {
+  const correct = Number.parseInt(q.answer, 10);
+  if (!Number.isFinite(correct)) return null;
+
+  const span = Math.max(3, Math.floor(Math.abs(correct) / 4));
+  const offsets = [
+    span, -span,
+    span + 2, -(span + 2),
+    span * 2, -(span * 2),
+    5, -5,
+    9, -9,
+    13, -13,
+  ];
+  const start = stableStringHash(`${q.id}|${correct}`) % offsets.length;
+  const rotated = offsets.slice(start).concat(offsets.slice(0, start));
+  const values = [correct];
+  for (const delta of rotated) {
+    const candidate = correct + delta;
+    if (!values.includes(candidate)) values.push(candidate);
+    if (values.length === 4) break;
+  }
+  const options = values.map(String);
+  const answerIndex = stableStringHash(`${q.id}|answer-position`) % options.length;
+  const correctIndex = options.indexOf(String(correct));
+  [options[answerIndex], options[correctIndex]] = [options[correctIndex], options[answerIndex]];
+  return options;
+}
+
 function naturalizeOptions(q) {
   if (!q || !Array.isArray(q.options)) return;
   let options = [...new Set(q.options)];
@@ -102,6 +140,9 @@ function naturalizeOptions(q) {
         .map(String);
       if (!options.includes(String(correct))) options[options.length - 1] = String(correct);
     }
+  } else if (q.type === 'season_goal_difference') {
+    const varied = goalDifferenceOptions(q);
+    if (varied) options = varied;
   }
 
   if (options.length >= 2 && options.length <= 4 && options.includes(q.answer)) q.options = options;
