@@ -216,6 +216,10 @@ function achievementFinishSnapshot(format) {
   const powerupHistory = state.rpgPowerupHistory || [];
   const rerollSaved = powerupHistory.filter(item => item.rerolled && item.rerollSuccess).length;
   const rivalryLevel = state.rpgRivalryProfile?.classification?.id || 'normal';
+  const currentCareerRound = Number(state.seasonCareer?.roundIndex || 0) + 1;
+  const presidentDecisionMade = format === 'president' && Boolean(
+    state.presidentMode?.history?.some(item => Number(item.round || 0) === currentCareerRound)
+  );
   return {
     format,
     answered: Number(state.answered || 0),
@@ -231,6 +235,7 @@ function achievementFinishSnapshot(format) {
     substitutionQuizCorrect: Number(state.rpgSubstitutionQuizCorrect || 0),
     career: ['career','president'].includes(format),
     president: format === 'president',
+    presidentDecisionMade,
   };
 }
 
@@ -244,7 +249,6 @@ function enrichFinishSnapshotAfterBase(snapshot) {
     }
   }
   if (snapshot.president && state.presidentMode) {
-    snapshot.presidentDecisionMade = Boolean(state.presidentMode.history?.length);
     snapshot.presidentBudget = Number(state.presidentMode.budget || 0);
     snapshot.presidentAverageTrust = globalThis.PresidentModeCore
       ? globalThis.PresidentModeCore.averageTrust(state.presidentMode)
