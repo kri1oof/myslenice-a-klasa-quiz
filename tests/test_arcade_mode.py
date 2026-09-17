@@ -8,9 +8,11 @@ def test_arcade_layer_is_loaded_after_rpg_and_before_front_controller():
     html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
     assert 'href="match-arcade.css"' in html
     assert 'src="match-arcade.js"' in html
+    assert 'src="local-football-flavour.js"' in html
     assert 'src="arcade-front.js"' in html
     assert html.index('src="match-rpg.js"') < html.index('src="match-arcade.js"')
-    assert html.index('src="match-arcade.js"') < html.index('src="front-controller.js"')
+    assert html.index('src="match-arcade.js"') < html.index('src="local-football-flavour.js"')
+    assert html.index('src="local-football-flavour.js"') < html.index('src="front-controller.js"')
     assert html.index('src="front-controller.js"') < html.index('src="arcade-front.js"')
 
 
@@ -39,8 +41,8 @@ def test_arcade_mode_contains_core_gameplay_systems():
         assert marker in js
 
 
-def test_arcade_release_is_version_030():
+def test_arcade_release_is_version_031():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     front = (ROOT / "web" / "arcade-front.js").read_text(encoding="utf-8")
-    assert 'version = "0.3.0"' in pyproject
-    assert "v0.3" in front
+    assert 'version = "0.3.1"' in pyproject
+    assert "v0.3.1" in front
