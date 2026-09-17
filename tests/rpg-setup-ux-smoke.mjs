@@ -15,8 +15,13 @@ assert.match(js, /settings\.open = true/);
 assert.match(js, /kickoff\.disabled = !ready/);
 assert.match(js, /Domyślnie grasz pytaniami swojej drużyny/);
 assert.match(js, /rpgSetupVisible\(\)/);
+assert.match(js, /rpgSetupNonRpgSnapshot = rpgSetupCaptureValues\(\)/);
+assert.match(js, /function rpgSetupLeaveMode\(\)/);
+assert.match(js, /rpgSetupRestoreGenericLabels\(\)/);
+assert.match(js, /rpgSetupRestorePreferences\(\)/);
 
-assert.match(css, /\.rpg-setup-heading/);
+assert.match(css, /\.rpg-setup-heading \{ display: none; \}/);
+assert.match(css, /body\.rpg-setup-mode \.rpg-setup-heading/);
 assert.match(css, /\.rpg-setup-club \{ order: -20; \}/);
 assert.match(css, /\.rpg-setup-scope \{ order: -16; \}/);
 assert.match(css, /Opcjonalnie: przełącz na całą ligę/);
