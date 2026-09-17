@@ -1,10 +1,5 @@
 name: LNP full sync
 on:
-  push:
-    branches: [lnp-data-2025-2027]
-    paths:
-      - 'scripts/lnp_sync.mjs'
-      - '.github/workflows/lnp-sync.yml'
   workflow_dispatch:
 permissions:
   contents: read
