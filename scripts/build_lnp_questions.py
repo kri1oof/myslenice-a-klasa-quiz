@@ -87,6 +87,23 @@ def main() -> None:
     init_db(db_path)
     with connect(db_path) as conn:
         stats = import_file(conn, args.raw)
+
+        # The 2025/26 competition is historical as of this importer.  ŁNP's
+        # official fixture list can contain fewer rows than the theoretical
+        # n*(n-1) round-robin count (withdrawals/cancellations), so do not use
+        # that theoretical count to suppress final-table questions.
+        row = conn.execute("SELECT id FROM seasons WHERE label='2025/26'").fetchone()
+        if row:
+            season_id = int(row[0])
+            conn.execute("UPDATE seasons SET is_complete=1 WHERE id=?", (season_id,))
+            conn.execute(
+                """INSERT INTO season_coverage(season_id,dataset,is_complete,notes)
+                   VALUES(?,'standings',1,'ŁNP/PZPN: zakończony sezon 2025/26; tabela końcowa')
+                   ON CONFLICT(season_id,dataset) DO UPDATE SET
+                   is_complete=1,notes=excluded.notes""",
+                (season_id,),
+            )
+
         questions = generate_all(conn, 0.80)
         conn.execute("UPDATE question_bank SET enabled=0")
         saved = save_questions(conn, questions)
