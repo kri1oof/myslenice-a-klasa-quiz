@@ -30,6 +30,44 @@ def _merge_club(old: dict | None, new: dict | None) -> dict:
     return out
 
 
+def _mark_completed_seasons(conn) -> list[str]:
+    """Mark official ŁNP seasons complete when they contain matches and none remain scheduled.
+
+    Older competition fixture lists may have fewer rows than a theoretical double
+    round-robin because of withdrawals/cancellations. Therefore completion is based
+    on the official match statuses we actually imported, not n*(n-1).
+    """
+    rows = conn.execute(
+        """
+        SELECT s.id, s.label,
+               COUNT(m.id) AS match_count,
+               SUM(CASE WHEN m.status='scheduled' THEN 1 ELSE 0 END) AS scheduled_count
+        FROM seasons s
+        LEFT JOIN matches m ON m.season_id=s.id
+        GROUP BY s.id, s.label
+        ORDER BY s.label
+        """
+    ).fetchall()
+    completed: list[str] = []
+    for row in rows:
+        season_id = int(row[0])
+        label = str(row[1])
+        match_count = int(row[2] or 0)
+        scheduled_count = int(row[3] or 0)
+        if match_count <= 0 or scheduled_count > 0:
+            continue
+        conn.execute("UPDATE seasons SET is_complete=1 WHERE id=?", (season_id,))
+        conn.execute(
+            """INSERT INTO season_coverage(season_id,dataset,is_complete,notes)
+               VALUES(?,'standings',1,'ŁNP/PZPN: brak zaplanowanych meczów; tabela traktowana jako końcowa')
+               ON CONFLICT(season_id,dataset) DO UPDATE SET
+               is_complete=1,notes=excluded.notes""",
+            (season_id,),
+        )
+        completed.append(label)
+    return completed
+
+
 def merge_exports(existing_path: Path, lnp_path: Path, output_path: Path) -> tuple[int, int, int]:
     existing = json.loads(existing_path.read_text(encoding="utf-8"))
     incoming = json.loads(lnp_path.read_text(encoding="utf-8"))
@@ -98,29 +136,14 @@ def main() -> None:
     init_db(db_path)
     with connect(db_path) as conn:
         stats = import_file(conn, args.raw)
-
-        # The 2025/26 competition is historical as of this importer. ŁNP's
-        # official fixture list can contain fewer rows than the theoretical
-        # n*(n-1) round-robin count (withdrawals/cancellations), so do not use
-        # that theoretical count to suppress final-table questions.
-        row = conn.execute("SELECT id FROM seasons WHERE label='2025/26'").fetchone()
-        if row:
-            season_id = int(row[0])
-            conn.execute("UPDATE seasons SET is_complete=1 WHERE id=?", (season_id,))
-            conn.execute(
-                """INSERT INTO season_coverage(season_id,dataset,is_complete,notes)
-                   VALUES(?,'standings',1,'ŁNP/PZPN: zakończony sezon 2025/26; tabela końcowa')
-                   ON CONFLICT(season_id,dataset) DO UPDATE SET
-                   is_complete=1,notes=excluded.notes""",
-                (season_id,),
-            )
-
+        completed_seasons = _mark_completed_seasons(conn)
         player_count = export_player_characters(conn, args.player_export, 0.80)
         questions = generate_all(conn, 0.80)
         conn.execute("UPDATE question_bank SET enabled=0")
         saved = save_questions(conn, questions)
         exported = export_questions(conn, args.lnp_export, 0.80)
     print("LNP_IMPORT", json.dumps(stats, ensure_ascii=False, sort_keys=True))
+    print("LNP_COMPLETED_SEASONS", json.dumps(completed_seasons, ensure_ascii=False))
     print("LNP_PLAYER_CHARACTERS", player_count)
     print("LNP_QUESTIONS", saved, "EXPORTED", exported)
 
