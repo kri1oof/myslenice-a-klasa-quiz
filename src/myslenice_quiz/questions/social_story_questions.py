@@ -83,13 +83,38 @@ def _club_options(conn: sqlite3.Connection, season_id: int, correct: str, qid: s
     return deterministic_shuffle(options, qid) if len(options) >= 3 else []
 
 
-def _static_source_questions() -> list[Question]:
-    """Small source-awareness pool used only for verified local media profiles.
+def _season_player_candidates(conn: sqlite3.Connection, season_ids: set[int]) -> list[str]:
+    """Return only players actually evidenced in the same seasons as the story facts."""
+    if not season_ids:
+        return []
+    placeholders = ",".join("?" for _ in season_ids)
+    params = tuple(sorted(season_ids))
+    rows = conn.execute(
+        f"""SELECT DISTINCT p.display_name
+            FROM players p
+            JOIN (
+                SELECT a.player_id,m.season_id
+                FROM appearances a JOIN matches m ON m.id=a.match_id
+                UNION
+                SELECT g.player_id,m.season_id
+                FROM goals g JOIN matches m ON m.id=g.match_id
+                WHERE g.player_id IS NOT NULL
+                UNION
+                SELECT pss.player_id,pss.season_id
+                FROM player_season_stats pss
+            ) x ON x.player_id=p.id
+            WHERE x.season_id IN ({placeholders})
+            ORDER BY p.display_name""",
+        params,
+    ).fetchall()
+    return [row[0] for row in rows if _looks_like_person(row[0])]
 
-    These questions are deliberately separate from match facts. They teach the player
-    which local pages/photographers appear in the provenance without pretending that
-    a source covered a specific match when we do not have evidence for that link.
-    """
+
+def _static_source_questions(min_confidence: float) -> list[Question]:
+    """Small source-awareness pool used only for verified local media profiles."""
+    source_confidence = 0.90
+    if min_confidence > source_confidence:
+        return []
     rows = [
         (
             "source_role_koneserzy",
@@ -128,7 +153,7 @@ def _static_source_questions() -> list[Question]:
             deterministic_shuffle(options, qid),
             explanation,
             None,
-            0.90,
+            source_confidence,
             provenance,
         ))
     return questions
@@ -137,7 +162,7 @@ def _static_source_questions() -> list[Question]:
 def generate_social_story_questions(conn: sqlite3.Connection, min_confidence: float = 0.80) -> list[Question]:
     tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     if "match_context_facts" not in tables:
-        return _static_source_questions()
+        return _static_source_questions(min_confidence)
 
     facts = conn.execute(
         """SELECT f.*,m.season_id,m.home_club_id,m.away_club_id,
@@ -158,6 +183,7 @@ def generate_social_story_questions(conn: sqlite3.Connection, min_confidence: fl
 
     person_candidates: list[str] = []
     observed_sources: list[str] = []
+    season_ids = {int(fact["season_id"]) for fact in facts}
     for fact in facts:
         if fact["fact_type"] in PERSON_FACT_TYPES:
             for candidate in (fact["subject"], fact["value"]):
@@ -165,8 +191,11 @@ def generate_social_story_questions(conn: sqlite3.Connection, min_confidence: fl
                     person_candidates.append(candidate)
         if fact["fact_type"] in SOURCE_FACT_TYPES and fact["value"] not in observed_sources:
             observed_sources.append(fact["value"])
+    for candidate in _season_player_candidates(conn, season_ids):
+        if candidate not in person_candidates:
+            person_candidates.append(candidate)
 
-    questions = _static_source_questions()
+    questions = _static_source_questions(min_confidence)
     for fact in facts:
         fact_type = fact["fact_type"]
         club = fact["focal_club"] or fact["home"]
@@ -198,8 +227,6 @@ def generate_social_story_questions(conn: sqlite3.Connection, min_confidence: fl
                 ))
 
         elif fact_type == "returning_player":
-            # The basic social generator already supports this fact. Keep a distinct
-            # story question only when the seed explicitly describes a return to club.
             if (fact["subject"] or "").casefold() != "return_to_club":
                 continue
             qid = question_id("social_return_to_club", fact["id"])
