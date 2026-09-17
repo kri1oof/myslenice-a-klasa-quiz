@@ -17,9 +17,11 @@ assert.deepEqual(selectEventMatches([newPlayed], [same], { m1: {} }).map(x => x.
 assert.deepEqual(selectEventMatches([changed], [same], { m1: {} }).map(x => x.matchId), ['m1']);
 assert.deepEqual(selectEventMatches([playedMatch], [same], {}).map(x => x.matchId), ['m1']);
 assert.deepEqual(selectEventMatches([playedMatch], [same], { m1: {} }, true).map(x => x.matchId), ['m1']);
+assert.equal(shouldFreezeSeason('2024/25', { matches: [] }), true);
 assert.equal(shouldFreezeSeason('2025/26', { matches: [] }), true);
 assert.equal(shouldFreezeSeason('2025/26', null), false);
 assert.equal(shouldFreezeSeason('2025/26', { matches: [] }, true), false);
 assert.equal(shouldFreezeSeason('2026/27', { matches: [] }), false);
+assert.equal(shouldFreezeSeason('2027/28', { matches: [] }, false, '2027/28'), false);
 
 console.log('ŁNP incremental sync smoke: OK');
