@@ -1,0 +1,152 @@
+name: LNP history backfill
+
+on:
+  push:
+    branches: [lnp-history-backfill-all]
+    paths:
+      - 'scripts/lnp_history_backfill.mjs'
+      - '.github/workflows/lnp-history-backfill.yml'
+      - '.github/workflows/lnp-history-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Restore verified ŁNP caches
+        run: |
+          mkdir -p /tmp/lnp-main /tmp/lnp-2024
+
+          MAIN_RUN="$(gh run list --workflow 'LNP full sync' --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [ -n "$MAIN_RUN" ]; then
+            echo "Current production cache: $MAIN_RUN"
+            gh run download "$MAIN_RUN" -n lnp-myslenice-data -D /tmp/lnp-main || true
+          fi
+
+          HIST_RUN="$(gh run list --workflow 'LNP full sync' --branch lnp-history-2024-25 --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [ -n "$HIST_RUN" ]; then
+            echo "Verified 2024/25 cache: $HIST_RUN"
+            gh run download "$HIST_RUN" -n lnp-myslenice-data -D /tmp/lnp-2024 || true
+          fi
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const read = path => fs.existsSync(path) ? JSON.parse(fs.readFileSync(path, 'utf8')) : null;
+          const current = read('/tmp/lnp-main/lnp_myslenice.json');
+          const historical = read('/tmp/lnp-2024/lnp_myslenice.json');
+          const base = current || historical || { seasons:{} };
+          base.seasons = { ...(historical?.seasons || {}), ...(current?.seasons || {}) };
+          if (historical?.seasons?.['2024/25']) base.seasons['2024/25'] = historical.seasons['2024/25'];
+          fs.writeFileSync('lnp_history_cache.json', JSON.stringify(base, null, 2));
+          console.log('CACHE_SEASONS', Object.keys(base.seasons || {}).sort());
+          NODE
+
+      - run: npm install playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+
+      - name: Discover and download every available Myślenice A-class season
+        env:
+          LNP_CACHE: lnp_history_cache.json
+          LNP_OUT: lnp_myslenice_history.json
+          LNP_CHUNK: '20'
+          LNP_RETRIES: '4'
+          LNP_RETRY_BASE_MS: '12000'
+        run: node scripts/lnp_history_backfill.mjs
+
+      - name: Validate and summarize historical snapshot
+        id: validate
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('lnp_myslenice_history.json', 'utf8'));
+          const seasons = data.seasons || {};
+          const labels = Object.keys(seasons).sort();
+          if (!labels.length) throw new Error('No seasons downloaded');
+          for (const required of ['2024/25', '2025/26', '2026/27']) {
+            if (!seasons[required]) throw new Error(`Missing verified season ${required}`);
+          }
+
+          const included = data.discovery?.included || [];
+          const missing = data.discovery?.missingPlay || [];
+          const ambiguous = data.discovery?.ambiguousPlay || [];
+          const failedLookup = data.discovery?.failedPlayLookup || [];
+          const rows = labels.map(label => {
+            const season = seasons[label] || {};
+            return {
+              season:label,
+              playName:season.playName || '',
+              matches:(season.matches || []).length,
+              events:Object.keys(season.events || {}).length,
+              players:Object.keys(season.players || {}).length,
+              mode:data.syncStats?.[label]?.mode || '',
+            };
+          });
+
+          const report = {
+            fetchedAt:data.fetchedAt,
+            officialSeasonCount:(data.discovery?.officialSeasons || []).length,
+            discoveredMyślenicePlayCount:included.length,
+            downloadedSeasonCount:labels.length,
+            seasons:rows,
+            missingPlay:missing,
+            ambiguousPlay:ambiguous,
+            failedPlayLookup:failedLookup,
+            warnings:data.warnings || [],
+            errors:data.errors || [],
+            totals:{
+              matches:rows.reduce((sum,row)=>sum+row.matches,0),
+              events:rows.reduce((sum,row)=>sum+row.events,0),
+              players:rows.reduce((sum,row)=>sum+row.players,0),
+            },
+          };
+          fs.writeFileSync('lnp_history_report.json', JSON.stringify(report, null, 2));
+          const md = [
+            '# ŁNP history backfill report',
+            '',
+            `Official seasons exposed by API: ${report.officialSeasonCount}`,
+            `Myślenice A-class plays discovered: ${report.discoveredMyślenicePlayCount}`,
+            `Seasons downloaded: ${report.downloadedSeasonCount}`,
+            `Matches: ${report.totals.matches}; events: ${report.totals.events}; player profiles: ${report.totals.players}`,
+            '',
+            '| Season | Matches | Events | Players | Mode |',
+            '|---|---:|---:|---:|---|',
+            ...rows.map(r => `| ${r.season} | ${r.matches} | ${r.events} | ${r.players} | ${r.mode} |`),
+            '',
+            `Missing Myślenice group: ${JSON.stringify(missing)}`,
+            `Ambiguous groups skipped: ${JSON.stringify(ambiguous)}`,
+            `Failed play lookups: ${JSON.stringify(failedLookup)}`,
+            `Warnings: ${(data.warnings || []).length}`,
+            `Errors: ${(data.errors || []).length}`,
+          ].join('\n');
+          fs.writeFileSync('lnp_history_report.md', md);
+          console.log(md);
+          console.log('ERROR_SAMPLE', JSON.stringify((data.errors || []).slice(0,20)));
+          console.log('WARNING_SAMPLE', JSON.stringify((data.warnings || []).slice(0,20)));
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lnp-history-data
+          path: |
+            lnp_myslenice_history.json
+            lnp_history_report.json
+            lnp_history_report.md
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Build historical questions from completed snapshot
+        if: success()
+        run: gh workflow run 'LNP history build' --ref "$GITHUB_REF_NAME"
