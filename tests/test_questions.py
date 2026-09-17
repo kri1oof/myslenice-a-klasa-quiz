@@ -3,6 +3,7 @@ from pathlib import Path
 from myslenice_quiz.db import connect, init_db
 from myslenice_quiz.ingest.common import MatchRecord, PlayerSeasonStatRecord, ClubSeasonStatRecord, save_matches, save_player_stats, save_club_stats, upsert_source
 from myslenice_quiz.questions import generate_all
+from myslenice_quiz.questions.base import goal_difference_options
 
 
 def test_generates_basic_questions(tmp_path: Path):
@@ -37,6 +38,16 @@ def test_generates_basic_questions(tmp_path: Path):
         assert "club_top_scorer" in types
         assert all(len(q.options) == 4 for q in qs)
         assert all(q.correct_answer in q.options for q in qs)
+
+
+def test_goal_difference_options_do_not_expose_old_pattern():
+    correct = 15
+    options = goal_difference_options(correct, "example-question")
+    assert len(options) == 4
+    assert len(set(options)) == 4
+    assert str(correct) in options
+    assert set(options) != {"15", "16", "14", "-15"}
+    assert not ({"14", "16"} <= set(options))
 
 
 def test_conflict_blocks_match_questions(tmp_path: Path):
