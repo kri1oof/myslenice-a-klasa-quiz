@@ -32,11 +32,20 @@ def _merge_club(old: dict | None, new: dict | None) -> dict:
 def merge_exports(existing_path: Path, lnp_path: Path, output_path: Path) -> tuple[int, int, int]:
     existing = json.loads(existing_path.read_text(encoding="utf-8"))
     incoming = json.loads(lnp_path.read_text(encoding="utf-8"))
-    questions = list(existing.get("questions") or [])
+    incoming_questions = list(incoming.get("questions") or [])
+
+    # Player-age prompts include the observation date. A later official sync may
+    # legitimately move that date (or the age itself), so old versions must not
+    # accumulate beside the current one. Replace this generated type as a unit.
+    refresh_types = {"lnp_player_age"}
+    questions = [
+        q for q in (existing.get("questions") or [])
+        if q.get("type") not in refresh_types
+    ]
     index = {_key(q): i for i, q in enumerate(questions)}
     added = upgraded = 0
 
-    for q in incoming.get("questions") or []:
+    for q in incoming_questions:
         key = _key(q)
         if key in index:
             i = index[key]
