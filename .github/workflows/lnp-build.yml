@@ -26,12 +26,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download latest successful full ŁNP snapshot
+      - name: Restore production question base on feature branches
+        if: github.ref_name != 'main'
+        run: |
+          git fetch origin main
+          git show origin/main:web/data/questions.json > web/data/questions.json
+          git show origin/main:docs/data/questions.json > docs/data/questions.json
+      - name: Download latest successful production ŁNP snapshot
         run: |
           mkdir -p /tmp/lnp
-          RUN_ID="$(gh run list --workflow 'LNP full sync' --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          RUN_ID="$(gh run list --workflow 'LNP full sync' --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
           test -n "$RUN_ID"
-          echo "Using LNP full sync run: $RUN_ID"
+          echo "Using main-branch LNP full sync run: $RUN_ID"
           gh run download "$RUN_ID" -n lnp-myslenice-data -D /tmp/lnp
           cp /tmp/lnp/lnp_myslenice.json lnp_myslenice_2025_26_2026_27.json
       - name: Normalize snapshot
@@ -43,8 +49,17 @@ jobs:
           path = Path('lnp_myslenice_2025_26_2026_27.json')
           data = json.loads(path.read_text(encoding='utf-8'))
           required = {'2025/26', '2026/27'}
-          missing = required - set(data.get('seasons') or {})
+          available = set(data.get('seasons') or {})
+          missing = required - available
           assert not missing, f'Missing seasons: {sorted(missing)}'
+          extra = available - required
+          if extra:
+              print('Ignoring non-production seasons in gameplay build:', sorted(extra))
+          data['seasons'] = {
+              label: season
+              for label, season in (data.get('seasons') or {}).items()
+              if label in required
+          }
 
           future_ids = set()
           for season in (data.get('seasons') or {}).values():
@@ -56,6 +71,8 @@ jobs:
           errors = []
           for raw in data.get('errors') or []:
               text = str(raw)
+              if extra and any(label in text for label in extra):
+                  continue
               if 'events status 204' in text and any(mid and mid in text for mid in future_ids):
                   continue
               errors.append(raw)
@@ -71,6 +88,7 @@ jobs:
               for match in matches:
                   states[match.get('state')] = states.get(match.get('state'), 0) + 1
               print(label, 'matches=', len(matches), 'events=', len(events), 'profiles=', len(profiles), 'states=', states)
+          assert set(data['seasons']) == required, sorted(data['seasons'])
           assert not errors, errors[:10]
           PY
       - name: Install project
@@ -121,8 +139,7 @@ jobs:
           assert seasons['2025/26'] > 0, seasons
           assert seasons['2026/27'] > 0, seasons
           character_seasons = Counter(p.get('season') for p in players)
-          assert character_seasons['2025/26'] > 0, character_seasons
-          assert character_seasons['2026/27'] > 0, character_seasons
+          assert set(character_seasons) == {'2025/26', '2026/27'}, character_seasons
 
           types = Counter(q.get('type') for q in lnp['questions'])
           required_types = {
