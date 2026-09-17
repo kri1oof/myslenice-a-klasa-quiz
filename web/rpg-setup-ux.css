@@ -18,7 +18,8 @@ body.rpg-setup-mode .match-settings-grid {
   padding-top: 11px;
 }
 
-.rpg-setup-heading {
+.rpg-setup-heading { display: none; }
+body.rpg-setup-mode .rpg-setup-heading {
   grid-column: 1 / -1;
   order: -30;
   display: flex;
@@ -108,13 +109,13 @@ body.rpg-setup-mode #new-game:not(:disabled) {
 
 @media (max-width: 700px) {
   body.rpg-setup-mode .match-settings-grid { grid-template-columns: 1fr; }
-  .rpg-setup-heading { align-items: flex-start; }
+  body.rpg-setup-mode .rpg-setup-heading { align-items: flex-start; }
   .rpg-setup-heading em { white-space: normal; text-align: center; }
   body.rpg-setup-mode .rpg-setup-scope { grid-column: auto; }
 }
 
 @media (max-width: 480px) {
-  .rpg-setup-heading { display: grid; gap: 8px; padding: 11px; }
+  body.rpg-setup-mode .rpg-setup-heading { display: grid; gap: 8px; padding: 11px; }
   .rpg-setup-heading em { justify-self: start; }
   body.rpg-setup-mode .rpg-setup-club,
   body.rpg-setup-mode .rpg-setup-season-mode,
