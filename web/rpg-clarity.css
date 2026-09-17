@@ -1,0 +1,329 @@
+/* Final Match RPG clarity layer. Loaded after every other game stylesheet on purpose. */
+:root {
+  --rpg2-ink: #111827;
+  --rpg2-muted: #4b5563;
+  --rpg2-border: #cbd5e1;
+  --rpg2-soft: #f8fafc;
+  --rpg2-white: #ffffff;
+  --rpg2-green: #166534;
+  --rpg2-green-dark: #14532d;
+  --rpg2-green-soft: #f0fdf4;
+  --rpg2-red: #991b1b;
+  --rpg2-red-soft: #fef2f2;
+  --rpg2-amber: #92400e;
+  --rpg2-amber-soft: #fffbeb;
+}
+
+/* Never allow inherited dark-theme colours to make RPG text disappear. */
+body.rpg-match-active {
+  color: var(--rpg2-ink);
+  background: #f3f6f4;
+}
+body.rpg-match-active #quiz {
+  color: var(--rpg2-ink);
+  background: var(--rpg2-white);
+  border-color: #d7dee5;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, .06);
+}
+body.rpg-match-active #quiz h2,
+body.rpg-match-active #quiz h3,
+body.rpg-match-active #quiz strong,
+body.rpg-match-active #quiz label { color: var(--rpg2-ink); }
+body.rpg-match-active #quiz p,
+body.rpg-match-active #quiz small,
+body.rpg-match-active #quiz em { color: var(--rpg2-muted); }
+
+/* Score is the single persistent dark-free anchor. */
+body.rpg-match-active .rpg-score-row {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  padding: 12px 16px;
+  border: 2px solid #bbf7d0;
+  border-radius: 16px;
+  background: var(--rpg2-white);
+  color: var(--rpg2-ink);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, .08);
+}
+body.rpg-match-active .rpg-team small,
+body.rpg-match-active .rpg-clock span { color: #64748b; opacity: 1; }
+body.rpg-match-active .rpg-team strong,
+body.rpg-match-active .rpg-clock strong { color: var(--rpg2-ink); }
+body.rpg-match-active .rpg-player-score { color: var(--rpg2-green-dark); }
+
+/* Pitch stays visually football-like, but everything around it is clean and light. */
+body.rpg-match-active .rpg-pitch-shell {
+  padding: 8px;
+  border: 1px solid #14532d;
+  border-radius: 14px;
+  background: #166534;
+  box-shadow: none;
+}
+body.rpg-match-active .rpg-zone::after { color: #fff; opacity: .82; }
+body.rpg-match-active .rpg-possession {
+  gap: 7px;
+  padding: 9px 11px;
+  border: 1px solid var(--rpg2-border);
+  border-radius: 12px;
+  background: var(--rpg2-white);
+  color: var(--rpg2-muted);
+}
+body.rpg-match-active .rpg-possession strong,
+body.rpg-match-active #rpg-zone-text { color: var(--rpg2-ink); }
+body.rpg-match-active .rpg-tag {
+  border: 1px solid #bbf7d0;
+  background: var(--rpg2-green-soft);
+  color: var(--rpg2-green-dark);
+}
+body.rpg-match-active .rpg-tag.chance {
+  border-color: #fde68a;
+  background: var(--rpg2-amber-soft);
+  color: var(--rpg2-amber);
+}
+
+/* The current situation is one clear card, not another grey block. */
+body.rpg-match-active .rpg-narrator,
+body.rpg-match-active .rpg-commentator {
+  padding: 13px 15px;
+  border: 1px solid #bbf7d0;
+  border-left: 5px solid #16a34a;
+  border-radius: 12px;
+  background: var(--rpg2-green-soft);
+  color: var(--rpg2-green-dark);
+  box-shadow: none;
+}
+body.rpg-match-active .rpg-narrator small,
+body.rpg-match-active .rpg-commentator small { color: var(--rpg2-green); opacity: 1; }
+body.rpg-match-active .rpg-narrator strong,
+body.rpg-match-active .rpg-commentator strong { color: #173328; }
+
+/* Decision area: white cards, dark text, one obvious hover/focus state. */
+body.rpg-match-active .rpg-action-panel {
+  margin: 0;
+  padding: 15px;
+  border: 2px solid #dbe4df;
+  border-radius: 16px;
+  background: var(--rpg2-white);
+  box-shadow: 0 7px 20px rgba(15, 23, 42, .045);
+}
+body.rpg-match-active .rpg-action-heading strong { color: var(--rpg2-ink); font-size: 21px; }
+body.rpg-match-active .rpg-action-heading span { color: var(--rpg2-muted); }
+body.rpg-match-active .rpg-actions { gap: 10px; }
+body.rpg-match-active .rpg-action {
+  min-height: 126px;
+  padding: 14px;
+  border: 2px solid #d7dee5;
+  border-radius: 14px;
+  background: var(--rpg2-white);
+  color: var(--rpg2-ink);
+  box-shadow: none;
+}
+body.rpg-match-active .rpg-action:hover,
+body.rpg-match-active .rpg-action:focus-visible {
+  border-color: #16a34a;
+  background: #f7fff9;
+  outline: 3px solid rgba(22, 163, 74, .15);
+  transform: none;
+}
+body.rpg-match-active .rpg-action strong { color: var(--rpg2-ink); font-size: 16px; }
+body.rpg-match-active .rpg-action p { color: var(--rpg2-muted); font-size: 13px; line-height: 1.42; }
+body.rpg-match-active .rpg-dc {
+  border: 1px solid #d7dee5;
+  background: #f8fafc;
+  color: #334155;
+}
+body.rpg-match-active .rpg-risk { color: #475569; }
+body.rpg-match-active .rpg-action.risk-low .rpg-dc { border-color: #bbf7d0; background: var(--rpg2-green-soft); color: var(--rpg2-green-dark); }
+body.rpg-match-active .rpg-action.risk-high .rpg-dc { border-color: #fecaca; background: var(--rpg2-red-soft); color: var(--rpg2-red); }
+
+/* Secondary history is collapsed; it should not sit between the player and the next decision. */
+.rpg-log-drawer {
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  background: var(--rpg2-white);
+  overflow: hidden;
+}
+.rpg-log-drawer > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  cursor: pointer;
+  list-style: none;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+.rpg-log-drawer > summary::-webkit-details-marker { display: none; }
+.rpg-log-drawer > summary span { color: #64748b; font-size: 10px; font-weight: 700; }
+.rpg-log-drawer[open] > summary { border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.rpg-log-drawer .rpg-log { margin: 0; padding: 8px; }
+body.rpg-match-active .rpg-log-line {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+}
+body.rpg-match-active .rpg-log-line.good { border-color: #bbf7d0; background: var(--rpg2-green-soft); color: var(--rpg2-green-dark); }
+body.rpg-match-active .rpg-log-line.bad { border-color: #fecaca; background: var(--rpg2-red-soft); color: var(--rpg2-red); }
+body.rpg-match-active .rpg-log-line.goal { border-color: #fde68a; background: var(--rpg2-amber-soft); color: #713f12; }
+
+/* Context modules all use the same high-contrast light surface. This deliberately wins over old dark cards. */
+body.rpg-match-active .rpg-context-drawer {
+  border: 1px solid #dbe3ec !important;
+  background: var(--rpg2-white) !important;
+  color: var(--rpg2-ink) !important;
+}
+body.rpg-match-active .rpg-context-drawer > summary,
+body.rpg-match-active .rpg-context-drawer[open] > summary {
+  background: var(--rpg2-white) !important;
+  color: var(--rpg2-ink) !important;
+}
+body.rpg-match-active .rpg-context-drawer > summary strong { color: var(--rpg2-ink) !important; }
+body.rpg-match-active .rpg-context-drawer > summary small { color: var(--rpg2-muted) !important; }
+body.rpg-match-active .rpg-context-drawer > summary em {
+  background: #e8f5eb !important;
+  color: var(--rpg2-green-dark) !important;
+}
+body.rpg-match-active .rpg-context-content { background: #f8fafc; }
+body.rpg-match-active .rpg-context-content > * {
+  border: 1px solid #d7dee5 !important;
+  border-radius: 12px !important;
+  background: var(--rpg2-white) !important;
+  color: var(--rpg2-ink) !important;
+  box-shadow: none !important;
+}
+body.rpg-match-active .rpg-context-content > * strong,
+body.rpg-match-active .rpg-context-content > * h2,
+body.rpg-match-active .rpg-context-content > * h3,
+body.rpg-match-active .rpg-context-content > * p,
+body.rpg-match-active .rpg-context-content > * span,
+body.rpg-match-active .rpg-context-content > * label { color: var(--rpg2-ink) !important; opacity: 1 !important; }
+body.rpg-match-active .rpg-context-content > * small,
+body.rpg-match-active .rpg-context-content > * em { color: var(--rpg2-muted) !important; opacity: 1 !important; }
+body.rpg-match-active .rpg-context-content button {
+  border-color: #cbd5e1 !important;
+  background: var(--rpg2-white) !important;
+  color: var(--rpg2-ink) !important;
+  box-shadow: none !important;
+}
+body.rpg-match-active .rpg-context-content button:hover:not(:disabled) {
+  border-color: #16a34a !important;
+  background: #f7fff9 !important;
+}
+body.rpg-match-active .rpg-context-content button.selected,
+body.rpg-match-active .rpg-context-content button.active,
+body.rpg-match-active .rpg-context-content button[aria-pressed="true"] {
+  border-color: var(--rpg2-green) !important;
+  background: var(--rpg2-green-dark) !important;
+  color: #fff !important;
+}
+body.rpg-match-active .rpg-context-content button.selected *,
+body.rpg-match-active .rpg-context-content button.active *,
+body.rpg-match-active .rpg-context-content button[aria-pressed="true"] * { color: #fff !important; }
+
+/* Lifelines/tools are visibly secondary but still readable. */
+body.rpg-match-active .rpg-tools {
+  margin-top: 0;
+  padding-top: 2px;
+  opacity: 1;
+}
+body.rpg-match-active .rpg-tool {
+  border-color: #cbd5e1;
+  background: var(--rpg2-white);
+  color: #334155;
+}
+body.rpg-match-active .rpg-tool:disabled {
+  border-color: #d1d5db;
+  background: #f1f5f9;
+  color: #475569;
+  opacity: 1;
+}
+
+/* Knowledge question = focus mode. Hide pitch, history and auxiliary systems until the roll is resolved. */
+body.rpg-match-active.rpg-question-stage .rpg-pitch-shell,
+body.rpg-match-active.rpg-question-stage .rpg-context-drawer,
+body.rpg-match-active.rpg-question-stage .rpg-log-drawer,
+body.rpg-match-active.rpg-question-stage .rpg-tools,
+body.rpg-match-active.rpg-question-stage #rpg-narrator,
+body.rpg-match-active.rpg-question-stage .rpg-commentator { display: none !important; }
+body.rpg-match-active.rpg-question-stage .rpg-board { gap: 8px; margin-bottom: 10px; }
+body.rpg-match-active.rpg-question-stage .rpg-possession { padding: 7px 10px; }
+body.rpg-match-active.rpg-question-stage #question {
+  margin-top: 12px;
+  color: var(--rpg2-ink);
+  font-size: clamp(24px, 4vw, 34px);
+  line-height: 1.18;
+}
+body.rpg-match-active .meta span,
+body.rpg-match-active .feedback,
+body.rpg-match-active .club-badge {
+  border: 1px solid #d7dee5;
+  background: var(--rpg2-white);
+  color: #334155;
+}
+body.rpg-match-active .answer {
+  border: 2px solid #d7dee5;
+  background: var(--rpg2-white);
+  color: var(--rpg2-ink);
+  font-size: 15px;
+}
+body.rpg-match-active .answer:hover:not(:disabled),
+body.rpg-match-active .answer:focus-visible {
+  border-color: #16a34a;
+  background: #f7fff9;
+  outline: 3px solid rgba(22, 163, 74, .15);
+  transform: none;
+}
+body.rpg-match-active .answer.correct { border-color: #16a34a; background: var(--rpg2-green-soft); color: var(--rpg2-green-dark); }
+body.rpg-match-active .answer.wrong { border-color: #dc2626; background: var(--rpg2-red-soft); color: var(--rpg2-red); }
+body.rpg-match-active .feedback { color: var(--rpg2-ink); line-height: 1.5; }
+
+/* Setup: remove grey-on-grey controls and keep the club/season hierarchy obvious. */
+body.rpg-setup-mode #match-settings,
+body.rpg-setup-mode .match-settings-grid,
+body.rpg-setup-mode .rpg-setup-heading,
+body.rpg-setup-mode .rpg-setup-club,
+body.rpg-setup-mode .rpg-setup-season-mode,
+body.rpg-setup-mode .rpg-setup-season-from,
+body.rpg-setup-mode .rpg-setup-season-to,
+body.rpg-setup-mode .rpg-setup-scope {
+  color: var(--rpg2-ink) !important;
+}
+body.rpg-setup-mode .match-settings-grid { background: var(--rpg2-white) !important; }
+body.rpg-setup-mode .rpg-setup-club,
+body.rpg-setup-mode .rpg-setup-season-mode,
+body.rpg-setup-mode .rpg-setup-season-from,
+body.rpg-setup-mode .rpg-setup-season-to,
+body.rpg-setup-mode .rpg-setup-scope { background: var(--rpg2-white) !important; border-color: #cbd5e1 !important; }
+body.rpg-setup-mode label { color: var(--rpg2-ink) !important; font-weight: 800; }
+body.rpg-setup-mode select {
+  border: 2px solid #cbd5e1;
+  background: var(--rpg2-white);
+  color: var(--rpg2-ink);
+}
+body.rpg-setup-mode select:focus { border-color: #16a34a; outline: 3px solid rgba(22,163,74,.14); }
+body.rpg-setup-mode #new-game:disabled {
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+  color: #334155;
+  opacity: 1;
+}
+
+@media (max-width: 700px) {
+  body.rpg-match-active #quiz { padding: 14px; }
+  body.rpg-match-active .rpg-score-row { top: 4px; padding: 10px 12px; }
+  body.rpg-match-active .rpg-team strong { font-size: 23px; }
+  body.rpg-match-active .rpg-clock strong { font-size: 21px; }
+  body.rpg-match-active .rpg-pitch { min-height: 112px; }
+  body.rpg-match-active .rpg-action-panel { padding: 12px; }
+  body.rpg-match-active .rpg-action { min-height: 0; padding: 13px; }
+  body.rpg-match-active .rpg-action-heading strong { font-size: 19px; }
+}
+
+@media (max-width: 430px) {
+  body.rpg-match-active .rpg-score-row { gap: 6px; border-radius: 13px; }
+  body.rpg-match-active .rpg-clock { min-width: 62px; }
+  body.rpg-match-active .rpg-possession { align-items: flex-start; }
+  body.rpg-match-active .rpg-tag { padding: 4px 7px; }
+}
