@@ -1,0 +1,108 @@
+.rpg-tactical-hud {
+  display: grid;
+  grid-template-columns: auto minmax(140px, .8fr) minmax(220px, 2fr);
+  gap: 10px 14px;
+  align-items: center;
+  padding: 10px 14px;
+  margin: 10px 0;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  background: rgba(7, 15, 27, .72);
+}
+
+.tactical-hud-label {
+  font-size: .68rem;
+  letter-spacing: .12em;
+  opacity: .62;
+}
+
+.rpg-tactical-hud strong { font-size: .94rem; }
+.rpg-tactical-hud > span:last-child { font-size: .78rem; opacity: .76; }
+
+.tactical-active-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  margin-left: auto;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  font-size: .72rem;
+  white-space: nowrap;
+  opacity: .88;
+}
+
+.tactical-decision-card {
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(21,34,52,.96), rgba(8,16,28,.96));
+  box-shadow: 0 18px 44px rgba(0,0,0,.22);
+}
+
+.tactical-decision-kicker {
+  margin-bottom: 8px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  opacity: .7;
+}
+
+.tactical-decision-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.tactical-decision-card > p {
+  margin: 0 0 16px;
+  opacity: .76;
+  line-height: 1.45;
+}
+
+.tactical-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tactical-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  text-align: left;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  background: rgba(255,255,255,.045);
+  color: inherit;
+  cursor: pointer;
+}
+
+.tactical-option:hover,
+.tactical-option:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,.28);
+  background: rgba(255,255,255,.08);
+}
+
+.tactical-option.current {
+  outline: 1px solid rgba(255,255,255,.22);
+}
+
+.tactical-option-icon { font-size: 1.45rem; line-height: 1; }
+.tactical-option strong { display: block; margin-bottom: 5px; }
+.tactical-option small { display: block; line-height: 1.35; opacity: .72; }
+.tactical-option em {
+  display: inline-block;
+  margin-top: 9px;
+  font-size: .72rem;
+  font-style: normal;
+  font-weight: 800;
+  opacity: .88;
+}
+
+@media (max-width: 760px) {
+  .rpg-tactical-hud { grid-template-columns: 1fr; gap: 4px; }
+  .tactical-options { grid-template-columns: 1fr; }
+  .tactical-active-chip { margin-left: 0; }
+}
