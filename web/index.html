@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="president-mode.css" />
   <link rel="stylesheet" href="achievements.css" />
   <link rel="stylesheet" href="title-screen.css" />
+  <link rel="stylesheet" href="readability.css" />
 </head>
 <body class="landing-active">
   <main class="shell">
@@ -36,7 +37,7 @@
       </div>
     </header>
 
-    <section class="toolbar game-setup">
+    <section class="toolbar game-setup readable-setup">
       <label class="format-control">Format gry
         <select id="game-format">
           <option value="match90" selected>⚽ Symulowany mecz RPG</option>
@@ -46,68 +47,78 @@
         <span id="format-description" class="control-help">Mecz składa się z 8–12 kluczowych sytuacji. Poprawna odpowiedź zwiększa szansę powodzenia zagrania, ale futbol nie daje gwarancji.</span>
       </label>
 
-      <label id="special-round-control" class="hidden">Runda specjalna
-        <select id="special-round">
-          <option value="truth">Prawda czy A-klasowa legenda?</option>
-          <option value="hints">Rozpoznaj mecz po 3 wskazówkach</option>
-          <option value="earlier">Co było najpierw?</option>
-          <option value="fake">Jeden wynik jest zmyślony</option>
-          <option value="overtime">Dogrywka: tylko ciekawostki</option>
-          <option value="transfer">🕵️ Śledztwo transferowe</option>
-        </select>
-      </label>
+      <button id="new-game" class="kickoff-button">Rozpocznij mecz</button>
 
-      <label>Zakres gry
-        <select id="scope-mode">
-          <option value="league">Cała liga</option>
-          <option value="club">Tylko mój klub</option>
-        </select>
-      </label>
-      <label id="club-label" class="hidden">Drużyna
-        <select id="club"></select>
-      </label>
-      <label>Sezony
-        <select id="season-mode">
-          <option value="all">Wszystkie sezony</option>
-          <option value="single">Jeden sezon</option>
-          <option value="range">Przedział sezonów</option>
-        </select>
-      </label>
-      <label id="season-from-label" class="hidden">Od sezonu
-        <select id="season-from"></select>
-      </label>
-      <label id="season-to-label" class="hidden">Do sezonu
-        <select id="season-to"></select>
-      </label>
-      <label>Oprawa
-        <select id="game-style">
-          <option value="classic">Klasyczna</option>
-          <option value="stadium" selected>Stadionowa</option>
-          <option value="chaos">A-klasowy chaos</option>
-        </select>
-      </label>
-
-      <details id="advanced-options" class="advanced-options">
-        <summary>Opcje dodatkowe</summary>
-        <div class="advanced-grid">
-          <label id="difficulty-control">Trudność
-            <select id="difficulty">
-              <option value="all">Automatyczna / wszystkie</option>
-              <option value="1">1 — Rozgrzewka</option>
-              <option value="2">2 — Łatwy</option>
-              <option value="3">3 — Ligowy</option>
-              <option value="4">4 — Trudny</option>
-              <option value="5">5 — Kronikarz A-klasy</option>
+      <details id="match-settings" class="match-settings">
+        <summary>
+          <span><strong>⚙️ Ustawienia meczu</strong></span>
+          <small id="match-settings-summary">Cała liga · wszystkie sezony · Stadionowa</small>
+        </summary>
+        <div class="match-settings-grid">
+          <label id="special-round-control" class="hidden">Runda specjalna
+            <select id="special-round">
+              <option value="truth">Prawda czy A-klasowa legenda?</option>
+              <option value="hints">Rozpoznaj mecz po 3 wskazówkach</option>
+              <option value="earlier">Co było najpierw?</option>
+              <option value="fake">Jeden wynik jest zmyślony</option>
+              <option value="overtime">Dogrywka: tylko ciekawostki</option>
+              <option value="transfer">🕵️ Śledztwo transferowe</option>
             </select>
           </label>
-          <label id="question-count-control">Długość szybkiego quizu
-            <select id="question-count">
-              <option value="10" selected>10 pytań</option>
-              <option value="20">20 pytań</option>
-              <option value="30">30 pytań</option>
-              <option value="50">50 pytań</option>
+
+          <label>Zakres gry
+            <select id="scope-mode">
+              <option value="league">Cała liga</option>
+              <option value="club">Tylko mój klub</option>
             </select>
           </label>
+          <label id="club-label" class="hidden">Drużyna
+            <select id="club"></select>
+          </label>
+          <label>Sezony
+            <select id="season-mode">
+              <option value="all">Wszystkie sezony</option>
+              <option value="single">Jeden sezon</option>
+              <option value="range">Przedział sezonów</option>
+            </select>
+          </label>
+          <label id="season-from-label" class="hidden">Od sezonu
+            <select id="season-from"></select>
+          </label>
+          <label id="season-to-label" class="hidden">Do sezonu
+            <select id="season-to"></select>
+          </label>
+          <label>Oprawa
+            <select id="game-style">
+              <option value="classic">Klasyczna</option>
+              <option value="stadium" selected>Stadionowa</option>
+              <option value="chaos">A-klasowy chaos</option>
+            </select>
+          </label>
+
+          <details id="advanced-options" class="advanced-options">
+            <summary>Opcje dodatkowe</summary>
+            <div class="advanced-grid">
+              <label id="difficulty-control">Trudność
+                <select id="difficulty">
+                  <option value="all">Automatyczna / wszystkie</option>
+                  <option value="1">1 — Rozgrzewka</option>
+                  <option value="2">2 — Łatwy</option>
+                  <option value="3">3 — Ligowy</option>
+                  <option value="4">4 — Trudny</option>
+                  <option value="5">5 — Kronikarz A-klasy</option>
+                </select>
+              </label>
+              <label id="question-count-control">Długość szybkiego quizu
+                <select id="question-count">
+                  <option value="10" selected>10 pytań</option>
+                  <option value="20">20 pytań</option>
+                  <option value="30">30 pytań</option>
+                  <option value="50">50 pytań</option>
+                </select>
+              </label>
+            </div>
+          </details>
         </div>
       </details>
 
@@ -126,8 +137,6 @@
         </select>
         <span id="round-description"></span>
       </label>
-
-      <button id="new-game" class="kickoff-button">Rozpocznij mecz</button>
     </section>
 
     <section id="status" class="status">Ładowanie bazy pytań…</section>
@@ -224,6 +233,9 @@
   <script src="arcade-front.js"></script>
   <script src="achievements-core.js"></script>
   <script src="achievements.js"></script>
+  <script src="match-commentator-core.js"></script>
+  <script src="match-commentator.js"></script>
+  <script src="readability.js"></script>
   <script src="dev-tools.js"></script>
 </body>
 </html>
