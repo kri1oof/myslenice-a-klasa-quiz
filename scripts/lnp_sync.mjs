@@ -10,6 +10,8 @@ const CLASS_A = '63d04023-727a-4c0c-a8c6-4154fe1104b7';
 const START_URL = 'https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&leagueGroup=e978c8e5-d903-4a89-b6b5-8d5da6c567ee&leagueId=337bb869-0b42-484f-8eca-0c8842a13ec9&subLeague=63d04023-727a-4c0c-a8c6-4154fe1104b7&enumType=ZpnAndLeagueAndPlay&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&voivodeship=143a5a9a-5aa8-4186-ac19-d39e1d198ddb&isAdvanceMode=true&genderType=Male';
 const OUT = process.env.LNP_OUT || 'lnp_myslenice.json';
 const CHUNK = Number(process.env.LNP_CHUNK || 32);
+const PLAYER_RETRIES = Number(process.env.LNP_PLAYER_RETRIES || 3);
+const PLAYER_RETRY_BASE_MS = Number(process.env.LNP_PLAYER_RETRY_BASE_MS || 15000);
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ locale: 'pl-PL', timezoneId: 'Europe/Warsaw' });
@@ -123,8 +125,8 @@ function pickMyslenicePlay(items) {
 }
 
 function played(match) {
-  const state = (match?.state || '').toLowerCase();
-  return state.includes('rozegr') && !state.includes('walkower');
+  const state = (match?.state || '').trim().toLowerCase();
+  return state === 'rozegrany';
 }
 
 async function one(endpoint) {
@@ -135,6 +137,15 @@ async function one(endpoint) {
 
 function save(result) {
   fs.writeFileSync(OUT, JSON.stringify(result, null, 2));
+}
+
+function attachPlayerProfile(result, playerIdsBySeason, id, row) {
+  if (!id || row?.status !== 200 || !row.data) return;
+  for (const season of SEASONS) {
+    if (playerIdsBySeason[season.label]?.has(id) && result.seasons[season.label]) {
+      result.seasons[season.label].players[id] = row.data;
+    }
+  }
 }
 
 console.log('OPEN', START_URL);
@@ -221,18 +232,35 @@ for (const season of SEASONS) {
 
 console.log('\nUNIQUE_PLAYERS_TO_FETCH', allPlayerIds.size);
 const allIds = [...allPlayerIds];
-const playerRows = await fetchAll(allIds.map((id) => `players/${id}`), 'players', (partial) => {
-  partial.forEach((r, idx) => {
-    const id = allIds[idx];
-    if (!id || r?.status !== 200 || !r.data) return;
-    for (const season of SEASONS) {
-      if (playerIdsBySeason[season.label]?.has(id) && result.seasons[season.label]) {
-        result.seasons[season.label].players[id] = r.data;
-      }
-    }
-  });
+const playerEndpoints = allIds.map((id) => `players/${id}`);
+const playerRows = await fetchAll(playerEndpoints, 'players', (partial) => {
+  partial.forEach((r, idx) => attachPlayerProfile(result, playerIdsBySeason, allIds[idx], r));
   save(result);
 });
+
+for (let attempt = 1; attempt <= PLAYER_RETRIES; attempt++) {
+  const retryIndexes = [];
+  playerRows.forEach((r, idx) => {
+    if (r?.status === 429) retryIndexes.push(idx);
+  });
+  if (!retryIndexes.length) break;
+
+  const waitMs = PLAYER_RETRY_BASE_MS * attempt;
+  console.log('PLAYER_RATE_LIMIT_RETRY', attempt, 'pending', retryIndexes.length, 'waitMs', waitMs);
+  await sleep(waitMs);
+  const retryRows = await fetchAll(
+    retryIndexes.map((idx) => playerEndpoints[idx]),
+    `players retry ${attempt}`,
+    null,
+  );
+  retryIndexes.forEach((originalIdx, retryIdx) => {
+    const row = retryRows[retryIdx];
+    if (row) playerRows[originalIdx] = row;
+    attachPlayerProfile(result, playerIdsBySeason, allIds[originalIdx], row);
+  });
+  save(result);
+}
+
 allIds.forEach((id, i) => {
   const r = playerRows[i];
   if (r?.status !== 200 || !r.data) result.errors.push(`player ${id}: status ${r?.status}`);
