@@ -1,7 +1,9 @@
 // RPG pre-match setup: club first, chosen seasons second, full league as an explicit option.
 const RPG_SETUP_MODE = 'match90';
 let rpgSetupDefaultsApplied = false;
-let rpgSetupLastClub = '';
+let rpgSetupWasVisible = false;
+let rpgSetupNonRpgSnapshot = null;
+let rpgSetupPreferences = null;
 
 function rpgSetupModeActive() {
   return el('game-format')?.value === RPG_SETUP_MODE;
@@ -18,10 +20,73 @@ function rpgSetupLatestSeason() {
   return values.length ? values[values.length - 1] : '';
 }
 
+function rpgSetupCaptureValues() {
+  return {
+    scope: el('scope-mode')?.value || 'league',
+    club: el('club')?.value || '',
+    seasonMode: el('season-mode')?.value || 'all',
+    seasonFrom: el('season-from')?.value || '',
+    seasonTo: el('season-to')?.value || '',
+    style: el('game-style')?.value || 'stadium',
+    settingsOpen: Boolean(el('match-settings')?.open),
+  };
+}
+
+function rpgSetupOptionExists(select, value) {
+  return Boolean(select && [...select.options].some(option => option.value === value));
+}
+
+function rpgSetupApplyValues(values) {
+  if (!values) return;
+  const scope = el('scope-mode');
+  const club = el('club');
+  const seasonMode = el('season-mode');
+  const seasonFrom = el('season-from');
+  const seasonTo = el('season-to');
+  const style = el('game-style');
+
+  if (rpgSetupOptionExists(scope, values.scope)) scope.value = values.scope;
+  if (rpgSetupOptionExists(club, values.club)) club.value = values.club;
+  else if (values.club === '' && club?.querySelector('option[value=""]')) club.value = '';
+  if (rpgSetupOptionExists(seasonMode, values.seasonMode)) seasonMode.value = values.seasonMode;
+  if (rpgSetupOptionExists(seasonFrom, values.seasonFrom)) seasonFrom.value = values.seasonFrom;
+  if (rpgSetupOptionExists(seasonTo, values.seasonTo)) seasonTo.value = values.seasonTo;
+  if (rpgSetupOptionExists(style, values.style)) style.value = values.style;
+  if (typeof updateScopeControls === 'function') updateScopeControls();
+  if (typeof updateSeasonControls === 'function') updateSeasonControls();
+}
+
 function rpgSetupSetLabelTitle(label, text) {
   if (!label) return;
   const node = [...label.childNodes].find(item => item.nodeType === Node.TEXT_NODE && item.textContent.trim());
   if (node) node.textContent = `${text}\n`;
+}
+
+function rpgSetupRestoreGenericLabels() {
+  rpgSetupSetLabelTitle(el('club-label'), 'Drużyna');
+  rpgSetupSetLabelTitle(el('season-mode')?.closest('label'), 'Sezony');
+  rpgSetupSetLabelTitle(el('season-from-label'), 'Od sezonu');
+  rpgSetupSetLabelTitle(el('season-to-label'), 'Do sezonu');
+  rpgSetupSetLabelTitle(el('scope-mode')?.closest('label'), 'Zakres gry');
+  rpgSetupSetLabelTitle(el('game-style')?.closest('label'), 'Oprawa');
+
+  const scope = el('scope-mode');
+  const seasonMode = el('season-mode');
+  const league = scope?.querySelector('option[value="league"]');
+  const club = scope?.querySelector('option[value="club"]');
+  if (league) league.textContent = 'Cała liga';
+  if (club) club.textContent = 'Tylko mój klub';
+  if (league && club) {
+    scope.appendChild(league);
+    scope.appendChild(club);
+  }
+  const all = seasonMode?.querySelector('option[value="all"]');
+  const single = seasonMode?.querySelector('option[value="single"]');
+  const range = seasonMode?.querySelector('option[value="range"]');
+  if (all) all.textContent = 'Wszystkie sezony';
+  if (single) single.textContent = 'Jeden sezon';
+  if (range) range.textContent = 'Przedział sezonów';
+  [all, single, range].filter(Boolean).forEach(option => seasonMode.appendChild(option));
 }
 
 function rpgSetupEnsureClubPlaceholder(selectBlank = false) {
@@ -171,6 +236,7 @@ function rpgSetupRender() {
 
 function rpgSetupApplyDefaults() {
   if (!rpgSetupVisible() || rpgSetupDefaultsApplied) return;
+  rpgSetupNonRpgSnapshot = rpgSetupCaptureValues();
   rpgSetupPolishOptions();
   if (el('scope-mode')) el('scope-mode').value = 'club';
   if (el('season-mode')) el('season-mode').value = 'single';
@@ -183,23 +249,45 @@ function rpgSetupApplyDefaults() {
   if (typeof updateScopeControls === 'function') updateScopeControls();
   if (typeof updateSeasonControls === 'function') updateSeasonControls();
   rpgSetupDefaultsApplied = true;
+  rpgSetupPreferences = rpgSetupCaptureValues();
+}
+
+function rpgSetupRestorePreferences() {
+  if (!rpgSetupPreferences) return;
+  rpgSetupEnsureClubPlaceholder(false);
+  rpgSetupApplyValues(rpgSetupPreferences);
+}
+
+function rpgSetupLeaveMode() {
+  if (rpgSetupWasVisible) rpgSetupPreferences = rpgSetupCaptureValues();
+  document.body.classList.remove('rpg-setup-mode');
+  rpgSetupRemoveClubPlaceholder();
+  rpgSetupRestoreGenericLabels();
+  if (rpgSetupWasVisible && rpgSetupNonRpgSnapshot) {
+    rpgSetupApplyValues(rpgSetupNonRpgSnapshot);
+    const settings = el('match-settings');
+    if (settings) settings.open = rpgSetupNonRpgSnapshot.settingsOpen;
+  }
+  const kickoff = el('new-game');
+  if (kickoff) kickoff.disabled = false;
+  rpgSetupWasVisible = false;
 }
 
 function rpgSetupSync() {
   if (!rpgSetupVisible()) {
-    document.body.classList.remove('rpg-setup-mode');
-    rpgSetupRemoveClubPlaceholder();
-    const kickoff = el('new-game');
-    if (kickoff) kickoff.disabled = false;
+    rpgSetupLeaveMode();
     return;
   }
-  rpgSetupApplyDefaults();
+
+  const entering = !rpgSetupWasVisible;
+  if (!rpgSetupDefaultsApplied) rpgSetupApplyDefaults();
+  else if (entering) rpgSetupRestorePreferences();
+  rpgSetupWasVisible = true;
+
   rpgSetupPolishOptions();
   rpgSetupEnsureClubPlaceholder(false);
-  if (rpgSetupLastClub && [...(el('club')?.options || [])].some(option => option.value === rpgSetupLastClub)) {
-    el('club').value = rpgSetupLastClub;
-  }
   rpgSetupRender();
+  rpgSetupPreferences = rpgSetupCaptureValues();
 }
 
 const rpgSetupBaseRefreshClubOptions = refreshClubOptions;
@@ -212,10 +300,7 @@ refreshClubOptions = function rpgSetupRefreshClubOptions() {
 ['game-format','scope-mode','season-mode','season-from','season-to','game-style'].forEach(id => {
   el(id)?.addEventListener('change', () => requestAnimationFrame(rpgSetupSync));
 });
-el('club')?.addEventListener('change', () => {
-  if (rpgSetupModeActive() && el('club')?.value) rpgSetupLastClub = el('club').value;
-  requestAnimationFrame(rpgSetupSync);
-});
+el('club')?.addEventListener('change', () => requestAnimationFrame(rpgSetupSync));
 
 // The title screen dispatches game-format change before it marks the mode as chosen,
 // so the animation-frame sync intentionally runs after that click handler completes.
