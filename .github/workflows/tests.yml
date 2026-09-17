@@ -46,6 +46,8 @@ jobs:
           node --check web/a-class-events.js
           node --check web/rivalry-matches-core.js
           node --check web/rivalry-matches.js
+          node --check web/season-career-core.js
+          node --check web/season-career.js
           node --check web/front-controller.js
           node --check web/arcade-front.js
           node --check web/dev-tools.js
@@ -63,6 +65,8 @@ jobs:
         run: node tests/a-class-events-smoke.mjs
       - name: Rivalry matches smoke test
         run: node tests/rivalry-matches-smoke.mjs
+      - name: Season career smoke test
+        run: node tests/season-career-smoke.mjs
       - name: ŁNP incremental sync smoke test
         run: |
           node --check scripts/lnp_sync_helpers.mjs
