@@ -1,0 +1,29 @@
+name: LNP full sync
+on:
+  push:
+    branches: [lnp-data-2025-2027]
+    paths:
+      - 'scripts/lnp_sync.mjs'
+      - '.github/workflows/lnp-sync.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - name: Fetch official ŁNP data
+        run: node scripts/lnp_sync.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lnp-myslenice-data
+          path: lnp_myslenice.json
+          if-no-files-found: warn
