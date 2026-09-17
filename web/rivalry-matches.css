@@ -1,0 +1,129 @@
+.rpg-rivalry-hud {
+  display:grid;
+  grid-template-columns:auto minmax(0, 1fr) auto;
+  gap:10px;
+  align-items:center;
+  margin:8px 0;
+  padding:10px 12px;
+  border:1px solid rgba(148,163,184,.25);
+  border-radius:14px;
+  background:rgba(15,23,42,.72);
+}
+
+.rpg-rivalry-hud.special {
+  border-color:rgba(245,158,11,.42);
+  box-shadow:inset 0 0 0 1px rgba(245,158,11,.08);
+}
+
+.rpg-rivalry-hud.derby {
+  border-color:rgba(239,68,68,.5);
+}
+
+.rivalry-hud-icon {
+  font-size:1.55rem;
+}
+
+.rivalry-hud-copy {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.rivalry-hud-copy small {
+  font-size:.68rem;
+  letter-spacing:.1em;
+  font-weight:800;
+  color:#fbbf24;
+}
+
+.rivalry-hud-copy strong {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.rivalry-hud-copy em {
+  font-size:.72rem;
+  line-height:1.25;
+  font-style:normal;
+  color:#94a3b8;
+}
+
+.rivalry-pressure {
+  min-width:72px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:2px 7px;
+  align-items:center;
+}
+
+.rivalry-pressure small {
+  font-size:.62rem;
+  letter-spacing:.08em;
+  color:#94a3b8;
+}
+
+.rivalry-pressure strong {
+  font-size:1.05rem;
+  text-align:right;
+}
+
+.rivalry-pressure-track {
+  grid-column:1 / -1;
+  display:block;
+  width:100%;
+  height:5px;
+  overflow:hidden;
+  border-radius:99px;
+  background:rgba(148,163,184,.2);
+}
+
+.rivalry-pressure-track i {
+  display:block;
+  height:100%;
+  width:35%;
+  border-radius:inherit;
+  background:currentColor;
+  color:#f59e0b;
+  transition:width .25s ease;
+}
+
+.rivalry-pressure-chip,
+.rivalry-moment-chip {
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:.68rem;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.rivalry-pressure-chip {
+  background:rgba(245,158,11,.14);
+  border:1px solid rgba(245,158,11,.34);
+}
+
+.rivalry-pressure-chip.derby {
+  background:rgba(239,68,68,.14);
+  border-color:rgba(239,68,68,.34);
+}
+
+.rivalry-moment-chip {
+  background:rgba(168,85,247,.13);
+  border:1px solid rgba(168,85,247,.32);
+}
+
+@media (max-width:640px) {
+  .rpg-rivalry-hud {
+    grid-template-columns:auto minmax(0, 1fr);
+  }
+  .rivalry-pressure {
+    grid-column:1 / -1;
+    grid-template-columns:auto 1fr auto;
+  }
+  .rivalry-pressure-track {
+    grid-column:auto;
+  }
+}
