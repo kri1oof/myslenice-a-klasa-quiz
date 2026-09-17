@@ -15,6 +15,8 @@ from myslenice_quiz.ingest.laczynaspilka import import_file  # noqa: E402
 from myslenice_quiz.questions import generate_all  # noqa: E402
 from myslenice_quiz.questions.base import save_questions  # noqa: E402
 
+CURRENT_SEASON_LABEL = "2026/27"
+
 
 def _key(q: dict) -> tuple[str, str]:
     text = re.sub(r"\s+", " ", str(q.get("question") or "").strip()).casefold()
@@ -97,20 +99,24 @@ def main() -> None:
     with connect(db_path) as conn:
         stats = import_file(conn, args.raw)
 
-        # The 2025/26 competition is historical as of this importer.  ŁNP's
-        # official fixture list can contain fewer rows than the theoretical
-        # n*(n-1) round-robin count (withdrawals/cancellations), so do not use
-        # that theoretical count to suppress final-table questions.
-        row = conn.execute("SELECT id FROM seasons WHERE label='2025/26'").fetchone()
-        if row:
-            season_id = int(row[0])
+        # Every season older than the explicitly configured current season is
+        # historical. ŁNP's official fixture list can contain fewer rows than a
+        # theoretical round-robin count (withdrawals/cancellations), so final
+        # standings coverage is based on the completed official season itself.
+        historical = conn.execute(
+            "SELECT id,label FROM seasons WHERE label<>? ORDER BY label",
+            (CURRENT_SEASON_LABEL,),
+        ).fetchall()
+        for row in historical:
+            season_id = int(row["id"])
+            season_label = str(row["label"])
             conn.execute("UPDATE seasons SET is_complete=1 WHERE id=?", (season_id,))
             conn.execute(
                 """INSERT INTO season_coverage(season_id,dataset,is_complete,notes)
-                   VALUES(?,'standings',1,'ŁNP/PZPN: zakończony sezon 2025/26; tabela końcowa')
+                   VALUES(?,'standings',1,?)
                    ON CONFLICT(season_id,dataset) DO UPDATE SET
                    is_complete=1,notes=excluded.notes""",
-                (season_id,),
+                (season_id, f"ŁNP/PZPN: zakończony sezon {season_label}; tabela końcowa"),
             )
 
         questions = generate_all(conn, 0.80)
