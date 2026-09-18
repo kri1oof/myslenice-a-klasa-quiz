@@ -89,7 +89,7 @@ function refreshTypeOptions() {
 function refreshClubOptions() {
   const club = el('club');
   const clubs = [...new Set(state.all.flatMap(q => Array.isArray(q.clubs) ? q.clubs : []))]
-    .filter(Boolean)
+    .filter(name => Boolean(name) && /\p{L}/u.test(String(name)))
     .sort((a, b) => a.localeCompare(b, 'pl'));
   club.innerHTML = clubs.map(name => `<option value="${name}">${name}</option>`).join('');
   el('scope-mode').querySelector('option[value="club"]').disabled = clubs.length === 0;

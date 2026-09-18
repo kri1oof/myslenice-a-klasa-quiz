@@ -51,3 +51,34 @@ def test_load_question_store_supports_legacy_monolith(tmp_path):
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     assert load_question_store(path) == payload
+
+
+def test_question_store_removes_numeric_club_metadata(tmp_path):
+    payload = {
+        "version": 1,
+        "count": 1,
+        "clubs": {
+            "Clavia Świątniki Górne": {"crest": "clavia.png"},
+            "12": {"crest": None},
+            "4": {"crest": None},
+        },
+        "questions": [
+            {
+                "id": "q1",
+                "season": "2025/26",
+                "type": "match_score",
+                "question": "Test",
+                "clubs": ["Clavia Świątniki Górne", "12"],
+            }
+        ],
+    }
+
+    index = write_question_store(payload, tmp_path / "questions")
+    loaded = load_question_store(index)
+
+    assert set(loaded["clubs"]) == {"Clavia Świątniki Górne"}
+    assert loaded["questions"][0]["clubs"] == ["Clavia Świątniki Górne"]
+
+    meta = json.loads(index.read_text(encoding="utf-8"))
+    assert "12" not in meta["clubs"]
+    assert "4" not in meta["clubs"]

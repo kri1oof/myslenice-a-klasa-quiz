@@ -193,7 +193,8 @@ function refreshClubOptions() {
   const clubs = [...new Set(indexedClubs.length
     ? indexedClubs
     : state.all.flatMap(q => Array.isArray(q.clubs) ? q.clubs : []))]
-    .filter(Boolean).sort((a, b) => a.localeCompare(b, 'pl'));
+    .filter(name => Boolean(name) && /\p{L}/u.test(String(name)))
+    .sort((a, b) => a.localeCompare(b, 'pl'));
   club.innerHTML = clubs.map(name => `<option value="${name}">${name}</option>`).join('');
   el('scope-mode').querySelector('option[value="club"]').disabled = clubs.length === 0;
   updateScopeControls();
