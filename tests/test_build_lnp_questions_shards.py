@@ -15,7 +15,7 @@ def test_merge_exports_reads_and_writes_sharded_store(tmp_path):
     store = tmp_path / "questions"
     existing = {
         "version": 2,
-        "count": 2,
+        "count": 3,
         "clubs": {"Clavia": {"crest": "clavia.png"}},
         "questions": [
             {
@@ -39,6 +39,17 @@ def test_merge_exports_reads_and_writes_sharded_store(tmp_path):
                 "confidence": 0.8,
                 "clubs": [],
                 "sources": ["social"],
+            },
+            {
+                "id": "age-26",
+                "type": "lnp_player_age",
+                "season": "2026/27",
+                "question": "Ile lat ma zawodnik?",
+                "answer": "24",
+                "options": ["23", "24"],
+                "confidence": 1.0,
+                "clubs": ["Clavia"],
+                "sources": ["official"],
             },
         ],
     }
@@ -83,12 +94,13 @@ def test_merge_exports_reads_and_writes_sharded_store(tmp_path):
     total, added, upgraded = merge_exports(store, incoming_path, store)
     merged = load_question_store(store)
 
-    assert (total, added, upgraded) == (3, 1, 1)
+    assert (total, added, upgraded) == (4, 1, 1)
     assert merged["version"] == 3
-    assert merged["count"] == 3
+    assert merged["count"] == 4
     updated = next(q for q in merged["questions"] if q["question"] == "Jaki wynik?")
     assert updated["answer"] == "2:0"
     assert updated["confidence"] == 1.0
     assert updated["sources"] == ["old", "official"]
     assert merged["clubs"]["Clavia"]["crest"] == "clavia.png"
     assert merged["clubs"]["Clavia"]["crest_remote_url"] == "remote.png"
+    assert any(q.get("id") == "age-26" for q in merged["questions"])
