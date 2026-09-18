@@ -24,6 +24,10 @@ const initial = core.initialState(26, () => 0.42);
 assert.equal(initial.budget, 12000);
 assert.equal(initial.recurring, 0);
 assert.deepEqual(initial.financeLedger, []);
+assert.equal(initial.reputation, 40);
+assert.deepEqual(initial.reputationHistory, []);
+assert.equal(core.reputationScore(initial), 40);
+assert.equal(core.reputationLabel(initial.reputation), 'rozpoznawalny lokalnie');
 assert.deepEqual(initial.contracts, []);
 assert.deepEqual(initial.contractHistory, []);
 assert.deepEqual(initial.trust, { players:55, coach:55, supporters:50, sponsors:50 });
@@ -208,6 +212,8 @@ const ultimatum1 = core.reviewEmployment(ultimatum2, { position:14, teamCount:14
 const firedJob = core.reviewEmployment(ultimatum1, { position:14, teamCount:14, round:5 });
 assert.equal(firedJob.jobSecurity.fired, true);
 assert.equal(core.employmentLabel(firedJob), 'zwolniony');
+assert.equal(firedJob.reputation, pressureBase.reputation - 6);
+assert.equal(firedJob.reputationHistory.at(-1).type, 'dismissal');
 const recoveredJob = core.reviewEmployment(
   { ...ultimatumJob, budget:12000, trust:{ players:80, coach:80, supporters:80, sponsors:80 }, areas:{ squad:80, staff:80, academy:80, facilities:80, organization:80, community:80 } },
   { position:1, teamCount:14, round:3 },
@@ -215,6 +221,12 @@ const recoveredJob = core.reviewEmployment(
 assert.equal(recoveredJob.jobSecurity.status, 'secure');
 assert.ok(core.managementWarnings({ ...struggling, budget:500 }, { position:14, teamCount:14 }).length >= 2);
 assert.equal(core.competitionByLevel(1).label, 'A klasa Myślenice');
+assert.deepEqual(core.jobMarketLevels({ ...initial, reputation:40 }, 1, 'career'), [1]);
+assert.deepEqual(core.jobMarketLevels({ ...initial, reputation:60 }, 1, 'career'), [2,1]);
+assert.deepEqual(core.jobMarketLevels({ ...initial, reputation:85 }, 1, 'career'), [3,2,1]);
+assert.deepEqual(core.jobMarketLevels({ ...initial, reputation:25 }, 1, 'career'), [1,0]);
+assert.deepEqual(core.jobMarketLevels({ ...initial, reputation:40 }, 1, 'dismissal'), [1,0]);
+assert.deepEqual(core.jobMarketLevels({ ...initial, reputation:80 }, 1, 'dismissal'), [2,1,0]);
 const promotion = core.competitionMovement({ level:1, position:1, teamCount:14 });
 assert.equal(promotion.code, 'promotion');
 assert.equal(promotion.toLevel, 2);
@@ -239,6 +251,11 @@ assert.equal(completed.seasonHistory[0].verdict, 'champion');
 assert.equal(completed.seasonHistory[0].competitionLevel, 1);
 assert.equal(completed.seasonHistory[0].movement.code, 'promotion');
 assert.equal(completed.seasonHistory[0].movement.toLevel, 2);
+assert.ok(completed.reputation > strategy.profile.reputation);
+assert.equal(completed.reputationHistory.length, 1);
+assert.equal(completed.reputationHistory[0].type, 'season');
+assert.ok(completed.seasonHistory[0].reputationDelta > 0);
+assert.equal(completed.seasonHistory[0].reputationAfter, completed.reputation);
 assert.equal(core.seasonVerdict({ position:1, target:3 }).label, 'Mistrz ligi');
 
 const offseasonStarted = core.beginOffseason(completed);
@@ -394,7 +411,11 @@ assert.match(runtime, /Kadra/);
 assert.match(runtime, /Finanse/);
 assert.match(runtime, /Klub/);
 assert.match(runtime, /Historia/);
+assert.match(runtime, /REPUTACJA PREZESA/);
 assert.match(runtime, /presidentBuildJobOffers/);
+assert.match(runtime, /jobMarketSummary/);
+assert.match(runtime, /RYNEK DOSTĘPNY NA POZIOMACH/);
+assert.match(runtime, /KROK WYŻEJ/);
 assert.match(runtime, /presidentJobOffersHtml/);
 assert.match(runtime, /acceptPresidentJobOffer/);
 assert.match(runtime, /RYNEK PRACY · PO ZWOLNIENIU/);
