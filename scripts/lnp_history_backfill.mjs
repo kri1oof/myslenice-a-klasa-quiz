@@ -219,11 +219,21 @@ officialSeasons.forEach((season, index) => {
     return;
   }
   const candidates = row.data.filter(item => item?.id && isMyśleniceA(item.name));
-  if (candidates.length === 1) {
-    const play = candidates[0];
+  const cachedPlayId = cache?.seasons?.[season.label]?.playId || null;
+  const cachedCandidate = cachedPlayId ? candidates.find(item => item.id === cachedPlayId) : null;
+  if (candidates.length === 1 || cachedCandidate) {
+    const play = cachedCandidate || candidates[0];
     const entry = { ...season, playId:play.id, playName:play.name };
     discovered.push(entry);
     result.discovery.included.push({ season:season.label, seasonId:season.id, playId:play.id, playName:play.name });
+    if (candidates.length > 1 && cachedCandidate) {
+      result.warnings.push({
+        season:season.label,
+        stage:'play-discovery',
+        note:'Multiple Myślenice A-class plays; reused previously verified cached playId',
+        playId:play.id,
+      });
+    }
   } else if (!candidates.length) {
     result.discovery.missingPlay.push({ season:season.label });
   } else {
