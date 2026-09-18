@@ -2,6 +2,8 @@
 // The player chooses a football action, then the answer decides whether that action succeeds.
 // Loaded after match-mode.js and intentionally overrides Match 90' only.
 
+const matchQuestionContextCore = globalThis.MatchQuestionContextCore || null;
+
 const rpgBaseShowQuestion = typeof matchLegacyShowQuestion === 'function' ? matchLegacyShowQuestion : showQuestion;
 const rpgBaseAnswer = typeof matchLegacyAnswer === 'function' ? matchLegacyAnswer : answer;
 const rpgNonMatchStart = startGame;
@@ -83,6 +85,8 @@ function resetRpgState() {
   state.rpgActionsPlayed = 0;
   state.rpgShots = 0;
   state.rpgSuccessfulActions = 0;
+  state.rpgContextualQuestions = 0;
+  state.rpgLastQuestionContext = null;
 }
 
 function zoneName(zone) {
@@ -218,30 +222,72 @@ function renderActionPanel() {
   });
 }
 
-function chooseRpgQuestion(dc, excludeId = null) {
+function rpgQuestionContext(action = {}) {
+  const situation = state.rpgScenarioCurrent || {};
+  const setPiece = state.rpgSetPiece || situation.setPiece || {};
+  return {
+    situationId:String(situation.id || ''),
+    actionKind:String(action.kind || ''),
+    actionId:String(action.id || ''),
+    setPieceType:String(setPiece.type || ''),
+    minute:Number(situation.minute ?? state.rpgMinute ?? 0),
+    dc:Number(action.dc || 3),
+  };
+}
+
+function chooseRpgQuestion(actionOrDc, excludeId = null) {
+  const action = typeof actionOrDc === 'object' && actionOrDc
+    ? actionOrDc
+    : { dc:Number(actionOrDc || 3), kind:'', id:'' };
+  const dc = Number(action.dc || 3);
   let candidates = state.rpgQuestionBank.filter(q =>
-    q.id !== excludeId && !state.rpgUsedQuestionIds.has(q.id) && Array.isArray(q.options) && q.options.length >= 2 && !String(q.type || '').startsWith('special_')
+    q.id !== excludeId &&
+    !state.rpgUsedQuestionIds.has(q.id) &&
+    Array.isArray(q.options) &&
+    q.options.length >= 2 &&
+    !String(q.type || '').startsWith('special_')
   );
   if (!candidates.length) {
     state.rpgUsedQuestionIds.clear();
-    candidates = state.rpgQuestionBank.filter(q => q.id !== excludeId && Array.isArray(q.options) && q.options.length >= 2 && !String(q.type || '').startsWith('special_'));
+    candidates = state.rpgQuestionBank.filter(q =>
+      q.id !== excludeId &&
+      Array.isArray(q.options) &&
+      q.options.length >= 2 &&
+      !String(q.type || '').startsWith('special_')
+    );
   }
   if (!candidates.length) return null;
-  const ranked = candidates.map(q => {
-    const difficulty = Number(q.difficulty || 3);
-    const category = categoryForType(q.type);
-    const distance = Math.abs(difficulty - dc);
-    const repeatPenalty = category === state.rpgLastCategory ? 0.7 : 0;
-    return { q, weight: distance + repeatPenalty + Math.random() * 0.35 };
-  }).sort((a,b) => a.weight - b.weight);
-  const chosen = ranked[0].q;
+
+  const shortlistSize = Math.min(candidates.length, 72);
+  const shortlist = smartPick(candidates, shortlistSize, { difficultyTarget:dc });
+  const context = rpgQuestionContext(action);
+  const selected = matchQuestionContextCore
+    ? matchQuestionContextCore.chooseQuestion(shortlist, context, {
+        targetDifficulty:dc,
+        lastCategory:state.rpgLastCategory,
+      })
+    : null;
+  const chosen = selected?.question || shortlist[0] || candidates[0];
+  if (!chosen) return null;
+
   state.rpgUsedQuestionIds.add(chosen.id);
   state.rpgLastCategory = categoryForType(chosen.type);
+  state.rpgLastQuestionContext = selected
+    ? {
+        id:selected.profile?.id || 'general',
+        label:selected.profile?.label || '',
+        contextual:Boolean(selected.contextual),
+        boost:Number(selected.contextBoost || 0),
+      }
+    : null;
+  if (selected?.contextual) {
+    state.rpgContextualQuestions = Number(state.rpgContextualQuestions || 0) + 1;
+  }
   return chosen;
 }
 
 function chooseRpgAction(action) {
-  const q = chooseRpgQuestion(action.dc);
+  const q = chooseRpgQuestion(action);
   if (!q) {
     state.rpgEnded = true;
     finishGame();
@@ -256,6 +302,11 @@ function chooseRpgAction(action) {
       minute: state.rpgInAddedTime ? '90+3’' : `${state.rpgMinute}’`,
       points: 0,
       position: state.index + 1,
+      contextId:state.rpgLastQuestionContext?.id || null,
+      contextLabel:state.rpgLastQuestionContext?.contextual
+        ? state.rpgLastQuestionContext.label
+        : null,
+      contextBoost:Number(state.rpgLastQuestionContext?.boost || 0),
     },
   };
   state.pool[state.index] = wrapped;
@@ -289,10 +340,20 @@ function useRpgHint() {
 
 function useRpgQuestionSwap() {
   if (!rpgActive() || !state.rpgSwapAvailable || !state.current || !state.rpgCurrentAction) return;
-  const replacement = chooseRpgQuestion(state.rpgCurrentAction.dc, state.current.id);
+  const replacement = chooseRpgQuestion(state.rpgCurrentAction, state.current.id);
   if (!replacement) return;
   state.rpgSwapAvailable = false;
-  state.pool[state.index] = { ...replacement, gameMeta: state.current.gameMeta };
+  state.pool[state.index] = {
+    ...replacement,
+    gameMeta:{
+      ...state.current.gameMeta,
+      contextId:state.rpgLastQuestionContext?.id || null,
+      contextLabel:state.rpgLastQuestionContext?.contextual
+        ? state.rpgLastQuestionContext.label
+        : null,
+      contextBoost:Number(state.rpgLastQuestionContext?.boost || 0),
+    },
+  };
   state.current = null;
   addRpgLog('🔁 Zmiana z ławki: inne pytanie rozstrzygnie tę samą akcję.', 'good');
   showQuestion();
@@ -487,7 +548,8 @@ showQuestion = function rpgShowQuestion() {
   el('question-number').textContent = `Akcja ${state.index + 1}`;
   el('difficulty-label').textContent = `Test ${state.current.difficulty || action?.dc || 3}/5`;
   el('question-type-label').textContent = labelType(state.current.type);
-  el('question-style').textContent = `TEST AKCJI · ${String(action?.label || '').toUpperCase()}`;
+  const contextLabel = state.current?.gameMeta?.contextLabel;
+  el('question-style').textContent = `TEST AKCJI · ${String(action?.label || '').toUpperCase()}${contextLabel ? ' · ' + String(contextLabel).toUpperCase() : ''}`;
   const narrator = el('rpg-narrator')?.querySelector('strong');
   if (narrator) narrator.textContent = `${action.label}. Poprawna odpowiedź oznacza powodzenie akcji.`;
   renderRpgBoard();
@@ -534,7 +596,7 @@ finishGame = function rpgFinishGame() {
   el('result-title').textContent = `${headline} ${state.rpgPlayerGoals}:${state.rpgOpponentGoals}`;
   el('result-score').textContent = `${state.rpgPlayerGoals}:${state.rpgOpponentGoals}`;
   el('result-percent').textContent = `${percent}%`;
-  el('result-details').textContent = `Udane testy: ${state.correct}/${total} · rozegrane akcje: ${state.rpgActionsPlayed} · strzały: ${state.rpgShots}`;
+  el('result-details').textContent = `Udane testy: ${state.correct}/${total} · rozegrane akcje: ${state.rpgActionsPlayed} · strzały: ${state.rpgShots} · dopasowane pytania: ${Number(state.rpgContextualQuestions || 0)}/${total}`;
   const rank = el('result-rank');
   rank.innerHTML = `<strong>${headline}</strong><span>${description}</span>`;
   rank.classList.remove('hidden');

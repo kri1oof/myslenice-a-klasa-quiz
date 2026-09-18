@@ -306,7 +306,8 @@ showQuestion = function scenarioShowQuestion() {
     if (el('question-number')) el('question-number').textContent = `Sytuacja ${situation.number}/${situation.total} · ${situation.minute}’`;
     if (el('question-style')) {
       const action = state.rpgCurrentAction;
-      el('question-style').textContent = `${situation.label.toUpperCase()} · ${String(action?.label || 'TEST AKCJI').toUpperCase()}`;
+      const contextLabel = state.current?.gameMeta?.contextLabel;
+      el('question-style').textContent = `${situation.label.toUpperCase()} · ${String(action?.label || 'TEST AKCJI').toUpperCase()}${contextLabel ? ' · ' + String(contextLabel).toUpperCase() : ''}`;
     }
   }
   return result;

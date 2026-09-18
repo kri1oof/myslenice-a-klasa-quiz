@@ -25,6 +25,7 @@ jobs:
           node --check web/fact-card-core.js
           node --check web/adaptive-difficulty-core.js
           node --check web/smart-question-engine-core.js
+          node --check web/match-question-context-core.js
           node --check web/app.js
           node --check web/quality.js
           node --check web/rounds.js
@@ -80,6 +81,8 @@ jobs:
         run: node tests/adaptive-difficulty-smoke.mjs
       - name: Fact card feedback smoke test
         run: node tests/fact-card-feedback-smoke.mjs
+      - name: Contextual RPG questions smoke test
+        run: node tests/contextual-rpg-questions-smoke.mjs
       - name: Match situations smoke test
         run: node tests/match-scenarios-smoke.mjs
       - name: Match continuity smoke test
