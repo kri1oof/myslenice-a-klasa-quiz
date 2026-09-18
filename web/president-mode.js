@@ -1227,6 +1227,8 @@ function renderPresidentOffseason() {
   const nextPlan = presidentNextSeasonPlan(career);
   const needs = presidentOffseasonNeeds(profile, career);
   const chosen = presidentModeCore.offseasonPlanById(offseason?.planId);
+  const careerOffersEligible = Number(profile.seasonsCompleted || 0) >= 2;
+  const careerOffersDeclined = Boolean(profile.jobMarket?.declined);
   const nextSource = nextPlan.simulated
     ? `Kolejny sezon: ${nextPlan.competitionLabel}. Liga będzie symulacją kariery; nie przypisujemy fikcyjnych rywali do danych ŁNP.`
     : `Kolejny sezon ${nextPlan.season}: ${nextPlan.competitionLabel} z bazą ŁNP dla ${nextPlan.club}.`;
@@ -1273,12 +1275,14 @@ function renderPresidentOffseason() {
         </div>
       </section>
 
+      ${careerOffersEligible && !careerOffersDeclined && !chosen ? presidentJobOffersHtml(profile, career, 'career') : ''}
+
       <div class="president-offseason-next-source ${nextPlan.simulated ? 'simulated' : 'official'}">
         <strong>${nextPlan.movement?.code === 'promotion' ? '⬆️ AWANS' : nextPlan.movement?.code === 'relegation' ? '⬇️ SPADEK' : nextPlan.simulated ? '🧪 Dalsza symulacja kariery' : '✅ Kolejny sezon z bazą ŁNP'}</strong>
         <span>${presidentEscape(nextSource)}</span>
       </div>
 
-      <section class="president-offseason-choice">
+      <section class="president-offseason-choice ${careerOffersEligible && !careerOffersDeclined && !chosen ? 'hidden' : ''}">
         <div class="president-offseason-choice-head">
           <span><small>DECYZJA LETNIA</small><strong>${chosen ? presidentEscape(chosen.label) : 'Wybierz priorytet na lato'}</strong></span>
           ${chosen ? '<em>✓ zatwierdzone</em>' : '<em>1 decyzja</em>'}
@@ -1322,6 +1326,10 @@ function renderPresidentOffseason() {
     </div>`;
 
   panel.classList.remove('hidden');
+  panel.querySelectorAll('[data-president-job-offer]').forEach(button => {
+    button.addEventListener('click', () => acceptPresidentJobOffer(button.dataset.presidentJobOffer));
+  });
+  panel.querySelector('.president-decline-job-offers')?.addEventListener('click', declinePresidentJobOffers);
   panel.querySelectorAll('[data-offseason-plan]').forEach(button => {
     button.addEventListener('click', () => applyPresidentOffseasonPlan(button.dataset.offseasonPlan));
   });
