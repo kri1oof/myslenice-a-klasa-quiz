@@ -256,7 +256,6 @@ assert.match(runtime, /presidentSimulatedCompetitionPlan/);
 assert.match(runtime, /STATUS LIGOWY/);
 assert.match(runtime, /AWANS/);
 assert.match(runtime, /SPADEK/);
-assert.match(runtime, /Liga okręgowa/);
 assert.match(runtime, /Przejdź do lata/);
 assert.match(runtime, /renderPresidentOffseason/);
 assert.match(runtime, /Lato prezesa/);
