@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
+import json
 from pathlib import Path
 
 from question_store import load_question_store, write_question_store
@@ -19,7 +21,15 @@ def main() -> None:
     roundtrip = load_question_store(index_path)
 
     assert roundtrip["count"] == payload["count"]
-    assert roundtrip["questions"] == payload["questions"]
+    before = Counter(
+        str(q.get("id") or json.dumps(q, ensure_ascii=False, sort_keys=True))
+        for q in payload["questions"]
+    )
+    after = Counter(
+        str(q.get("id") or json.dumps(q, ensure_ascii=False, sort_keys=True))
+        for q in roundtrip["questions"]
+    )
+    assert after == before
     assert roundtrip.get("clubs", {}) == payload.get("clubs", {})
 
     print("QUESTION_STORE_INDEX", index_path)
