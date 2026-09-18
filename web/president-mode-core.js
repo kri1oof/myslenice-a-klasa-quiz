@@ -34,6 +34,37 @@
   const UPGRADE_COSTS = Object.freeze([700, 1300, 2200]);
   const UPGRADE_GAINS = Object.freeze([4, 5, 6]);
 
+  const OFFSEASON_PLANS = Object.freeze([
+    {
+      id:'preseason',
+      icon:'🏃',
+      label:'Mocny okres przygotowawczy',
+      copy:'Więcej środków trafia do pierwszej drużyny i sztabu przed startem ligi.',
+      effect:{ budget:-1200, trust:{ players:4, coach:3 }, areas:{ squad:3, staff:2 } },
+    },
+    {
+      id:'infrastructure',
+      icon:'🏟️',
+      label:'Porządkujemy zaplecze',
+      copy:'Lato wykorzystujemy na obiekt, organizację i przygotowanie klubu do całego roku.',
+      effect:{ budget:-900, trust:{ sponsors:2 }, areas:{ facilities:4, organization:3 } },
+    },
+    {
+      id:'community',
+      icon:'🌱',
+      label:'Akademia i lokalny klub',
+      copy:'Priorytetem są młodzież, nabór i relacja z ludźmi wokół klubu.',
+      effect:{ budget:-700, trust:{ supporters:4, sponsors:1 }, areas:{ academy:4, community:4 } },
+    },
+    {
+      id:'reserve',
+      icon:'🧾',
+      label:'Ostrożne lato',
+      copy:'Nie dokładamy dużych kosztów. Porządkujemy sprawy i budujemy rezerwę na sezon.',
+      effect:{ budget:0, trust:{ sponsors:2 }, areas:{ organization:2 } },
+    },
+  ]);
+
   const choice = (label, desc, result, budget = 0, trust = {}, areas = {}, recurring = 0) => ({
     label, desc, result, effect:{ budget, trust, areas, recurring },
   });
@@ -253,6 +284,8 @@
       careerYear:1,
       seasonsCompleted:0,
       seasonHistory:[],
+      offseason:null,
+      offseasonHistory:[],
       strategy:null,
       upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
       lastUpgradeRound:-99,
@@ -469,6 +502,115 @@
     };
   }
 
+  function latestSeasonRecord(profile) {
+    const history = profile?.seasonHistory || [];
+    return history.length ? history[history.length - 1] : null;
+  }
+
+  function offseasonPlanById(id) {
+    return OFFSEASON_PLANS.find(item => item.id === id) || null;
+  }
+
+  function offseasonSettlement(profile) {
+    const season = latestSeasonRecord(profile);
+    if (!profile || !season) return null;
+    const verdict = seasonVerdict({ position:season.position, target:season.target });
+    const performanceBonus = verdict.code === 'champion'
+      ? 2200
+      : verdict.code === 'target'
+        ? 1400
+        : verdict.code === 'close'
+          ? 800
+          : 300;
+    const trust = normalizedTrust(profile.trust);
+    const areas = normalizedAreas(profile.areas);
+    const partnerBonus = Math.round(clamp((trust.sponsors + trust.supporters - 80) * 20, 0, 1800));
+    const maintenanceCost = Math.round(500 + (100 - areas.facilities) * 6 + (100 - areas.organization) * 3);
+    const net = performanceBonus + partnerBonus - maintenanceCost;
+    return {
+      season:season.season,
+      careerYear:season.careerYear,
+      budgetBefore:Number(profile.budget || 0),
+      performanceBonus,
+      partnerBonus,
+      maintenanceCost,
+      net,
+      budgetAfter:Number(profile.budget || 0) + net,
+    };
+  }
+
+  function beginOffseason(profile) {
+    if (!profile) return { ok:false, reason:'invalid' };
+    const season = latestSeasonRecord(profile);
+    if (!season) return { ok:false, reason:'season' };
+    if (profile.offseason && Number(profile.offseason.careerYear) === Number(season.careerYear)) {
+      return { ok:true, profile, offseason:profile.offseason, reused:true };
+    }
+    const settlement = offseasonSettlement(profile);
+    if (!settlement) return { ok:false, reason:'settlement' };
+    const offseason = {
+      careerYear:Number(season.careerYear || profile.careerYear || 1),
+      season:season.season,
+      settlement,
+      planId:null,
+      planLabel:null,
+      planResult:null,
+    };
+    return {
+      ok:true,
+      offseason,
+      profile:{
+        ...profile,
+        budget:settlement.budgetAfter,
+        offseason,
+      },
+    };
+  }
+
+  function canChooseOffseasonPlan(profile, plan) {
+    return Boolean(
+      profile?.offseason &&
+      !profile.offseason.planId &&
+      plan &&
+      Number(profile.budget || 0) + Number(plan.effect?.budget || 0) >= 0
+    );
+  }
+
+  function applyOffseasonPlan(profile, planId) {
+    const plan = offseasonPlanById(planId);
+    if (!profile || !plan || !profile.offseason) return { ok:false, reason:'invalid' };
+    if (profile.offseason.planId) return { ok:false, reason:'already' };
+    if (!canChooseOffseasonPlan(profile, plan)) return { ok:false, reason:'budget' };
+    const effect = plan.effect || {};
+    const entry = {
+      careerYear:Number(profile.offseason.careerYear || profile.careerYear || 1),
+      season:profile.offseason.season,
+      planId:plan.id,
+      label:plan.label,
+      budgetDelta:Number(effect.budget || 0),
+      trustDelta:{ ...(effect.trust || {}) },
+      areaDelta:{ ...(effect.areas || {}) },
+    };
+    const offseason = {
+      ...profile.offseason,
+      planId:plan.id,
+      planLabel:plan.label,
+      planResult:plan.copy,
+    };
+    return {
+      ok:true,
+      plan,
+      profile:{
+        ...profile,
+        budget:Number(profile.budget || 0) + Number(effect.budget || 0),
+        trust:applyMap(profile.trust, effect.trust, TRUST_KEYS, normalizedTrust),
+        areas:applyMap(profile.areas, effect.areas, AREA_KEYS, normalizedAreas),
+        offseason,
+        offseasonHistory:[...(profile.offseasonHistory || []), entry],
+      },
+    };
+  }
+
   function seasonVerdict(summary = {}) {
     const position = Math.max(1, Number(summary.position || 999));
     const target = Math.max(1, Number(summary.target || 999));
@@ -514,6 +656,7 @@
       ...profile,
       careerYear:Number(profile.careerYear || 1) + 1,
       strategy:null,
+      offseason:null,
       order:shuffle(DECISIONS.map(item => item.id), random),
       usedIds:[],
       lastUsedRound:{},
@@ -562,9 +705,10 @@
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, DECISIONS,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardTargetPosition, boardConfidence, boardLabel, managementWarnings,
+    offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
     seasonVerdict, completeSeason, prepareNextSeason,
     decisionById, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
