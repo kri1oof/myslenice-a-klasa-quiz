@@ -73,7 +73,7 @@ def load_question_store(path: str | Path) -> dict[str, Any]:
     return {
         "version": int(payload.get("version") or 1),
         "count": len(questions),
-        "clubs": clean_clubs,
+        "clubs": dict(payload.get("clubs") or {}),
         "questions": questions,
     }
 
