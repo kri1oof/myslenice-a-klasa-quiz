@@ -1,0 +1,77 @@
+name: Migrate question database to shards
+
+on:
+  push:
+    branches: [question-shards]
+    paths:
+      - '.github/workflows/question-shards-migrate.yml'
+      - 'scripts/question_store.py'
+      - 'scripts/split_question_database.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: question-shards-migration
+  cancel-in-progress: true
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Split current databases
+        run: |
+          test -f web/data/questions.json
+          test -f docs/data/questions.json
+          python scripts/split_question_database.py \
+            --input web/data/questions.json \
+            --output web/data/questions \
+            --chunk-size 12000
+          python scripts/split_question_database.py \
+            --input docs/data/questions.json \
+            --output docs/data/questions \
+            --chunk-size 12000
+          rm web/data/questions.json docs/data/questions.json
+
+      - name: Validate sharded stores
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+
+          sys.path.insert(0, str(Path('scripts').resolve()))
+          from question_store import load_question_store
+
+          web = load_question_store('web/data/questions')
+          docs = load_question_store('docs/data/questions')
+          assert web['count'] == docs['count']
+          assert web['questions'] == docs['questions']
+          assert web['clubs'] == docs['clubs']
+          assert web['count'] >= 70000, web['count']
+
+          for root in (Path('web/data/questions'), Path('docs/data/questions')):
+              files = sorted(root.glob('*.json'))
+              assert (root / 'index.json').exists()
+              assert len(files) > 2
+              oversize = [(path.name, path.stat().st_size) for path in files if path.stat().st_size >= 45 * 1024 * 1024]
+              assert not oversize, oversize
+              print(root, 'files=', len(files), 'largest=', max(path.stat().st_size for path in files))
+          print('QUESTION_COUNT', web['count'])
+          PY
+
+      - name: Commit sharded database
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A web/data docs/data
+          git commit -m 'Split question database into season shards'
+          git push origin HEAD:"$GITHUB_REF_NAME"
