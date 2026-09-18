@@ -8,6 +8,32 @@
     facilities:'Obiekt', organization:'Organizacja', community:'Klub i otoczenie',
   });
 
+  const STRATEGIES = Object.freeze([
+    {
+      id:'promotion', icon:'🚀', label:'Atak na czołówkę',
+      copy:'Więcej środków idzie w pierwszą drużynę i sztab. Zarząd oczekuje walki o TOP 3.',
+      effect:{ budget:-2200, recurring:-80, trust:{ players:4, coach:5, supporters:3 }, areas:{ squad:7, staff:4 } },
+    },
+    {
+      id:'balanced', icon:'⚖️', label:'Stabilizacja klubu',
+      copy:'Najważniejsze są finanse, organizacja i spokojny rozwój. Celem jest górna połowa tabeli bez ryzykowania przyszłości.',
+      effect:{ budget:0, recurring:40, trust:{ sponsors:3, supporters:2 }, areas:{ organization:5, facilities:3, community:2 } },
+    },
+    {
+      id:'academy', icon:'🌱', label:'Klub od podstaw',
+      copy:'Priorytetem są akademia, lokalna społeczność i infrastruktura. Wynik seniorów nadal ma znaczenie, ale nie jest jedynym miernikiem.',
+      effect:{ budget:-1200, recurring:-40, trust:{ supporters:5, sponsors:2 }, areas:{ academy:9, community:5, facilities:2 } },
+    },
+  ]);
+
+  const UPGRADE_META = Object.freeze({
+    squad:{ label:'Kadra', icon:'👥' }, staff:{ label:'Sztab', icon:'📋' },
+    academy:{ label:'Akademia', icon:'🧒' }, facilities:{ label:'Obiekt', icon:'🏟️' },
+    organization:{ label:'Organizacja', icon:'🗂️' }, community:{ label:'Społeczność', icon:'📣' },
+  });
+  const UPGRADE_COSTS = Object.freeze([700, 1300, 2200]);
+  const UPGRADE_GAINS = Object.freeze([4, 5, 6]);
+
   const choice = (label, desc, result, budget = 0, trust = {}, areas = {}, recurring = 0) => ({
     label, desc, result, effect:{ budget, trust, areas, recurring },
   });
@@ -150,6 +176,46 @@
       choice('Jedna akcja naborowa','Sprawdzamy współpracę bez dużych zobowiązań.','Pierwsze wspólne zajęcia dochodzą do skutku.',-120,{supporters:3},{community:3,academy:3},0),
       choice('Nie mamy zasobów','Klub odmawia w tym sezonie.','Szansa przechodzi na kolejny rok.',0,{supporters:-3},{community:-2,academy:-1},0),
     ]),
+    decision('sponsor_delay','finance','⏳','Sponsor spóźnia się z przelewem','Partner zapewnia, że pieniądze wpłyną, ale klub ma wydatki już teraz.',[
+      choice('Dajemy czas','Chronimy relację, ale zaciskamy budżet na kilka tygodni.','Sponsor dostaje dodatkowy termin.',0,{sponsors:4},{organization:-1},0),
+      choice('Prosimy o część wpłaty teraz','Kompromis poprawia płynność.','Część środków trafia do klubu.',700,{sponsors:1},{organization:2},0),
+      choice('Stawiamy twardy termin','Porządek finansowy kosztem relacji.','Klub wysyła formalne wezwanie.',1000,{sponsors:-4},{organization:4},0),
+    ]),
+    decision('away_transport','finance','🚌','Rosną koszty transportu na wyjazdy','Przewoźnik podnosi stawkę i trzeba wybrać model na dalszą część sezonu.',[
+      choice('Stała umowa z przewoźnikiem','Pewny transport, ale stały koszt.','Klub zabezpiecza wszystkie wyjazdy.',-650,{players:3,coach:2},{organization:5},-55),
+      choice('Rezerwujemy każdy wyjazd osobno','Mniej zobowiązań, więcej pracy organizacyjnej.','Transport będzie ustalany kolejka po kolejce.',-220,{},{organization:1},-20),
+      choice('Szukamy oszczędności','Najtańsze warianty pogarszają komfort.','Koszty spadają, szatnia nie jest zachwycona.',0,{players:-3,coach:-1},{organization:-1},0),
+    ]),
+    decision('goalkeeper_coach','staff','🧤','Bramkarze proszą o osobny trening','Sztab widzi sens dodatkowych zajęć dla bramkarzy, ale potrzebna jest kolejna osoba.',[
+      choice('Stały trener bramkarzy','Najpełniejszy wariant szkoleniowy.','Bramkarze dostają regularną opiekę.',-850,{players:4,coach:5},{staff:6,squad:3},-70),
+      choice('Jeden trening specjalistyczny tygodniowo','Tańszy kompromis.','Bramkarze dostają podstawowe wsparcie.',-300,{players:2,coach:2},{staff:3,squad:1},-25),
+      choice('Zostajemy przy obecnym sztabie','Bez nowego kosztu.','Trening bramkarzy pozostaje częścią zwykłych zajęć.',0,{coach:-2},{staff:-1},0),
+    ]),
+    decision('squad_integration','squad','🤝','W szatni tworzą się osobne grupki','Trener zgłasza, że atmosfera jest poprawna, ale integracja kadry zaczyna siadać.',[
+      choice('Weekend integracyjny','Koszt, ale mocny sygnał dla zespołu.','Szatnia spędza więcej czasu razem.',-650,{players:8,coach:3},{squad:5,community:1},0),
+      choice('Wspólny posiłek po treningu','Prosta i tańsza forma.','Atmosfera wyraźnie się poprawia.',-180,{players:4},{squad:2},0),
+      choice('Nie ingerujemy','Liczymy, że temat sam się uspokoi.','Trener musi zarządzać atmosferą bez wsparcia zarządu.',0,{players:-3,coach:-2},{squad:-2},0),
+    ]),
+    decision('winter_hall','academy','🏫','Akademia potrzebuje hali na zimę','Rodzice chcą znać plan treningów zanim pogoda wymusi zejście z boiska.',[
+      choice('Rezerwujemy pełny grafik hali','Stabilne treningi przez całą zimę.','Akademia ma zabezpieczone terminy.',-1100,{supporters:6},{academy:7,organization:4},-90),
+      choice('Bierzemy tylko najważniejsze terminy','Mniej godzin, ale podstawowe grupy są zabezpieczone.','Klub układa oszczędniejszy grafik.',-450,{supporters:3},{academy:3,organization:2},-35),
+      choice('Czekamy na pogodę','Brak wydatku dziś, duże ryzyko chaosu zimą.','Plan treningowy pozostaje niepewny.',0,{supporters:-4},{academy:-3,organization:-2},0),
+    ]),
+    decision('irrigation','facilities','💧','Murawa potrzebuje lepszego nawadniania','W suchych tygodniach utrzymanie boiska zaczyna zabierać coraz więcej czasu.',[
+      choice('Modernizujemy nawadnianie','Duży jednorazowy koszt i mniej problemów później.','Boisko dostaje lepszy system nawadniania.',-2100,{coach:3,supporters:2},{facilities:8,organization:2},0),
+      choice('Kupujemy sprzęt przenośny','Tańsza poprawa bieżącego utrzymania.','Obsługa murawy staje się łatwiejsza.',-700,{coach:1},{facilities:4},0),
+      choice('Zostajemy przy pracy ręcznej','Oszczędzamy pieniądze kosztem czasu i jakości.','Murawa nadal wymaga dużo pracy.',0,{coach:-2},{facilities:-2,organization:-1},0),
+    ]),
+    decision('matchday_security','organization','🦺','Dzień meczowy wymaga lepszej organizacji','Przy większej frekwencji potrzeba jasnego podziału wejścia, parkingu, porządku i obsługi.',[
+      choice('Stała ekipa meczowa','Kosztuje, ale porządkuje każdy mecz domowy.','Dzień meczowy działa sprawniej.',-600,{supporters:3,sponsors:2},{organization:7,community:2},-45),
+      choice('Dyżury działaczy i wolontariuszy','Tańszy model oparty na klubie.','Najważniejsze role dostają obsadę.',-120,{supporters:2},{organization:4,community:2},0),
+      choice('Jak dotąd','Bez dodatkowej pracy i kosztów.','Ryzyko organizacyjnego chaosu zostaje.',0,{supporters:-2,sponsors:-1},{organization:-3},0),
+    ]),
+    decision('club_merch','community','👕','Kibice pytają o klubowe koszulki i szaliki','Mały sklepik może budować tożsamość i przynosić dodatkowy przychód.',[
+      choice('Robimy serię klubową','Większy koszt startowy i szansa na stały przychód.','Pierwsza pula gadżetów trafia do sprzedaży.',-900,{supporters:7,sponsors:2},{community:7,organization:2},95),
+      choice('Mała partia na mecze domowe','Testujemy zainteresowanie.','Klub zaczyna od niewielkiej liczby produktów.',-300,{supporters:4},{community:4},35),
+      choice('Na razie odpuszczamy','Nie zamrażamy pieniędzy w towarze.','Kibice muszą poczekać na klubowe gadżety.',0,{supporters:-2},{community:-1},0),
+    ]),
   ]);
 
   function clamp(value, min, max) { return Math.max(min, Math.min(max, Number(value) || 0)); }
@@ -184,6 +250,9 @@
       active:true,
       budget:12000,
       recurring:0,
+      strategy:null,
+      upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
+      lastUpgradeRound:-99,
       trust:normalizedTrust({ players:55, coach:55, supporters:50, sponsors:50 }),
       areas:normalizedAreas(),
       order:shuffle(DECISIONS.map(item => item.id), random),
@@ -198,6 +267,112 @@
       lastResult:null,
       lastMatch:null,
     };
+  }
+
+  function strategyById(id) { return STRATEGIES.find(item => item.id === id) || null; }
+  function chooseStrategy(profile, strategyId) {
+    const strategy = strategyById(strategyId);
+    if (!profile || !strategy || profile.strategy) return { ok:false, reason:'invalid' };
+    const effect = strategy.effect || {};
+    const budgetDelta = Number(effect.budget || 0);
+    if (Number(profile.budget || 0) + budgetDelta < 0) return { ok:false, reason:'budget' };
+    return {
+      ok:true,
+      strategy,
+      profile:{
+        ...profile,
+        strategy:strategy.id,
+        budget:Number(profile.budget || 0) + budgetDelta,
+        recurring:Number(profile.recurring || 0) + Number(effect.recurring || 0),
+        trust:applyMap(profile.trust, effect.trust, TRUST_KEYS, normalizedTrust),
+        areas:applyMap(profile.areas, effect.areas, AREA_KEYS, normalizedAreas),
+        history:[...(profile.history || []), {
+          round:0, type:'strategy', title:'Plan sezonu', choice:strategy.label, result:strategy.copy,
+          budgetDelta, recurringDelta:Number(effect.recurring || 0),
+          trustDelta:{ ...(effect.trust || {}) }, areaDelta:{ ...(effect.areas || {}) },
+        }],
+      },
+    };
+  }
+
+  function upgradeLevel(profile, area) {
+    return clamp(Number(profile?.upgradeLevels?.[area] || 0), 0, UPGRADE_COSTS.length);
+  }
+  function upgradeCost(profile, area) {
+    const level = upgradeLevel(profile, area);
+    return level >= UPGRADE_COSTS.length ? null : UPGRADE_COSTS[level];
+  }
+  function canUpgrade(profile, area, roundIndex = 0) {
+    if (!profile?.strategy || !AREA_KEYS.includes(area)) return false;
+    const cost = upgradeCost(profile, area);
+    if (cost === null || Number(profile.budget || 0) < cost) return false;
+    return Number(roundIndex) - Number(profile.lastUpgradeRound ?? -99) >= 3;
+  }
+  function buyUpgrade(profile, area, roundIndex = 0) {
+    if (!canUpgrade(profile, area, roundIndex)) return { ok:false, reason:'unavailable' };
+    const level = upgradeLevel(profile, area);
+    const cost = UPGRADE_COSTS[level];
+    const gain = UPGRADE_GAINS[level];
+    const levels = { ...(profile.upgradeLevels || {}), [area]:level + 1 };
+    const meta = UPGRADE_META[area];
+    return {
+      ok:true, cost, gain,
+      profile:{
+        ...profile,
+        budget:Number(profile.budget || 0) - cost,
+        areas:applyMap(profile.areas, { [area]:gain }, AREA_KEYS, normalizedAreas),
+        upgradeLevels:levels,
+        lastUpgradeRound:Number(roundIndex),
+        history:[...(profile.history || []), {
+          round:Number(roundIndex) + 1, type:'investment', category:area,
+          title:'Inwestycja: ' + (meta?.label || area), choice:'Poziom ' + (level + 1),
+          result:'Stały rozwój obszaru: +' + gain + '.', budgetDelta:-cost, recurringDelta:0,
+          trustDelta:{}, areaDelta:{ [area]:gain },
+        }],
+      },
+    };
+  }
+
+  function boardTargetPosition(profile, teamCount = 14) {
+    const teams = Math.max(2, Number(teamCount || 14));
+    if (profile?.strategy === 'promotion') return Math.min(3, teams);
+    if (profile?.strategy === 'academy') return Math.min(teams, Math.max(4, Math.ceil(teams * .65)));
+    return Math.max(3, Math.ceil(teams / 2));
+  }
+  function boardConfidence(profile, context = {}) {
+    const teamCount = Math.max(2, Number(context.teamCount || 14));
+    const position = Math.max(1, Number(context.position || teamCount));
+    const target = boardTargetPosition(profile, teamCount);
+    const performance = clamp(55 + (target - position) * 7, 10, 90);
+    const finance = clamp(45 + Number(profile?.budget || 0) / 400, 5, 90);
+    const club = averageAreas(profile);
+    const trust = averageTrust(profile);
+    let strategyBonus = 0;
+    if (profile?.strategy === 'academy') strategyBonus = (Number(profile?.areas?.academy || 0) - 50) * .18;
+    if (profile?.strategy === 'balanced') strategyBonus = (Number(profile?.areas?.organization || 0) - 50) * .12;
+    if (profile?.strategy === 'promotion') strategyBonus = (Number(profile?.areas?.squad || 0) - 50) * .12;
+    return Math.round(clamp(performance * .38 + finance * .20 + club * .22 + trust * .20 + strategyBonus, 0, 100));
+  }
+  function boardLabel(value) {
+    const score = Number(value || 0);
+    if (score >= 80) return 'pełne poparcie';
+    if (score >= 65) return 'mocna pozycja';
+    if (score >= 45) return 'cierpliwość zarządu';
+    if (score >= 30) return 'narastająca presja';
+    return 'kryzys zaufania';
+  }
+  function managementWarnings(profile, context = {}) {
+    const warnings = [];
+    const trust = normalizedTrust(profile?.trust);
+    const areas = normalizedAreas(profile?.areas);
+    if (Number(profile?.budget || 0) < 1500) warnings.push('Płynność finansowa jest na niebezpiecznie niskim poziomie.');
+    const weakestTrust = TRUST_KEYS.reduce((a, b) => trust[a] <= trust[b] ? a : b);
+    const trustLabels = { players:'szatnia', coach:'trener', supporters:'kibice', sponsors:'sponsorzy' };
+    if (trust[weakestTrust] < 30) warnings.push('Kryzys zaufania: ' + (trustLabels[weakestTrust] || weakestTrust) + '.');
+    const weakestArea = AREA_KEYS.reduce((a, b) => areas[a] <= areas[b] ? a : b);
+    if (areas[weakestArea] < 30) warnings.push('Obszar wymagający pilnej reakcji: ' + (UPGRADE_META[weakestArea]?.label || weakestArea) + '.');
+    if (boardConfidence(profile, context) < 30) warnings.push('Zarząd oczekuje szybkiej poprawy wyników lub kondycji klubu.');
+    return warnings;
   }
 
   function decisionById(id) { return DECISIONS.find(item => item.id === id) || null; }
@@ -324,8 +499,10 @@
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, DECISIONS,
-    initialState, decisionById, pickDecision, canChoose, applyChoice,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, DECISIONS,
+    initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
+    boardTargetPosition, boardConfidence, boardLabel, managementWarnings,
+    decisionById, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
     roundFinance, applyPostRound, applyPostMatch:applyPostRound,
     averageTrust, averageAreas, trustLabel, areaLabel, financeLabel, money,

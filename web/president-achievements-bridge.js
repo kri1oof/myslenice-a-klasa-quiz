@@ -14,8 +14,10 @@ if (globalThis.PresidentModeCore && globalThis.AchievementsCore && typeof simula
     const career = state.seasonCareer;
     const profile = state.presidentMode;
     const position = globalThis.SeasonCareerCore?.position(career.table, career.club);
+    const teamCount = Math.max(2, Object.keys(career.table || {}).length || 14);
+    const presidentTarget = globalThis.PresidentModeCore.boardTargetPosition(profile, teamCount);
     const objectiveAchieved = Boolean(
-      career.completed && position && position <= Number(career.objective?.targetPosition || 0)
+      career.completed && position && position <= presidentTarget
     );
 
     achievementProfile = globalThis.AchievementsCore.recordFinish(achievementProfile, {

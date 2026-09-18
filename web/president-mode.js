@@ -40,7 +40,7 @@ function installPresidentLandingCard() {
   button.dataset.mode = 'president';
   button.innerHTML = `
     <span class="mode-icon">👔</span>
-    <span><strong>Tryb prezesa</strong><small>Zarządzaj całym klubem poza boiskiem. Finanse, trener, kadra, akademia, obiekt, formalności, sponsorzy i kibice. Mecze rozgrywają się w tle.</small></span>
+    <span><strong>Tryb prezesa</strong><small>Ustal strategię zarządu, rozwijaj klub, pilnuj budżetu i szatni. Kadra ŁNP, inwestycje, sponsorzy, akademia i obiekt. Mecze rozgrywają się w tle.</small></span>
     <span class="mode-check">✓</span>`;
   button.addEventListener('click', () => {
     frontSelectedMode = 'president';
@@ -79,7 +79,7 @@ function syncPresidentSetup() {
   }
   const description = el('format-description');
   if (description) {
-    description.textContent = 'Zarządzasz klubem przez cały sezon. Podejmujesz wyłącznie decyzje prezesowskie; mecze są automatycznie symulowane w tle i wpływają na tabelę oraz otoczenie klubu.';
+    description.textContent = 'Zarządzasz klubem przez cały sezon: wybierasz strategię, rozwijasz działy, pilnujesz zaufania zarządu i podejmujesz decyzje prezesowskie. Mecze są automatycznie symulowane w tle.';
   }
   window.setTimeout(() => {
     if (presidentSelected() && el('new-game')) el('new-game').textContent = '👔 Rozpocznij sezon prezesa';
@@ -123,6 +123,118 @@ const PRESIDENT_TRUST_META = Object.freeze([
   ['players','Szatnia','👕'], ['coach','Trener','🧠'], ['supporters','Kibice','📣'], ['sponsors','Sponsorzy','🤝'],
 ]);
 
+function presidentBoardContext(profile, career) {
+  const teamCount = Math.max(2, Object.keys(career?.table || {}).length || 14);
+  const target = presidentModeCore.boardTargetPosition(profile, teamCount);
+  const actualPosition = seasonCareerCore.position(career?.table, career?.club) || teamCount;
+  const position = Number(career?.roundIndex || 0) === 0 ? target : actualPosition;
+  const confidence = presidentModeCore.boardConfidence(profile, { position, teamCount });
+  return { teamCount, position, actualPosition, target, confidence };
+}
+
+function presidentStrategy(profile) {
+  return presidentModeCore.strategyById(profile?.strategy);
+}
+
+function presidentSquadProfiles(career) {
+  return (state.playerCharacters || [])
+    .filter(player => player?.club === career?.club && player?.season === career?.season)
+    .sort((a, b) =>
+      Number(b?.ratings?.game_rating || 0) - Number(a?.ratings?.game_rating || 0) ||
+      Number(b?.stats?.appearances || 0) - Number(a?.stats?.appearances || 0) ||
+      String(a?.player || '').localeCompare(String(b?.player || ''), 'pl')
+    );
+}
+
+function presidentSquadHtml(career) {
+  const players = presidentSquadProfiles(career);
+  if (!players.length) {
+    return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>Brak pełnych kart zawodników w bieżącym pakiecie dla tego sezonu</small></span><em>Pokaż</em></summary><p class="president-empty-copy">Tryb nadal korzysta z profilu siły klubu, ale nie pokazuje indywidualnych kart zawodników.</p></details>`;
+  }
+  const leaders = players.slice(0, 6).map(player => {
+    const stats = player.stats || {};
+    const rating = Number(player?.ratings?.game_rating || 0);
+    return `<div class="president-squad-player"><span><strong>${presidentEscape(player.player)}</strong><small>${presidentEscape(player.archetype || 'Zawodnik')} · ${Number(stats.appearances || 0)} mecz. · ${Number(stats.goals || 0)} goli</small></span><b>${rating || '—'}</b></div>`;
+  }).join('');
+  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>${players.length} zawodników · najwyższe profile gry</small></span><em>Pokaż</em></summary><div class="president-squad-list">${leaders}</div><small class="president-data-note">Nazwiska i statystyki pochodzą z protokołów ŁNP; ocena gry jest wskaźnikiem mechaniki, nie oficjalną oceną zawodnika.</small></details>`;
+}
+
+function presidentWarningsHtml(profile, career) {
+  const board = presidentBoardContext(profile, career);
+  const warnings = presidentModeCore.managementWarnings(profile, {
+    position:board.position,
+    teamCount:board.teamCount,
+  });
+  if (!warnings.length) return '';
+  return `<div class="president-warnings"><strong>⚠️ Sygnały dla zarządu</strong>${warnings.map(item => `<span>${presidentEscape(item)}</span>`).join('')}</div>`;
+}
+
+function presidentInvestmentsHtml(profile, career) {
+  const roundIndex = Number(career?.roundIndex || 0);
+  const areas = Object.entries(presidentModeCore.UPGRADE_META || {}).map(([key, meta]) => {
+    const level = presidentModeCore.upgradeLevel(profile, key);
+    const cost = presidentModeCore.upgradeCost(profile, key);
+    const available = presidentModeCore.canUpgrade(profile, key, roundIndex);
+    const cta = cost === null ? 'MAX' : presidentModeCore.money(cost);
+    return `<button type="button" class="president-upgrade" data-area="${key}" ${available ? '' : 'disabled'}><span>${meta.icon} ${presidentEscape(meta.label)}</span><strong>Poziom ${level}/3</strong><small>${cost === null ? 'Maksymalny poziom' : `Rozwój: ${cta}`}</small></button>`;
+  }).join('');
+  const cooldown = roundIndex - Number(profile?.lastUpgradeRound ?? -99) < 3;
+  return `
+    <details class="president-investments">
+      <summary><span><strong>🏗️ Plan rozwoju klubu</strong><small>Stałe inwestycje niezależne od sprawy kolejki</small></span><em>Pokaż</em></summary>
+      <div class="president-upgrade-grid">${areas}</div>
+      <small class="president-investment-note">${cooldown ? 'Po inwestycji zarząd musi odczekać 3 kolejki przed następną.' : 'Możesz zatwierdzić jedną inwestycję. Kolejna będzie możliwa po 3 kolejkach.'}</small>
+    </details>`;
+}
+
+function renderPresidentStrategySelection() {
+  const profile = initializePresidentMode();
+  const career = careerState();
+  const panel = ensurePresidentDecisionPanel();
+  if (!profile || !career || !panel) return false;
+  hidePresidentGameSurfaces();
+  panel.innerHTML = `
+    <div class="president-strategy-card">
+      <div class="president-report-kicker">👔 PIERWSZE POSIEDZENIE ZARZĄDU</div>
+      <h2>${presidentEscape(career.club)} · ${presidentEscape(career.season)}</h2>
+      <p class="president-strategy-intro">Na początku sezonu wybierz kierunek klubu. To zmieni budżet startowy, kondycję działów i wymagania zarządu.</p>
+      <div class="president-strategy-grid">
+        ${presidentModeCore.STRATEGIES.map(strategy => {
+          const effect = strategy.effect || {};
+          const budget = Number(effect.budget || 0);
+          return `<button type="button" class="president-strategy-option" data-strategy="${strategy.id}">
+            <span class="president-strategy-icon">${strategy.icon}</span>
+            <strong>${presidentEscape(strategy.label)}</strong>
+            <span>${presidentEscape(strategy.copy)}</span>
+            <small>Budżet ${budget >= 0 ? '+' : ''}${presidentModeCore.money(budget)} · stały bilans ${Number(effect.recurring || 0) >= 0 ? '+' : ''}${presidentModeCore.money(effect.recurring || 0)}/kolejkę</small>
+          </button>`;
+        }).join('')}
+      </div>
+      ${presidentSquadHtml(career)}
+      <small class="president-disclaimer">Strategia, budżet i wymagania zarządu są elementem symulacji. Dane kadrowe ŁNP pozostają danymi źródłowymi.</small>
+    </div>`;
+  panel.classList.remove('hidden');
+  panel.querySelectorAll('.president-strategy-option').forEach(button => {
+    button.addEventListener('click', () => {
+      const applied = presidentModeCore.chooseStrategy(state.presidentMode, button.dataset.strategy);
+      if (!applied.ok) return;
+      state.presidentMode = applied.profile;
+      showPresidentRound();
+    });
+  });
+  if (el('status')) el('status').textContent = 'Tryb prezesa · wybierz strategię zarządu na sezon';
+  window.scrollTo({ top:0, behavior:'smooth' });
+  return true;
+}
+
+function buyPresidentUpgrade(area, decision) {
+  const career = careerState();
+  const applied = presidentModeCore.buyUpgrade(state.presidentMode, area, Number(career?.roundIndex || 0));
+  if (!applied.ok) return;
+  state.presidentMode = applied.profile;
+  renderPresidentDecision(decision);
+}
+
 function presidentMetricRows(values = {}, meta = [], type = 'area') {
   return meta.map(([key, label, icon]) => {
     const value = Math.max(0, Math.min(100, Number(values[key] ?? 50)));
@@ -163,6 +275,7 @@ function presidentChoicePreview(choice) {
 
 function presidentPositionSummary(career) {
   if (!career) return { position:'—', points:0 };
+  if (Number(career.roundIndex || 0) === 0) return { position:'—', points:0 };
   return {
     position:seasonCareerCore.position(career.table, career.club) || 1,
     points:Number(career.table?.[career.club]?.points || 0),
@@ -174,12 +287,15 @@ function presidentDashboardHtml(profile, career) {
   const avgAreas = presidentModeCore.averageAreas(profile);
   const avgTrust = presidentModeCore.averageTrust(profile);
   const recurring = Number(profile.recurring || 0);
+  const board = presidentBoardContext(profile, career);
+  const strategy = presidentStrategy(profile);
   return `
     <div class="president-dashboard">
       <div><small>BUDŻET GRY</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${presidentModeCore.financeLabel(profile)}</span></div>
       <div><small>STAŁY BILANS / KOLEJKĘ</small><strong>${recurring >= 0 ? '+' : ''}${presidentModeCore.money(recurring)}</strong><span>umowy i stałe zobowiązania</span></div>
-      <div><small>TABELA</small><strong>${standing.position}. miejsce</strong><span>${standing.points} pkt</span></div>
-      <div><small>KONDYCJA KLUBU</small><strong>${avgAreas}/100</strong><span>${presidentModeCore.areaLabel(avgAreas)} · zaufanie ${avgTrust}/100</span></div>
+      <div><small>TABELA / CEL</small><strong>${standing.position === "—" ? "—" : standing.position + "."} / TOP ${board.target}</strong><span>${standing.points} pkt</span></div>
+      <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)}</span></div>
+      <div><small>PLAN SEZONU</small><strong>${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : '—'}</strong><span>kondycja ${avgAreas}/100 · zaufanie ${avgTrust}/100</span></div>
     </div>
     <details class="president-club-details">
       <summary><span><strong>🏢 Stan klubu</strong><small>kadra · sztab · akademia · obiekt · organizacja · społeczność</small></span><em>Pokaż</em></summary>
@@ -212,6 +328,9 @@ function renderPresidentDecision(decision) {
         <span class="president-background-match"><small>⚽ MECZ</small><strong>automatycznie</strong><em>bez pytań i decyzji boiskowych</em></span>
       </div>
       ${presidentDashboardHtml(profile, career)}
+      ${presidentWarningsHtml(profile, career)}
+      ${presidentInvestmentsHtml(profile, career)}
+      ${presidentSquadHtml(career)}
       <div class="president-case">
         <span class="president-case-icon">${decision.icon}</span>
         <div><small>${presidentEscape(category).toUpperCase()}</small><h2>${presidentEscape(decision.title)}</h2><p>${presidentEscape(decision.copy)}</p></div>
@@ -233,6 +352,9 @@ function renderPresidentDecision(decision) {
       ${affordable ? '' : '<em>Brak środków na tę decyzję.</em>'}`;
     button.addEventListener('click', () => choosePresidentDecision(decision, index));
     grid.appendChild(button);
+  });
+  panel.querySelectorAll('.president-upgrade').forEach(button => {
+    button.addEventListener('click', () => buyPresidentUpgrade(button.dataset.area, decision));
   });
   panel.classList.remove('hidden');
   if (el('status')) {
@@ -341,6 +463,8 @@ function renderPresidentRoundOutcome(context = {}) {
       <div class="president-report-kicker">👔 RAPORT PO KOLEJCE ${context.fixture.round}</div>
       <h2>${presidentEscape(career.club)}</h2>
       ${presidentDashboardHtml(profile, career)}
+      ${presidentWarningsHtml(profile, career)}
+      ${presidentSquadHtml(career)}
       <div class="president-background-result">
         <span><small>⚽ MECZ W TLE</small><strong>${presidentMatchScore(context)}</strong><em>${presidentResultLabel(context.resultCode)} · bez udziału gracza</em></span>
         <span><small>PO KOLEJCE</small><strong>${position}. miejsce · ${points} pkt</strong><em>wpływ długofalowego zarządzania na siłę drużyny: ${management >= 0 ? '+' : ''}${management.toFixed(1)}</em></span>
@@ -372,6 +496,9 @@ function renderPresidentSeasonFinal(lastRound = null) {
   const row = career.table?.[career.club] || {};
   const avgTrust = presidentModeCore.averageTrust(profile);
   const avgAreas = presidentModeCore.averageAreas(profile);
+  const board = presidentBoardContext(profile, career);
+  const strategy = presidentStrategy(profile);
+  const decisionCount = (profile.history || []).filter(item => item.decisionId).length;
   panel.innerHTML = `
     <div class="president-season-final">
       <div class="president-finale-kicker">👔 KONIEC SEZONU PREZESA</div>
@@ -383,8 +510,12 @@ function renderPresidentSeasonFinal(lastRound = null) {
         <span><small>BUDŻET GRY</small><strong>${presidentModeCore.money(profile.budget)}</strong></span>
         <span><small>KONDYCJA KLUBU</small><strong>${avgAreas}/100</strong><em>${presidentModeCore.areaLabel(avgAreas)}</em></span>
         <span><small>ZAUFANIE</small><strong>${avgTrust}/100</strong><em>${presidentModeCore.trustLabel(avgTrust)}</em></span>
-        <span><small>DECYZJE</small><strong>${profile.history?.length || 0}</strong></span>
+        <span><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><em>${presidentModeCore.boardLabel(board.confidence)}</em></span>
+        <span><small>PLAN SEZONU</small><strong>${strategy ? presidentEscape(strategy.label) : "—"}</strong><em>cel TOP ${board.target}</em></span>
+        <span><small>DECYZJE</small><strong>${decisionCount}</strong></span>
       </div>
+      ${presidentWarningsHtml(profile, career)}
+      ${presidentSquadHtml(career)}
       <details class="president-club-details" open>
         <summary><span><strong>🏢 Klub po sezonie</strong><small>pełne podsumowanie obszarów</small></span><em>Ukryj</em></summary>
         <div class="president-area-grid">${presidentAreaRows(profile.areas)}</div>
@@ -457,6 +588,7 @@ startGame = function presidentStartGame() {
     state.presidentMode = presidentModeCore.initialState(careerState()?.rounds?.length || 0);
   }
 
+  if (!state.presidentMode?.strategy) return renderPresidentStrategySelection();
   return showPresidentRound();
 };
 

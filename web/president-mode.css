@@ -6,7 +6,8 @@
 
 .president-decision-card,
 .president-round-report,
-.president-season-final {
+.president-season-final,
+.president-strategy-card {
   border: 2px solid #dbe4df;
   border-radius: 22px;
   padding: 20px;
@@ -55,7 +56,7 @@
 
 .president-dashboard {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
+  grid-template-columns: repeat(5, minmax(0,1fr));
   gap: 9px;
   margin: 12px 0;
 }
@@ -318,6 +319,147 @@
 .president-last-match strong { color: #111827; }
 .president-finale-grid em { color: #64748b; font-size: .72rem; font-style: normal; }
 
+.president-strategy-card {
+  border: 2px solid #dbe4df;
+  border-radius: 22px;
+  padding: 20px;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 16px 42px rgba(15,23,42,.08);
+}
+.president-strategy-card > h2 { margin: 5px 0 8px; }
+.president-strategy-intro { margin: 0 0 14px; color: #475569; line-height: 1.5; }
+.president-strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 11px;
+  margin: 12px 0 15px;
+}
+.president-strategy-option {
+  min-height: 190px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  border: 2px solid #cbd5e1;
+  border-radius: 17px;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+.president-strategy-option:hover,
+.president-strategy-option:focus-visible {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  outline: 3px solid rgba(22,163,74,.13);
+}
+.president-strategy-icon { font-size: 1.8rem; }
+.president-strategy-option strong { font-size: 1rem; }
+.president-strategy-option > span:not(.president-strategy-icon) { color: #475569; font-size: .8rem; line-height: 1.4; }
+.president-strategy-option small { margin-top: auto; color: #166534; font-size: .72rem; line-height: 1.35; }
+
+.president-investments,
+.president-squad-details {
+  margin: 10px 0 14px;
+  border: 1px solid #dbe3ec;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.president-investments > summary,
+.president-squad-details > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 13px;
+  cursor: pointer;
+  list-style: none;
+  background: #fff;
+}
+.president-investments > summary::-webkit-details-marker,
+.president-squad-details > summary::-webkit-details-marker { display: none; }
+.president-investments > summary span,
+.president-squad-details > summary span { display: flex; flex-direction: column; gap: 2px; }
+.president-investments > summary small,
+.president-squad-details > summary small { color: #64748b; font-size: .72rem; }
+.president-investments > summary em,
+.president-squad-details > summary em { color: #166534; font-size: .72rem; font-style: normal; font-weight: 800; }
+.president-investments[open] > summary,
+.president-squad-details[open] > summary { border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+
+.president-upgrade-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 8px;
+  padding: 12px;
+}
+.president-upgrade {
+  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  text-align: left;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+.president-upgrade:hover:not(:disabled) { border-color: #16a34a; background: #f0fdf4; }
+.president-upgrade:disabled { cursor: not-allowed; opacity: .58; }
+.president-upgrade span { font-size: .78rem; font-weight: 800; }
+.president-upgrade strong { font-size: .86rem; }
+.president-upgrade small { color: #64748b; font-size: .7rem; }
+.president-investment-note,
+.president-data-note {
+  display: block;
+  padding: 0 12px 12px;
+  color: #64748b;
+  font-size: .7rem;
+  line-height: 1.4;
+}
+
+.president-squad-list { display: grid; gap: 7px; padding: 12px; }
+.president-squad-player {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+.president-squad-player span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.president-squad-player strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.president-squad-player small { color: #64748b; font-size: .7rem; }
+.president-squad-player b {
+  flex: 0 0 auto;
+  min-width: 34px;
+  padding: 5px 7px;
+  border-radius: 8px;
+  background: #dcfce7;
+  color: #166534;
+  text-align: center;
+}
+.president-empty-copy { margin: 0; padding: 12px; color: #64748b; font-size: .78rem; }
+
+.president-warnings {
+  margin: 10px 0 14px;
+  padding: 11px 13px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #fed7aa;
+  border-radius: 13px;
+  background: #fff7ed;
+}
+.president-warnings strong { color: #9a3412; }
+.president-warnings span { color: #7c2d12; font-size: .76rem; line-height: 1.35; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -326,6 +468,8 @@
 
 @media (max-width: 900px) {
   .president-dashboard { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .president-strategy-grid { grid-template-columns: 1fr; }
+  .president-upgrade-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-options,
   .president-finale-grid { grid-template-columns: 1fr; }
 }
@@ -333,7 +477,8 @@
 @media (max-width: 700px) {
   .president-decision-card,
   .president-round-report,
-  .president-season-final { padding: 14px; border-radius: 17px; }
+  .president-season-final,
+  .president-strategy-card { padding: 14px; border-radius: 17px; }
   .president-decision-head { display: grid; grid-template-columns: 1fr; }
   .president-background-match { min-width: 0; }
   .president-dashboard,
@@ -346,7 +491,8 @@
 }
 
 @media (max-width: 440px) {
-  .president-dashboard { grid-template-columns: 1fr; }
+  .president-dashboard,
+  .president-upgrade-grid { grid-template-columns: 1fr; }
   .president-area-row,
   .president-trust-row { grid-template-columns: minmax(90px,auto) 1fr 28px; font-size: .72rem; }
 }
