@@ -186,6 +186,26 @@ function presidentSquadHtml(career) {
   return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>${players.length} profili źródłowych${careerSignings ? ' · wzmocnienia kariery poniżej' : ''}</small></span><em>Pokaż</em></summary><div class="president-squad-list">${careerRetentions}${careerSignings}${leaders}</div><small class="president-data-note">${sourceCopy}${careerSignings || careerRetentions ? ' Decyzje kadrowe gracza tworzą alternatywną historię tej kariery.' : ''}</small></details>`;
 }
 
+function presidentEmploymentHtml(profile, career) {
+  const job = presidentModeCore.normalizedJobSecurity(profile?.jobSecurity);
+  if (job.status === 'secure' && !job.fired) return '';
+  const board = presidentBoardContext(profile, career);
+  const title = job.fired
+    ? 'Zarząd zakończył współpracę'
+    : job.status === 'ultimatum'
+      ? `Ultimatum: ${job.ultimatumRoundsLeft} kolejki na poprawę`
+      : 'Ostrzeżenie zarządu';
+  const copy = job.fired
+    ? 'Kariera w tym klubie dobiegła końca.'
+    : job.status === 'ultimatum'
+      ? 'Podnieś poparcie zarządu do bezpiecznego poziomu. Liczą się wyniki, finanse, kondycja klubu i relacje.'
+      : 'Sytuacja nie jest jeszcze krytyczna, ale kolejny słaby okres może uruchomić ultimatum.';
+  return `<div class="president-employment-alert ${job.status}">
+    <span>${job.fired ? '🚪' : job.status === 'ultimatum' ? '⏳' : '⚠️'}</span>
+    <div><small>STANOWISKO PREZESA · POPARCIE ${board.confidence}/100</small><strong>${presidentEscape(title)}</strong><p>${presidentEscape(copy)}</p></div>
+  </div>`;
+}
+
 function presidentWarningsHtml(profile, career) {
   const board = presidentBoardContext(profile, career);
   const warnings = presidentModeCore.managementWarnings(profile, {
@@ -322,7 +342,7 @@ function presidentDashboardHtml(profile, career) {
       <div><small>BUDŻET GRY</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${presidentModeCore.financeLabel(profile)}</span></div>
       <div><small>STAŁY BILANS / KOLEJKĘ</small><strong>${recurring >= 0 ? '+' : ''}${presidentModeCore.money(recurring)}</strong><span>umowy i stałe zobowiązania</span></div>
       <div><small>TABELA / CEL</small><strong>${standing.position === "—" ? "—" : standing.position + "."} / TOP ${board.target}</strong><span>${presidentEscape(career.competitionLabel || presidentModeCore.competitionByLevel(career.competitionLevel ?? 1).short)} · ${standing.points} pkt</span></div>
-      <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)}</span></div>
+      <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)} · ${presidentModeCore.employmentLabel(profile)}</span></div>
       <div><small>PLAN SEZONU</small><strong>${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : '—'}</strong><span>kondycja ${avgAreas}/100 · zaufanie ${avgTrust}/100</span></div>
     </div>
     <details class="president-club-details">
@@ -356,6 +376,7 @@ function renderPresidentDecision(decision) {
         <span class="president-background-match"><small>⚽ MECZ</small><strong>automatycznie</strong><em>bez pytań i decyzji boiskowych</em></span>
       </div>
       ${presidentDashboardHtml(profile, career)}
+      ${presidentEmploymentHtml(profile, career)}
       ${presidentWarningsHtml(profile, career)}
       ${presidentInvestmentsHtml(profile, career)}
       ${presidentSquadHtml(career)}
@@ -438,6 +459,11 @@ function simulatePresidentRound() {
     result:resultCode,
     match:{ ...match, userGoals, opponentGoals, opponent:careerOpponent(fixture), venue },
   });
+  state.presidentMode = presidentModeCore.reviewEmployment(state.presidentMode, {
+    position:seasonCareerCore.position(career.table, career.club) || Object.keys(career.table || {}).length || 14,
+    teamCount:Object.keys(career.table || {}).length || career.clubs?.length || 14,
+    round:career.roundIndex,
+  });
 
   advanceCareerByes();
   career.completed = career.roundIndex >= career.rounds.length;
@@ -461,7 +487,8 @@ function choosePresidentDecision(decision, choiceIndex) {
   state.presidentMode = applied.profile;
   const round = simulatePresidentRound();
   if (!round) return;
-  if (careerState()?.completed) renderPresidentSeasonFinal(round);
+  if (state.presidentMode?.jobSecurity?.fired) renderPresidentDismissal(round);
+  else if (careerState()?.completed) renderPresidentSeasonFinal(round);
   else renderPresidentRoundOutcome(round);
 }
 
@@ -491,6 +518,7 @@ function renderPresidentRoundOutcome(context = {}) {
       <div class="president-report-kicker">👔 RAPORT PO KOLEJCE ${context.fixture.round}</div>
       <h2>${presidentEscape(career.club)}</h2>
       ${presidentDashboardHtml(profile, career)}
+      ${presidentEmploymentHtml(profile, career)}
       ${presidentWarningsHtml(profile, career)}
       ${presidentSquadHtml(career)}
       <div class="president-background-result">
@@ -514,6 +542,43 @@ function renderPresidentRoundOutcome(context = {}) {
   return true;
 }
 
+
+function renderPresidentDismissal(lastRound = null) {
+  const profile = state.presidentMode;
+  const career = careerState();
+  const panel = ensurePresidentDecisionPanel();
+  if (!profile || !career || !panel) return false;
+  hidePresidentGameSurfaces();
+  const board = presidentBoardContext(profile, career);
+  const job = presidentModeCore.normalizedJobSecurity(profile.jobSecurity);
+  const position = seasonCareerCore.position(career.table, career.club) || '—';
+  const row = career.table?.[career.club] || {};
+  panel.innerHTML = `
+    <div class="president-dismissal">
+      <section class="president-dismissal-hero">
+        <span>🚪</span>
+        <div><small>DECYZJA ZARZĄDU</small><h2>Kończy się Twoja praca w ${presidentEscape(career.club)}</h2><p>Poparcie zarządu spadło do ${board.confidence}/100 i ultimatum nie przyniosło wystarczającej poprawy.</p></div>
+      </section>
+      ${lastRound?.fixture ? `<div class="president-last-match compact"><small>OSTATNI MECZ</small><strong>${presidentMatchScore(lastRound)}</strong></div>` : ''}
+      <section class="president-dismissal-summary">
+        <div><small>SEZON</small><strong>${presidentEscape(career.season)}</strong><span>${presidentEscape(career.competitionLabel || 'A klasa Myślenice')}</span></div>
+        <div><small>TABELA</small><strong>${position}.</strong><span>${Number(row.points || 0)} pkt</span></div>
+        <div><small>BUDŻET</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${presidentModeCore.financeLabel(profile)}</span></div>
+        <div><small>POPARCIE</small><strong>${board.confidence}/100</strong><span>${presidentEscape(job.reason || 'wyniki i kondycja klubu')}</span></div>
+      </section>
+      ${presidentCareerHistoryHtml(profile)}
+      <div class="president-dismissal-actions">
+        <p>W kolejnym etapie kariery będzie można szukać pracy w innym klubie. Na razie możesz zakończyć tę karierę.</p>
+        <button type="button" class="president-end-career">Zakończ karierę</button>
+      </div>
+      <small class="president-disclaimer">Zwolnienie i kryteria oceny są mechaniką gry, nie informacją o realnych władzach ani sytuacji klubu.</small>
+    </div>`;
+  panel.classList.remove('hidden');
+  panel.querySelector('.president-end-career')?.addEventListener('click', finishPresidentCareer);
+  if (el('status')) el('status').textContent = `Kariera prezesa · zwolnienie po kolejce ${career.roundIndex}`;
+  window.scrollTo({ top:0, behavior:'smooth' });
+  return true;
+}
 
 function presidentNextSeasonLabel(label) {
   const match = String(label || '').match(/^(\d{4})\/(\d{2})/);
@@ -1234,6 +1299,7 @@ function renderPresidentSeasonFinal(lastRound = null) {
         </div>
       </section>
 
+      ${presidentEmploymentHtml(profile, career)}
       ${presidentWarningsHtml(profile, career)}
       ${presidentCareerHistoryHtml(profile)}
 
