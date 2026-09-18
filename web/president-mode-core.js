@@ -923,6 +923,15 @@
   function acceptJobOffer(profile, offer) {
     if (!profile || !offer?.club) return { ok:false, reason:'invalid' };
     const terms = jobOfferTerms(offer);
+    const mandateHistory = [...(profile.boardMandateHistory || [])];
+    if (profile.boardMandate?.status === 'active') {
+      mandateHistory.push({
+        ...profile.boardMandate,
+        status:'abandoned',
+        resolvedCareerYear:Number(profile.careerYear || 1),
+        lastDetail:'Mandat przerwany przez zmianę klubu.',
+      });
+    }
     const entry = {
       careerYear:Number(profile.careerYear || 1),
       fromClub:offer.fromClub || null,
@@ -941,6 +950,8 @@
         budget:terms.budget,
         recurring:0,
         strategy:null,
+        boardMandate:null,
+        boardMandateHistory:mandateHistory,
         trust:normalizedTrust({ players:55, coach:55, supporters:50, sponsors:50 }),
         areas:normalizedAreas(terms.areas),
         upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
