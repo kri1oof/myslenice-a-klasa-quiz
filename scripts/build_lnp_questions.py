@@ -15,6 +15,7 @@ from myslenice_quiz.ingest.laczynaspilka import import_file  # noqa: E402
 from myslenice_quiz.player_characters import export_player_characters  # noqa: E402
 from myslenice_quiz.questions import generate_all  # noqa: E402
 from myslenice_quiz.questions.base import save_questions  # noqa: E402
+from question_store import load_question_store, write_question_store  # noqa: E402
 
 
 def _key(q: dict) -> tuple[str, str]:
@@ -99,7 +100,7 @@ def _filter_conservative_historical_questions(conn, questions):
 
 
 def merge_exports(existing_path: Path, lnp_path: Path, output_path: Path) -> tuple[int, int, int]:
-    existing = json.loads(existing_path.read_text(encoding="utf-8"))
+    existing = load_question_store(existing_path)
     incoming = json.loads(lnp_path.read_text(encoding="utf-8"))
     incoming_questions = list(incoming.get("questions") or [])
 
@@ -145,8 +146,7 @@ def merge_exports(existing_path: Path, lnp_path: Path, output_path: Path) -> tup
         "clubs": clubs,
         "questions": questions,
     }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_question_store(payload, output_path)
     return len(questions), added, upgraded
 
 
@@ -156,8 +156,8 @@ def main() -> None:
     parser.add_argument("--db", default="lnp_build.db")
     parser.add_argument("--lnp-export", default="lnp_questions.json")
     parser.add_argument("--player-export", default="web/data/player-characters.json")
-    parser.add_argument("--existing", default="web/data/questions.json")
-    parser.add_argument("--output", default="web/data/questions.json")
+    parser.add_argument("--existing", default="web/data/questions")
+    parser.add_argument("--output", default="web/data/questions")
     parser.add_argument("--only-season", default=None)
     args = parser.parse_args()
 
