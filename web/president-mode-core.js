@@ -704,7 +704,12 @@
   }
 
   function canSignTransfer(profile, candidate) {
-    if (!profile?.offseason || profile.offseason.transferWindowClosed || !candidate?.id) return false;
+    if (
+      !profile?.offseason ||
+      !profile.offseason.departureResolved ||
+      profile.offseason.transferWindowClosed ||
+      !candidate?.id
+    ) return false;
     const candidateKey = candidate.playerKey || candidate.id;
     const signingsThisWindow = (profile.transferHistory || []).filter(
       item => Number(item.careerYear) === Number(profile.offseason.careerYear)
