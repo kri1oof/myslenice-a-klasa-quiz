@@ -22,6 +22,7 @@ for (const category of ['finance','staff','squad','academy','facilities','organi
 const initial = core.initialState(26, () => 0.42);
 assert.equal(initial.budget, 12000);
 assert.equal(initial.recurring, 0);
+assert.deepEqual(initial.financeLedger, []);
 assert.deepEqual(initial.trust, { players:55, coach:55, supporters:50, sponsors:50 });
 assert.deepEqual(initial.areas, { squad:55, staff:55, academy:45, facilities:45, organization:55, community:50 });
 assert.equal(initial.order.length, 34);
@@ -94,6 +95,10 @@ assert.ok(core.adjustedClubStrength(65, healthy) > 65);
 assert.ok(core.adjustedClubStrength(65, struggling) < 65);
 
 const sponsorProfile = applied.profile;
+const homeBreakdown = core.roundFinanceBreakdown(sponsorProfile, { venue:'DOM', result:'W' });
+assert.equal(homeBreakdown.total, core.roundFinance(sponsorProfile, { venue:'DOM', result:'W' }));
+assert.ok(homeBreakdown.rows.some(row => row.category === 'matchday'));
+assert.ok(homeBreakdown.rows.some(row => row.category === 'contracts'));
 const homeWinFinance = core.roundFinance(sponsorProfile, { venue:'DOM', result:'W' });
 const awayLossFinance = core.roundFinance(sponsorProfile, { venue:'WYJAZD', result:'L' });
 assert.ok(homeWinFinance > awayLossFinance, 'home/win background economics should differ from away/loss');
@@ -106,6 +111,12 @@ assert.equal(afterWin.lastResult, 'W');
 assert.equal(afterWin.lastMatch.homeGoals, 2);
 assert.equal(afterWin.budget, sponsorProfile.budget + homeWinFinance);
 assert.equal(afterWin.trust.supporters, sponsorProfile.trust.supporters + 2);
+assert.ok(afterWin.financeLedger.length >= homeBreakdown.rows.filter(row => row.amount !== 0).length);
+const financeSummary = core.financeCategorySummary(afterWin, afterWin.careerYear);
+assert.equal(
+  Object.values(financeSummary).reduce((sum, value) => sum + value, 0),
+  afterWin.financeLedger.filter(entry => entry.careerYear === afterWin.careerYear).reduce((sum, entry) => sum + entry.amount, 0),
+);
 
 assert.equal(core.averageTrust(initial), 53);
 assert.equal(core.averageAreas(initial), 51);
@@ -304,6 +315,10 @@ assert.match(runtime, /presidentSimulatedCompetitionPlan/);
 assert.match(runtime, /STATUS LIGOWY/);
 assert.match(runtime, /renderPresidentDismissal/);
 assert.match(runtime, /presidentManagementHubHtml/);
+assert.match(runtime, /financeCategorySummary/);
+assert.match(runtime, /BILANS SEZONU/);
+assert.match(runtime, /Ostatnie operacje/);
+assert.match(runtime, /zarejestrowane przepływy/);
 assert.match(runtime, /bindPresidentManagementTabs/);
 assert.match(runtime, /data-president-tab/);
 assert.match(runtime, /Pulpit/);
