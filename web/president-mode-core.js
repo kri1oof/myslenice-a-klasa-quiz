@@ -57,6 +57,42 @@
     },
   ]);
 
+  const MATCHDAY_POLICIES = Object.freeze([
+    {
+      id:'local',
+      icon:'🏡',
+      label:'Lokalny i dostępny',
+      copy:'Niższa monetyzacja dnia meczowego, ale łatwiej zapełnić obiekt i budować długofalową relację z lokalnymi kibicami.',
+      demandMultiplier:1.12,
+      yieldMultiplier:.78,
+      operatingCost:30,
+      supporterGrowth:1,
+      trust:{ supporters:4, sponsors:-1 },
+    },
+    {
+      id:'standard',
+      icon:'⚖️',
+      label:'Standard klubowy',
+      copy:'Zbalansowany model: bez dodatkowej premii do frekwencji i bez agresywnego zwiększania przychodu na kibica.',
+      demandMultiplier:1,
+      yieldMultiplier:1,
+      operatingCost:50,
+      supporterGrowth:0,
+      trust:{},
+    },
+    {
+      id:'commercial',
+      icon:'💼',
+      label:'Mocniej komercyjny',
+      copy:'Wyższy przychód na kibica i lepsza ekspozycja partnerów, ale część lokalnej widowni reaguje mniejszym zainteresowaniem.',
+      demandMultiplier:.90,
+      yieldMultiplier:1.35,
+      operatingCost:120,
+      supporterGrowth:-1,
+      trust:{ supporters:-3, sponsors:3 },
+    },
+  ]);
+
   const UPGRADE_META = Object.freeze({
     squad:{ label:'Kadra', icon:'👥' }, staff:{ label:'Sztab', icon:'📋' },
     academy:{ label:'Akademia', icon:'🧒' }, facilities:{ label:'Obiekt', icon:'🏟️' },
@@ -403,6 +439,8 @@
       seasonHistory:[],
       boardMandate:null,
       boardMandateHistory:[],
+      matchdayPolicy:null,
+      matchdayPolicyHistory:[],
       offseason:null,
       offseasonHistory:[],
       transferRoster:[],
@@ -466,6 +504,60 @@
           round:0, careerYear:Number(profile.careerYear || 1), type:'strategy', title:'Plan sezonu', choice:strategy.label, result:strategy.copy,
           budgetDelta, recurringDelta:Number(effect.recurring || 0),
           trustDelta:{ ...(effect.trust || {}) }, areaDelta:{ ...(effect.areas || {}) },
+        }],
+      },
+    };
+  }
+
+  function matchdayPolicyById(id) {
+    return MATCHDAY_POLICIES.find(item => item.id === id) || null;
+  }
+
+  function activeMatchdayPolicy(profile) {
+    return matchdayPolicyById(profile?.matchdayPolicy) || matchdayPolicyById('standard');
+  }
+
+  function canChooseMatchdayPolicy(profile, policyId) {
+    return Boolean(
+      profile &&
+      profile.strategy &&
+      !profile.matchdayPolicy &&
+      matchdayPolicyById(policyId)
+    );
+  }
+
+  function chooseMatchdayPolicy(profile, policyId) {
+    const policy = matchdayPolicyById(policyId);
+    if (!policy || !canChooseMatchdayPolicy(profile, policyId)) {
+      return { ok:false, reason:'unavailable' };
+    }
+    const entry = {
+      careerYear:Number(profile.careerYear || 1),
+      policyId:policy.id,
+      label:policy.label,
+      demandMultiplier:Number(policy.demandMultiplier || 1),
+      yieldMultiplier:Number(policy.yieldMultiplier || 1),
+      operatingCost:Number(policy.operatingCost || 0),
+    };
+    return {
+      ok:true,
+      policy,
+      profile:{
+        ...profile,
+        matchdayPolicy:policy.id,
+        matchdayPolicyHistory:[...(profile.matchdayPolicyHistory || []), entry],
+        trust:applyMap(profile.trust, policy.trust, TRUST_KEYS, normalizedTrust),
+        history:[...(profile.history || []), {
+          round:0,
+          careerYear:Number(profile.careerYear || 1),
+          type:'matchday_policy',
+          title:'Polityka dnia meczowego',
+          choice:policy.label,
+          result:policy.copy,
+          budgetDelta:0,
+          recurringDelta:0,
+          trustDelta:{ ...(policy.trust || {}) },
+          areaDelta:{},
         }],
       },
     };
@@ -960,6 +1052,7 @@
         attendanceHistory:[],
         recentResults:[],
         strategy:null,
+        matchdayPolicy:null,
         boardMandate:null,
         boardMandateHistory:mandateHistory,
         trust:normalizedTrust({ players:55, coach:55, supporters:50, sponsors:50 }),
@@ -1274,6 +1367,7 @@
     const level = competitionByLevel(context.competitionLevel ?? 1).level;
     const capacity = attendanceCapacity(profile, level);
     const supporterBase = supporterBaseValue(profile);
+    const policy = activeMatchdayPolicy(profile);
     if (!home) {
       return {
         home:false,
@@ -1283,6 +1377,10 @@
         occupancy:0,
         matchdayRevenue:-320,
         level,
+        policyId:policy.id,
+        policyLabel:policy.label,
+        unitYield:0,
+        operatingCost:0,
       };
     }
 
@@ -1292,11 +1390,13 @@
     const supporterFactor = .75 + Number(trust.supporters || 50) / 200;
     const communityFactor = .85 + Number(areas.community || 50) / 330;
     const formFactor = 1 + recentFormScore(profile) * .14;
-    const demand = supporterBase * levelMultiplier * supporterFactor * communityFactor * formFactor;
+    const demand = supporterBase * levelMultiplier * supporterFactor * communityFactor * formFactor * Number(policy.demandMultiplier || 1);
     const attendance = Math.max(80, Math.min(capacity, Math.round(demand / 5) * 5));
     const occupancy = capacity ? attendance / capacity : 0;
-    const unitYield = 1.8 + Number(areas.organization || 50) / 100 * 1.2;
-    const matchdayRevenue = Math.round(attendance * unitYield / 10) * 10;
+    const baseUnitYield = 1.8 + Number(areas.organization || 50) / 100 * 1.2;
+    const unitYield = baseUnitYield * Number(policy.yieldMultiplier || 1);
+    const operatingCost = Number(policy.operatingCost || 0);
+    const matchdayRevenue = Math.round((attendance * unitYield - operatingCost) / 10) * 10;
     return {
       home:true,
       attendance,
@@ -1305,6 +1405,10 @@
       occupancy,
       matchdayRevenue,
       level,
+      policyId:policy.id,
+      policyLabel:policy.label,
+      unitYield:Math.round(unitYield * 100) / 100,
+      operatingCost,
     };
   }
 
@@ -1315,6 +1419,7 @@
     delta += Math.round((Number(areas.community || 50) - 50) / 25);
     if (attendance?.home && Number(attendance.occupancy || 0) >= .75) delta += 2;
     if (attendance?.home && Number(attendance.occupancy || 0) < .35) delta -= 1;
+    if (attendance?.home) delta += Number(activeMatchdayPolicy(profile)?.supporterGrowth || 0);
     return Math.round(clamp(delta, -8, 10));
   }
 
@@ -1331,7 +1436,7 @@
       {
         category:'matchday',
         label:home
-          ? 'Mecz domowy · frekwencja gry ' + attendance.attendance + '/' + attendance.capacity
+          ? 'Mecz domowy · frekwencja gry ' + attendance.attendance + '/' + attendance.capacity + ' · ' + attendance.policyLabel
           : 'Transport na wyjazd',
         amount:attendance.matchdayRevenue,
       },
@@ -1374,6 +1479,8 @@
       supporterBaseDelta:baseDelta,
       result:context.result || null,
       competitionLevel:Number(context.competitionLevel ?? 1),
+      policyId:breakdown.attendance?.policyId || activeMatchdayPolicy(profile).id,
+      policyLabel:breakdown.attendance?.policyLabel || activeMatchdayPolicy(profile).label,
     };
     return {
       ...profile,
@@ -2632,6 +2739,7 @@
       ...developed,
       careerYear:nextCareerYear,
       strategy:null,
+      matchdayPolicy:null,
       offseason:null,
       order:shuffle(DECISIONS.map(item => item.id), random),
       usedIds:[],
@@ -2681,8 +2789,10 @@
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, BOARD_MANDATES, UPGRADE_META, OFFSEASON_PLANS, CONTRACT_TEMPLATES, COMPETITIONS, COMPETITION_REQUIREMENTS, FINANCE_CATEGORIES, DECISIONS,
-    initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, BOARD_MANDATES, MATCHDAY_POLICIES, UPGRADE_META, OFFSEASON_PLANS, CONTRACT_TEMPLATES, COMPETITIONS, COMPETITION_REQUIREMENTS, FINANCE_CATEGORIES, DECISIONS,
+    initialState, strategyById, chooseStrategy,
+    matchdayPolicyById, activeMatchdayPolicy, canChooseMatchdayPolicy, chooseMatchdayPolicy,
+    upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardMandateTemplateById, canChooseBoardMandate, chooseBoardMandate, boardMandateProgress,
     boardMandateConfidenceModifier, settleBoardMandateSeason,
     boardTargetPosition, boardConfidence, boardLabel,
