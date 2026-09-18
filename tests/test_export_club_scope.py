@@ -30,3 +30,20 @@ def test_export_adds_club_scope(tmp_path: Path):
     assert set(match["clubs"]) == {canonical, "TEMPO"}
     player = next(q for q in payload["questions"] if q["type"] == "player_season_goals")
     assert player["clubs"] == [canonical]
+
+
+def test_export_excludes_numeric_club_from_metadata(tmp_path: Path):
+    db = tmp_path / "q.db"
+    out = tmp_path / "questions.json"
+    init_db(db)
+    with connect(db) as conn:
+        source_id = upsert_source(conn, "lnp", "https://example.test/lnp", "fixture")
+        save_matches(conn, [
+            MatchRecord("2025/26", 1, "12", "CLAVIA", 0, 3, confidence=1.0),
+        ], source_id)
+        save_questions(conn, generate_all(conn, 0.8))
+        export_questions(conn, out, 0.8)
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert "12" not in payload["clubs"]
+    assert "Clavia Świątniki Górne" in payload["clubs"]
