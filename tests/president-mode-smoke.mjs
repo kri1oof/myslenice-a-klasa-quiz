@@ -24,6 +24,9 @@ const initial = core.initialState(26, () => 0.42);
 assert.equal(initial.budget, 12000);
 assert.equal(initial.recurring, 0);
 assert.deepEqual(initial.financeLedger, []);
+assert.equal(initial.supporterBase, 220);
+assert.deepEqual(initial.attendanceHistory, []);
+assert.deepEqual(initial.recentResults, []);
 assert.equal(initial.reputation, 40);
 assert.deepEqual(initial.reputationHistory, []);
 assert.equal(core.reputationScore(initial), 40);
@@ -146,28 +149,59 @@ assert.ok(core.adjustedClubStrength(65, healthy) > 65);
 assert.ok(core.adjustedClubStrength(65, struggling) < 65);
 
 const sponsorProfile = applied.profile;
-const homeBreakdown = core.roundFinanceBreakdown(sponsorProfile, { venue:'DOM', result:'W' });
+const baseAttendance = core.estimateAttendance(sponsorProfile, { venue:'DOM', competitionLevel:1 });
+assert.equal(baseAttendance.home, true);
+assert.ok(baseAttendance.attendance >= 80);
+assert.ok(baseAttendance.attendance <= baseAttendance.capacity);
+assert.ok(baseAttendance.matchdayRevenue > 0);
+const strongerSupport = {
+  ...sponsorProfile,
+  supporterBase:450,
+  recentResults:['W','W','W','D','W'],
+  trust:{ ...sponsorProfile.trust, supporters:80 },
+  areas:{ ...sponsorProfile.areas, community:80, facilities:75, organization:75 },
+};
+const strongerAttendance = core.estimateAttendance(strongerSupport, { venue:'DOM', competitionLevel:2 });
+assert.ok(strongerAttendance.attendance > baseAttendance.attendance);
+assert.ok(core.attendanceCapacity(strongerSupport, 2) > core.attendanceCapacity(sponsorProfile, 1));
+assert.ok(core.supporterBaseDelta(strongerSupport, { result:'W' }, strongerAttendance) > 0);
+const awayAttendance = core.estimateAttendance(sponsorProfile, { venue:'WYJAZD', competitionLevel:1 });
+assert.equal(awayAttendance.attendance, 0);
+assert.equal(awayAttendance.matchdayRevenue, -320);
+
+const homeBreakdown = core.roundFinanceBreakdown(sponsorProfile, { venue:'DOM', result:'W', competitionLevel:1 });
 assert.equal(homeBreakdown.total, core.roundFinance(sponsorProfile, { venue:'DOM', result:'W' }));
 assert.ok(homeBreakdown.rows.some(row => row.category === 'matchday'));
 assert.ok(homeBreakdown.rows.some(row => row.category === 'contracts'));
-const homeWinFinance = core.roundFinance(sponsorProfile, { venue:'DOM', result:'W' });
-const awayLossFinance = core.roundFinance(sponsorProfile, { venue:'WYJAZD', result:'L' });
+const homeWinFinance = core.roundFinance(sponsorProfile, { venue:'DOM', result:'W', competitionLevel:1 });
+const awayLossFinance = core.roundFinance(sponsorProfile, { venue:'WYJAZD', result:'L', competitionLevel:1 });
 assert.ok(homeWinFinance > awayLossFinance, 'home/win background economics should differ from away/loss');
 
 const afterWin = core.applyPostRound(sponsorProfile, {
-  venue:'DOM', result:'W', match:{ home:'A', away:'B', homeGoals:2, awayGoals:1 },
+  venue:'DOM', result:'W', competitionLevel:1, match:{ home:'A', away:'B', homeGoals:2, awayGoals:1 },
 });
 assert.equal(afterWin.roundsCompleted, 1);
 assert.equal(afterWin.lastResult, 'W');
 assert.equal(afterWin.lastMatch.homeGoals, 2);
 assert.equal(afterWin.budget, sponsorProfile.budget + homeWinFinance);
 assert.equal(afterWin.trust.supporters, sponsorProfile.trust.supporters + 2);
+assert.ok(afterWin.supporterBase > sponsorProfile.supporterBase);
+assert.equal(afterWin.attendanceHistory.length, 1);
+assert.equal(afterWin.attendanceHistory[0].home, true);
+assert.equal(afterWin.lastAttendance, afterWin.attendanceHistory[0].attendance);
+assert.equal(afterWin.recentResults.at(-1), 'W');
 assert.ok(afterWin.financeLedger.length >= homeBreakdown.rows.filter(row => row.amount !== 0).length);
 const financeSummary = core.financeCategorySummary(afterWin, afterWin.careerYear);
 assert.equal(
   Object.values(financeSummary).reduce((sum, value) => sum + value, 0),
   afterWin.financeLedger.filter(entry => entry.careerYear === afterWin.careerYear).reduce((sum, entry) => sum + entry.amount, 0),
 );
+const afterAway = core.applyPostRound(afterWin, {
+  venue:'WYJAZD', result:'L', competitionLevel:1, match:{ home:'B', away:'A', homeGoals:2, awayGoals:0 },
+});
+assert.equal(afterAway.lastAttendance, afterWin.lastAttendance, 'away round must preserve last home attendance');
+assert.equal(afterAway.lastAttendanceCapacity, afterWin.lastAttendanceCapacity);
+assert.equal(afterAway.attendanceHistory.length, 2);
 
 assert.equal(core.averageTrust(initial), 53);
 assert.equal(core.averageAreas(initial), 51);
@@ -256,6 +290,9 @@ const switched = core.acceptJobOffer({
 assert.equal(switched.ok, true);
 assert.equal(switched.profile.budget, offerTerms.budget);
 assert.equal(switched.profile.recurring, 0);
+assert.equal(switched.profile.supporterBase, 250);
+assert.deepEqual(switched.profile.attendanceHistory, []);
+assert.deepEqual(switched.profile.recentResults, []);
 assert.deepEqual(switched.profile.transferRoster, []);
 assert.deepEqual(switched.profile.departedPlayerKeys, []);
 assert.equal(switched.profile.jobSecurity.status, 'secure');
@@ -317,6 +354,8 @@ assert.equal(completed.seasonHistory[0].verdict, 'champion');
 assert.equal(completed.seasonHistory[0].competitionLevel, 1);
 assert.equal(completed.seasonHistory[0].movement.code, 'promotion');
 assert.equal(completed.seasonHistory[0].movement.toLevel, 2);
+assert.equal(completed.seasonHistory[0].supporterBaseDelta, 30);
+assert.equal(completed.supporterBase, strategy.profile.supporterBase + 30);
 assert.ok(completed.reputation > strategy.profile.reputation);
 assert.equal(completed.reputationHistory.length, 1);
 assert.equal(completed.reputationHistory[0].type, 'season');
@@ -531,6 +570,8 @@ assert.equal(nextSeason.careerYear, 2);
 assert.equal(nextSeason.strategy, null);
 assert.equal(nextSeason.budget, closedWindow.profile.budget, 'post-transfer summer budget must carry across seasons');
 assert.equal(nextSeason.recurring, closedWindow.profile.recurring, 'contracts and transfer costs must carry across seasons');
+assert.equal(nextSeason.supporterBase, closedWindow.profile.supporterBase, 'supporter base must carry across seasons');
+assert.deepEqual(nextSeason.recentResults, [], 'short-term form must reset between seasons');
 assert.deepEqual(nextSeason.upgradeLevels, closedWindow.profile.upgradeLevels, 'investments must carry across seasons');
 assert.deepEqual(nextSeason.transferRoster, closedWindow.profile.transferRoster, 'career signings must carry across seasons');
 assert.deepEqual(nextSeason.academyRoster, closedWindow.profile.academyRoster, 'academy graduates must carry across seasons');
@@ -679,6 +720,10 @@ assert.match(runtime, /renderPresidentDismissal/);
 assert.match(runtime, /presidentManagementHubHtml/);
 assert.match(runtime, /financeCategorySummary/);
 assert.match(runtime, /BILANS SEZONU/);
+assert.match(runtime, /BAZA KIBICÓW GRY/);
+assert.match(runtime, /FREKWENCJA GRY/);
+assert.match(runtime, /frekwencja nie jest realną daną klubu/);
+assert.match(runtime, /nie odwzorowują rzeczywistych finansów ani widowni klubu/);
 assert.match(runtime, /Ostatnie operacje/);
 assert.match(runtime, /zarejestrowane przepływy/);
 assert.match(runtime, /bindPresidentManagementTabs/);

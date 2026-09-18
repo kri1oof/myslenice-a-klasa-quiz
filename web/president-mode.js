@@ -490,6 +490,7 @@ function presidentDashboardHtml(profile, career) {
       <div><small>TABELA / CEL</small><strong>${standing.position === "—" ? "—" : standing.position + "."} / TOP ${board.target}</strong><span>${presidentEscape(career.competitionLabel || presidentModeCore.competitionByLevel(career.competitionLevel ?? 1).short)} · ${standing.points} pkt</span></div>
       <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)} · ${presidentModeCore.employmentLabel(profile)}</span></div>
       <div><small>REPUTACJA PREZESA</small><strong>${presidentModeCore.reputationScore(profile)}/100</strong><span>${presidentEscape(presidentModeCore.reputationLabel(presidentModeCore.reputationScore(profile)))}</span></div>
+      <div><small>BAZA KIBICÓW GRY</small><strong>${presidentModeCore.supporterBaseValue(profile)}</strong><span>${profile.lastAttendance ? 'ostatni domowy: ' + Number(profile.lastAttendance) : 'symulowana lokalna baza'}</span></div>
       <div><small>PLAN SEZONU</small><strong>${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : '—'}</strong><span>kondycja ${avgAreas}/100 · zaufanie ${avgTrust}/100</span></div>
     </div>`;
 }
@@ -535,6 +536,8 @@ function presidentFinanceTabHtml(profile) {
         <div><small>STAŁY BILANS</small><strong>${recurring >= 0 ? '+' : ''}${presidentModeCore.money(recurring)}</strong><span>na kolejkę</span></div>
         <div><small>BILANS SEZONU</small><strong>${seasonNet >= 0 ? '+' : ''}${presidentModeCore.money(seasonNet)}</strong><span>zarejestrowane przepływy</span></div>
         <div><small>OSTATNIA KOLEJKA</small><strong>${lastFinance >= 0 ? '+' : ''}${presidentModeCore.money(lastFinance)}</strong><span>mecz + umowy + partnerzy</span></div>
+        <div><small>BAZA KIBICÓW GRY</small><strong>${presidentModeCore.supporterBaseValue(profile)}</strong><span>zmiana po ostatniej kolejce ${Number(profile.lastSupporterBaseDelta || 0) >= 0 ? '+' : ''}${Number(profile.lastSupporterBaseDelta || 0)}</span></div>
+        <div><small>OSTATNI MECZ DOMOWY</small><strong>${profile.lastAttendance ? Number(profile.lastAttendance) : '—'}</strong><span>${profile.lastAttendance ? 'pojemność gry ' + Number(profile.lastAttendanceCapacity || 0) : 'brak domowego meczu w ostatniej kolejce'}</span></div>
       </div>
       <div class="president-finance-categories">${categoryRows}</div>
       ${presidentContractsSummaryHtml(profile)}
@@ -542,7 +545,7 @@ function presidentFinanceTabHtml(profile) {
         <strong>Ostatnie operacje</strong>
         ${ledger.length ? ledger.map(entry => `<div><span><small>${entry.round ? 'kolejka ' + entry.round : 'poza kolejką'} · ${presidentEscape(presidentModeCore.FINANCE_CATEGORIES?.[entry.category] || 'Pozostałe')}</small>${presidentEscape(entry.label)}</span><b class="${Number(entry.amount || 0) < 0 ? 'negative' : 'positive'}">${Number(entry.amount || 0) >= 0 ? '+' : ''}${presidentModeCore.money(entry.amount || 0)}</b></div>`).join('') : '<small>Brak zarejestrowanych przepływów w tym sezonie.</small>'}
       </div>
-      <small class="president-data-note">Wszystkie kwoty są elementem ekonomii gry i nie odwzorowują rzeczywistych finansów klubu.</small>
+      <small class="president-data-note">Wszystkie kwoty, frekwencja i baza kibiców są elementem ekonomii gry i nie odwzorowują rzeczywistych finansów ani widowni klubu.</small>
     </div>`;
 }
 function presidentClubTabHtml(profile, career) {
@@ -698,6 +701,7 @@ function simulatePresidentRound() {
   state.presidentMode = presidentModeCore.applyPostRound(profile, {
     venue,
     result:resultCode,
+    competitionLevel:Number(career.competitionLevel ?? 1),
     match:{ ...match, userGoals, opponentGoals, opponent:careerOpponent(fixture), venue },
   });
   state.presidentMode = presidentModeCore.reviewEmployment(state.presidentMode, {
@@ -762,13 +766,14 @@ function renderPresidentRoundOutcome(context = {}) {
       <div class="president-background-result">
         <span><small>⚽ MECZ W TLE</small><strong>${presidentMatchScore(context)}</strong><em>${presidentResultLabel(context.resultCode)} · bez udziału gracza</em></span>
         <span><small>PO KOLEJCE</small><strong>${position}. miejsce · ${points} pkt</strong><em>wpływ długofalowego zarządzania na siłę drużyny: ${management >= 0 ? '+' : ''}${management.toFixed(1)}</em></span>
+        ${String(context.venue || '').toUpperCase() === 'DOM' ? `<span class="president-attendance-result"><small>👥 FREKWENCJA GRY</small><strong>${Number(profile.lastAttendance || 0)} / ${Number(profile.lastAttendanceCapacity || 0)}</strong><em>baza kibiców ${presidentModeCore.supporterBaseValue(profile)} · zmiana ${Number(profile.lastSupporterBaseDelta || 0) >= 0 ? '+' : ''}${Number(profile.lastSupporterBaseDelta || 0)}</em></span>` : ''}
       </div>
       <div class="president-decision-result">
         <strong>${decision ? `${presidentEscape(decision.title)} → ${presidentEscape(decision.choice)}` : 'Decyzja klubowa zakończona'}</strong>
         <span>${decision ? presidentEscape(decision.result) : ''}</span>
       </div>
       <div class="president-finance-result ${finance < 0 ? 'negative' : 'positive'}">
-        <span>Bilans tej kolejki</span><strong>${finance >= 0 ? '+' : ''}${presidentModeCore.money(finance)}</strong><small>obejmuje stałe umowy, organizację oraz automatyczne przychody/koszty związane z kolejką</small>
+        <span>Bilans tej kolejki</span><strong>${finance >= 0 ? '+' : ''}${presidentModeCore.money(finance)}</strong><small>obejmuje stałe umowy, organizację oraz symulowane przychody dnia meczowego; frekwencja nie jest realną daną klubu</small>
       </div>
       <details class="president-table-details"><summary><span><strong>📊 Tabela ligi</strong><small>${position}. miejsce · ${points} pkt</small></span><em>Pokaż</em></summary>${typeof renderCareerTableHtml === 'function' ? renderCareerTableHtml() : ''}</details>
       <button type="button" class="president-next-round">Następna sprawa prezesa →</button>
