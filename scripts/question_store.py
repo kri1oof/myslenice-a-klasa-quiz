@@ -156,7 +156,7 @@ def write_question_store(
         "schema_version": 1,
         "version": int(payload.get("version") or 1),
         "count": len(questions),
-        "clubs": dict(payload.get("clubs") or {}),
+        "clubs": clean_clubs,
         "seasons": seasons,
         "season_counts": season_counts,
         "types": types,
