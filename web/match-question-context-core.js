@@ -64,6 +64,18 @@
       };
     }
 
+    if (ctx.minute >= 80 || /late_drama|late|stoppage/.test(text)) {
+      return {
+        id:'late_game',
+        label:'Końcówka · wyniki i późne gole',
+        categories:{ mecze:26, rekordy:16, terminarz:10, zawodnicy:10 },
+        patterns:[
+          [/match_score|match_winner|scorer_minute|goal_minute|late|comeback/, 30],
+          [/h2h|streak|round|weekday|date/, 14],
+        ],
+      };
+    }
+
     if (/shot|box_chance|clear_chance|finish|danger_block|danger_shape|danger_tackle/.test(text)) {
       return {
         id:'finish',
@@ -84,18 +96,6 @@
         patterns:[
           [/match_card|card|captain|starting_xi|bench/, 26],
           [/player_match|match_player|shirt_number/, 16],
-        ],
-      };
-    }
-
-    if (ctx.minute >= 80 || /late_drama|late|stoppage/.test(text)) {
-      return {
-        id:'late_game',
-        label:'Końcówka · wyniki i późne gole',
-        categories:{ mecze:26, rekordy:16, terminarz:10, zawodnicy:10 },
-        patterns:[
-          [/match_score|match_winner|scorer_minute|goal_minute|late|comeback/, 30],
-          [/h2h|streak|round|weekday|date/, 14],
         ],
       };
     }
