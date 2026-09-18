@@ -2522,6 +2522,39 @@
   color:#6b21a8;
 }
 
+
+.president-commercial-value {
+  margin:10px 12px 0;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+}
+.president-commercial-value > span {
+  padding:9px 10px;
+  border:1px solid #bae6fd;
+  border-radius:10px;
+  background:#f0f9ff;
+}
+.president-commercial-value small,
+.president-commercial-value strong { display:block; }
+.president-commercial-value small {
+  color:#0369a1;
+  font-size:.55rem;
+  font-weight:900;
+  letter-spacing:.045em;
+}
+.president-commercial-value strong {
+  margin-top:2px;
+  color:#0c4a6e;
+  font-size:.69rem;
+}
+.president-sponsor-valuation {
+  display:block;
+  color:#64748b;
+  font-size:.62rem;
+  line-height:1.35;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -2539,6 +2572,7 @@
   .president-job-offers { grid-template-columns: 1fr; }
   .president-reputation-market { grid-template-columns:1fr; }
   .president-sponsor-offers { grid-template-columns:1fr; }
+  .president-commercial-value { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .president-mandate-options { grid-template-columns:1fr; }
   .president-academy-grid { grid-template-columns:1fr; }
   .president-readiness-options { grid-template-columns:1fr; }
@@ -2601,6 +2635,7 @@
 }
 
 @media (max-width: 440px) {
+  .president-commercial-value { grid-template-columns:1fr; }
   .president-finance-categories { grid-template-columns:1fr; }
   .president-contract-row,
   .president-contract-summary-head { align-items:flex-start; flex-direction:column; }

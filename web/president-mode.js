@@ -517,6 +517,7 @@ function presidentContractsSummaryHtml(profile) {
 
 function presidentFinanceTabHtml(profile) {
   const recurring = Number(profile?.recurring || 0);
+  const commercial = presidentModeCore.commercialValue(profile);
   const lastFinance = Number(profile?.lastFinance || 0);
   const year = Number(profile?.careerYear || 1);
   const summary = presidentModeCore.financeCategorySummary(profile, year);
@@ -538,6 +539,7 @@ function presidentFinanceTabHtml(profile) {
         <div><small>OSTATNIA KOLEJKA</small><strong>${lastFinance >= 0 ? '+' : ''}${presidentModeCore.money(lastFinance)}</strong><span>mecz + umowy + partnerzy</span></div>
         <div><small>BAZA KIBICÓW GRY</small><strong>${presidentModeCore.supporterBaseValue(profile)}</strong><span>zmiana po ostatniej kolejce ${Number(profile.lastSupporterBaseDelta || 0) >= 0 ? '+' : ''}${Number(profile.lastSupporterBaseDelta || 0)}</span></div>
         <div><small>OSTATNI MECZ DOMOWY</small><strong>${profile.lastAttendance ? Number(profile.lastAttendance) : '—'}</strong><span>${profile.lastAttendance ? 'pojemność gry ' + Number(profile.lastAttendanceCapacity || 0) : 'brak domowego meczu w ostatniej kolejce'}</span></div>
+        <div><small>WARTOŚĆ KOMERCYJNA GRY</small><strong>${commercial.score}/100</strong><span>${presidentEscape(commercial.label)} · mnożnik ofert ×${commercial.multiplier.toFixed(2)}</span></div>
       </div>
       <div class="president-finance-categories">${categoryRows}</div>
       ${presidentContractsSummaryHtml(profile)}
@@ -1222,7 +1224,8 @@ function presidentSponsorContractsHtml(profile) {
   if (!profile?.offseason?.planId || !profile.offseason.competitionReadinessResolved) return '';
   const resolved = Boolean(profile.offseason.sponsorDecisionResolved);
   const active = profile.contracts || [];
-  const available = presidentModeCore.availableContractTemplates(profile);
+  const available = presidentModeCore.availableContractOffers(profile);
+  const commercial = presidentModeCore.commercialValue(profile);
 
   if (resolved) {
     return `
@@ -1240,7 +1243,13 @@ function presidentSponsorContractsHtml(profile) {
         <span><small>UMOWY WIELOSEZONOWE · MECHANIKA GRY</small><strong>Wybierz jednego partnera albo pozostaw wolne miejsce</strong></span>
         <em>${active.length}/2 aktywne</em>
       </div>
-      <p class="president-sponsor-note">Pakiety są fikcyjne i nie opisują żadnych realnych firm ani sponsorów. Warunki są oceniane po każdym sezonie.</p>
+      <p class="president-sponsor-note">Pakiety są fikcyjne i nie opisują żadnych realnych firm ani sponsorów. Kwoty zależą od <strong>symulowanej wartości komercyjnej klubu</strong>: ligi, bazy kibiców, frekwencji, relacji ze sponsorami i reputacji prezesa.</p>
+      <div class="president-commercial-value">
+        <span><small>WARTOŚĆ KOMERCYJNA GRY</small><strong>${commercial.score}/100 · ${presidentEscape(commercial.label)}</strong></span>
+        <span><small>ŚREDNIA FREKWENCJA GRY</small><strong>${commercial.attendance}</strong></span>
+        <span><small>BAZA KIBICÓW GRY</small><strong>${commercial.supporterBase}</strong></span>
+        <span><small>MNOŻNIK OFERT</small><strong>×${commercial.multiplier.toFixed(2)}</strong></span>
+      </div>
       ${active.length ? presidentContractsSummaryHtml(profile) : ''}
       <div class="president-sponsor-offers">
         ${available.map(template => `
@@ -1253,6 +1262,7 @@ function presidentSponsorContractsHtml(profile) {
               <span><small>CZAS</small><b>${template.duration} sez.</b></span>
               <span><small>WARUNEK</small><b>${template.condition?.label ? presidentEscape(template.condition.label) : 'brak'}</b></span>
             </div>
+            <small class="president-sponsor-valuation">Stawka podpisywana przy wartości komercyjnej ${template.commercialScore}/100; po podpisaniu nie zmienia się w trakcie umowy.</small>
             <button type="button" data-sponsor-contract="${template.id}">Podpisz umowę</button>
           </article>`).join('')}
       </div>
