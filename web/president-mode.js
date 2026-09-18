@@ -157,6 +157,29 @@ function presidentSquadProfiles(career) {
     );
 }
 
+function presidentCareerDevelopmentText(item) {
+  const seasons = Number(item?.careerSeasons || 0);
+  const delta = Number(item?.lastDevelopmentDelta || 0);
+  const age = Number(item?.careerAge || item?.age || 0);
+  const parts = [];
+  if (age > 0) parts.push('wiek kariery ' + age);
+  if (seasons > 0) parts.push(seasons + (seasons === 1 ? ' pełny sezon' : ' pełne sezony'));
+  if (seasons > 0) parts.push('ostatni rozwój ' + (delta > 0 ? '↑ +' + delta : delta < 0 ? '↓ ' + delta : '→ 0'));
+  return parts.join(' · ');
+}
+
+function presidentLatestDevelopmentHtml(profile) {
+  const latest = [...(profile?.playerDevelopmentHistory || [])].at(-1);
+  if (!latest?.changes?.length) return '';
+  const improved = latest.changes.filter(item => Number(item.delta || 0) > 0).length;
+  const declined = latest.changes.filter(item => Number(item.delta || 0) < 0).length;
+  const stable = latest.changes.length - improved - declined;
+  return `<div class="president-development-summary">
+    <span><small>📈 ROZWÓJ KADRY PRZED SEZONEM ${latest.targetCareerYear}</small><strong>${latest.changes.length} zawodników ocenionych w warstwie kariery</strong></span>
+    <div><b>↑ ${improved}</b><b>→ ${stable}</b><b>↓ ${declined}</b></div>
+  </div>`;
+}
+
 function presidentSquadHtml(career) {
   const players = presidentSquadProfiles(career);
   const academyPlayers = state.presidentMode?.academyRoster || [];
@@ -166,16 +189,22 @@ function presidentSquadHtml(career) {
     return `<div class="president-squad-player"><span><strong>${presidentEscape(player.player)}</strong><small>${presidentEscape(player.archetype || 'Zawodnik')} · ${Number(stats.appearances || 0)} mecz. · ${Number(stats.goals || 0)} goli · profil ŁNP</small></span><b>${rating || '—'}</b></div>`;
   }).join('');
   const currentKeys = new Set(players.map(player => presidentStablePlayerKey(player)));
-  const careerSignings = (state.presidentMode?.transferRoster || []).map(item => `
+  const careerSignings = (state.presidentMode?.transferRoster || []).map(item => {
+    const development = presidentCareerDevelopmentText(item);
+    return `
     <div class="president-squad-player president-career-signing">
-      <span><strong>${presidentEscape(item.player)}</strong><small>Wzmocnienie kariery · z ${presidentEscape(item.sourceClub || 'innego klubu')} · profil ŁNP ${presidentEscape(item.sourceSeason || '')}</small></span>
+      <span><strong>${presidentEscape(item.player)}</strong><small>Wzmocnienie kariery · źródło ŁNP: ${presidentEscape(item.sourceClub || 'inny klub')} / ${presidentEscape(item.sourceSeason || '')}${development ? ' · ' + presidentEscape(development) : ''}</small></span>
       <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
-    </div>`).join('');
-  const careerAcademy = academyPlayers.map(item => `
+    </div>`;
+  }).join('');
+  const careerAcademy = academyPlayers.map(item => {
+    const development = presidentCareerDevelopmentText(item);
+    return `
     <div class="president-squad-player president-career-academy">
-      <span><strong>${presidentEscape(item.player)}</strong><small>🌱 Fikcyjny wychowanek kariery · ${presidentEscape(item.role || item.archetype || 'Zawodnik')} · wiek ${Number(item.age || 0)} · potencjał ${Number(item?.ratings?.potential || 0) || '—'}</small></span>
+      <span><strong>${presidentEscape(item.player)}</strong><small>🌱 Fikcyjny wychowanek kariery · ${presidentEscape(item.role || item.archetype || 'Zawodnik')} · potencjał ${Number(item?.ratings?.potential || 0) || '—'}${development ? ' · ' + presidentEscape(development) : ''}</small></span>
       <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const careerRetentions = (state.presidentMode?.departureHistory || [])
     .filter(item => item.outcome === 'retain' && !currentKeys.has(item.playerKey))
     .filter((item, index, list) => list.findIndex(other => other.playerKey === item.playerKey) === index)
@@ -197,7 +226,7 @@ function presidentSquadHtml(career) {
   if (players.length) summaryParts.push(`${players.length} profili ŁNP`);
   if (academyPlayers.length) summaryParts.push(`${academyPlayers.length} wychowanków kariery`);
   if (state.presidentMode?.transferRoster?.length) summaryParts.push(`${state.presidentMode.transferRoster.length} transferów kariery`);
-  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra</strong><small>${summaryParts.join(' · ') || 'kadra kariery'}</small></span><em>Pokaż</em></summary><div class="president-squad-list">${careerAcademy}${careerRetentions}${careerSignings}${leaders}</div><small class="president-data-note">${sourceCopy} Decyzje kadrowe gracza tworzą alternatywną historię tej kariery.</small></details>`;
+  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra</strong><small>${summaryParts.join(' · ') || 'kadra kariery'}</small></span><em>Pokaż</em></summary>${presidentLatestDevelopmentHtml(state.presidentMode)}<div class="president-squad-list">${careerAcademy}${careerRetentions}${careerSignings}${leaders}</div><small class="president-data-note">${sourceCopy} Rozwój ocen między sezonami dotyczy wyłącznie alternatywnej warstwy kariery i nie zmienia danych ŁNP.</small></details>`;
 }
 
 function presidentEmploymentHtml(profile, career) {

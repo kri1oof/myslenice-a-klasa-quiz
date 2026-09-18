@@ -373,6 +373,7 @@
       transferHistory:[],
       academyRoster:[],
       academyHistory:[],
+      playerDevelopmentHistory:[],
       readinessHistory:[],
       departedPlayerKeys:[],
       departureHistory:[],
@@ -1552,6 +1553,14 @@
   function signTransfer(profile, candidate) {
     if (!canSignTransfer(profile, candidate)) return { ok:false, reason:'unavailable' };
     const terms = transferGameTerms(candidate);
+    const sourceRating = clamp(Number(candidate?.ratings?.game_rating || 60), 35, 95);
+    const sourceAge = Number(candidate?.age || candidate?.stats?.age || 0) || null;
+    const careerPotential = Math.round(clamp(
+      Number(candidate?.ratings?.potential || 0) ||
+        sourceRating + (sourceAge && sourceAge <= 22 ? 10 : sourceAge && sourceAge <= 26 ? 6 : 3),
+      sourceRating,
+      95,
+    ));
     const entry = {
       id:candidate.id,
       playerKey:candidate.playerKey || candidate.id,
@@ -1560,8 +1569,12 @@
       sourceSeason:candidate.season || null,
       archetype:candidate.archetype || null,
       stats:{ ...(candidate.stats || {}) },
-      ratings:{ ...(candidate.ratings || {}) },
+      sourceGameRating:sourceRating,
+      careerAge:sourceAge,
+      ratings:{ ...(candidate.ratings || {}), game_rating:sourceRating, potential:careerPotential },
       careerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+      careerSeasons:0,
+      lastDevelopmentDelta:0,
       fee:terms.fee,
       recurring:terms.recurring,
       squadGain:terms.squadGain,
@@ -1697,11 +1710,122 @@
     };
   }
 
-  function prepareNextSeason(profile, totalRounds = 0, random = Math.random) {
+  function careerPlayerDevelopmentDelta(player, profile, kind = 'transfer') {
+    const rating = clamp(Number(player?.ratings?.game_rating || 60), 35, 95);
+    const potential = clamp(Number(player?.ratings?.potential || rating), rating, 95);
+    const ageValue = Number(player?.careerAge ?? player?.age ?? 0);
+    const age = Number.isFinite(ageValue) && ageValue > 0 ? ageValue : null;
+    const staff = Number(profile?.areas?.staff || 50);
+    const academy = Number(profile?.areas?.academy || 50);
+    const headroom = Math.max(0, potential - rating);
+    let delta = 0;
+
+    if (age === null) {
+      if (headroom > 0 && staff >= 70) delta = 1;
+    } else if (age <= 21) {
+      delta = headroom > 0 ? 1 : 0;
+      if (headroom >= 2 && staff >= 60) delta += 1;
+      if (kind === 'academy' && headroom >= 3 && academy >= 65) delta += 1;
+    } else if (age <= 24) {
+      delta = headroom > 0 ? 1 : 0;
+      if (headroom >= 3 && staff >= 72) delta += 1;
+    } else if (age <= 29) {
+      delta = headroom >= 2 && staff >= 72 ? 1 : 0;
+    } else if (age <= 32) {
+      delta = staff >= 70 ? 0 : -1;
+    } else {
+      delta = staff >= 72 ? -1 : -2;
+    }
+
+    if (delta > 0) delta = Math.min(delta, headroom, 3);
+    return Math.round(clamp(delta, -3, 3));
+  }
+
+  function developCareerPlayer(player, profile, kind, targetCareerYear) {
+    const currentCareerYear = Number(profile?.careerYear || 1);
+    const joinedYear = Number(
+      kind === 'academy'
+        ? player?.promotedCareerYear ?? currentCareerYear
+        : player?.careerYear ?? currentCareerYear,
+    );
+    const ageValue = Number(player?.careerAge ?? player?.age ?? 0);
+    const age = Number.isFinite(ageValue) && ageValue > 0 ? ageValue : null;
+
+    // A player signed/promoted in the just-finished offseason has not spent a full season
+    // in this alternate career yet, so do not award development immediately.
+    if (joinedYear >= currentCareerYear) {
+      return { player:{ ...player }, change:null };
+    }
+
+    const before = clamp(Number(player?.ratings?.game_rating || 60), 35, 95);
+    const delta = careerPlayerDevelopmentDelta(player, profile, kind);
+    const after = clamp(before + delta, 35, 95);
+    const updated = {
+      ...player,
+      age:kind === 'academy' && age !== null ? age + 1 : player?.age,
+      careerAge:age !== null ? age + 1 : null,
+      careerSeasons:Number(player?.careerSeasons || 0) + 1,
+      lastDevelopmentDelta:delta,
+      ratings:{ ...(player?.ratings || {}), game_rating:after },
+    };
+    return {
+      player:updated,
+      change:{
+        id:player?.id || player?.playerKey || player?.player,
+        player:player?.player || 'Zawodnik',
+        kind,
+        targetCareerYear:Number(targetCareerYear || currentCareerYear + 1),
+        ageBefore:age,
+        ageAfter:updated.careerAge,
+        ratingBefore:before,
+        ratingAfter:after,
+        delta,
+        potential:Number(updated?.ratings?.potential || after),
+      },
+    };
+  }
+
+  function developCareerSquad(profile, targetCareerYear = null) {
     if (!profile) return null;
+    const nextYear = Number(targetCareerYear || Number(profile.careerYear || 1) + 1);
+    if ((profile.playerDevelopmentHistory || []).some(item => Number(item.targetCareerYear) === nextYear)) {
+      return profile;
+    }
+
+    const academyChanges = (profile.academyRoster || []).map(player =>
+      developCareerPlayer(player, profile, 'academy', nextYear)
+    );
+    const transferChanges = (profile.transferRoster || []).map(player =>
+      developCareerPlayer(player, profile, 'transfer', nextYear)
+    );
+    const changes = [...academyChanges, ...transferChanges]
+      .map(item => item.change)
+      .filter(Boolean);
+    const totalDelta = changes.reduce((sum, item) => sum + Number(item.delta || 0), 0);
+    const squadDelta = Math.round(clamp(totalDelta / 2, -3, 3));
+
     return {
       ...profile,
-      careerYear:Number(profile.careerYear || 1) + 1,
+      academyRoster:academyChanges.map(item => item.player),
+      transferRoster:transferChanges.map(item => item.player),
+      areas:applyMap(profile.areas, { squad:squadDelta }, AREA_KEYS, normalizedAreas),
+      playerDevelopmentHistory:[...(profile.playerDevelopmentHistory || []), {
+        targetCareerYear:nextYear,
+        staff:Number(profile?.areas?.staff || 0),
+        academy:Number(profile?.areas?.academy || 0),
+        squadDelta,
+        changes,
+      }],
+    };
+  }
+
+  function prepareNextSeason(profile, totalRounds = 0, random = Math.random) {
+    if (!profile) return null;
+    const nextCareerYear = Number(profile.careerYear || 1) + 1;
+    const developed = developCareerSquad(profile, nextCareerYear);
+    return {
+      ...developed,
+      careerYear:nextCareerYear,
       strategy:null,
       offseason:null,
       order:shuffle(DECISIONS.map(item => item.id), random),
@@ -1765,7 +1889,7 @@
     departureGameTerms, canResolveDeparture, resolveDeparture,
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
     competitionByLevel, competitionMovement, competitionMovementLabel,
-    seasonVerdict, completeSeason, prepareNextSeason,
+    seasonVerdict, completeSeason, careerPlayerDevelopmentDelta, developCareerPlayer, developCareerSquad, prepareNextSeason,
     decisionById, decisionRelevance, decisionTrigger, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
     financeEntry, financeCategorySummary, roundFinanceBreakdown, roundFinance, applyPostRound, applyPostMatch:applyPostRound,
