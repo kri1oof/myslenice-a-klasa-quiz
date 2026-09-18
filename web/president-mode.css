@@ -2555,6 +2555,110 @@
   line-height:1.35;
 }
 
+
+.president-matchday-policy-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+.president-matchday-policy-option {
+  min-height:250px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:stretch;
+  text-align:left;
+  border:1px solid #cbd5e1;
+  border-radius:14px;
+  background:#fff;
+  color:#111827;
+  cursor:pointer;
+}
+.president-matchday-policy-option:hover {
+  border-color:#0ea5e9;
+  background:#f0f9ff;
+}
+.president-matchday-policy-icon {
+  font-size:1.8rem;
+  line-height:1;
+}
+.president-matchday-policy-option > strong {
+  color:#0f172a;
+  font-size:.95rem;
+}
+.president-matchday-policy-option > p {
+  margin:0;
+  flex:1;
+  color:#64748b;
+  font-size:.72rem;
+  line-height:1.45;
+}
+.president-matchday-policy-option > div {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:5px;
+}
+.president-matchday-policy-option > div > span {
+  padding:7px;
+  border-radius:9px;
+  background:#f8fafc;
+}
+.president-matchday-policy-option small,
+.president-matchday-policy-option b { display:block; }
+.president-matchday-policy-option > div small {
+  color:#94a3b8;
+  font-size:.49rem;
+  font-weight:900;
+}
+.president-matchday-policy-option > div b {
+  margin-top:2px;
+  color:#0f172a;
+  font-size:.67rem;
+}
+.president-matchday-policy-option > small {
+  color:#475569;
+  font-size:.64rem;
+  font-weight:800;
+}
+.president-matchday-policy-summary {
+  margin-top:10px;
+  padding:11px 12px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  border:1px solid #bae6fd;
+  border-radius:12px;
+  background:#f0f9ff;
+}
+.president-matchday-policy-summary > span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.president-matchday-policy-summary small {
+  color:#0369a1;
+  font-size:.58rem;
+  font-weight:900;
+  letter-spacing:.045em;
+}
+.president-matchday-policy-summary strong { color:#0c4a6e; }
+.president-matchday-policy-summary > div {
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.president-matchday-policy-summary b {
+  padding:5px 7px;
+  border-radius:8px;
+  background:#fff;
+  color:#334155;
+  font-size:.63rem;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -2574,6 +2678,7 @@
   .president-sponsor-offers { grid-template-columns:1fr; }
   .president-commercial-value { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .president-mandate-options { grid-template-columns:1fr; }
+  .president-matchday-policy-grid { grid-template-columns:1fr; }
   .president-academy-grid { grid-template-columns:1fr; }
   .president-readiness-options { grid-template-columns:1fr; }
   .president-player-contract-terms { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -2588,6 +2693,7 @@
 
 @media (max-width: 700px) {
   .president-development-summary { align-items:flex-start; flex-direction:column; }
+  .president-matchday-policy-summary { align-items:flex-start; flex-direction:column; }
   .president-mandate-select-head,
   .president-mandate-active-head,
   .president-mandate-detail,
@@ -2636,6 +2742,7 @@
 
 @media (max-width: 440px) {
   .president-commercial-value { grid-template-columns:1fr; }
+  .president-matchday-policy-option > div { grid-template-columns:1fr; }
   .president-finance-categories { grid-template-columns:1fr; }
   .president-contract-row,
   .president-contract-summary-head { align-items:flex-start; flex-direction:column; }
