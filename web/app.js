@@ -206,8 +206,10 @@ function seasonStartYear(label) {
 }
 
 function refreshSeasonOptions() {
+  const lnpSeasons = Array.isArray(state.questionIndex?.lnp_seasons) ? state.questionIndex.lnp_seasons : [];
   const indexedSeasons = Array.isArray(state.questionIndex?.seasons) ? state.questionIndex.seasons : [];
-  state.seasons = [...new Set((indexedSeasons.length ? indexedSeasons : state.all.map(q => q.season))
+  const sourceSeasons = lnpSeasons.length ? lnpSeasons : (indexedSeasons.length ? indexedSeasons : state.all.map(q => q.season));
+  state.seasons = [...new Set(sourceSeasons
     .filter(season => seasonStartYear(season) !== null))]
     .sort((a, b) => seasonStartYear(a) - seasonStartYear(b));
   const html = state.seasons.map(season => `<option value="${season}">${season}</option>`).join('');
@@ -241,7 +243,7 @@ function questionMatchesScope(q) {
 
 function questionMatchesSeason(q) {
   const mode = el('season-mode').value;
-  if (mode === 'all') return true;
+  if (mode === 'all') return !q.season || state.seasons.includes(q.season);
   if (!q.season) return false;
   const from = el('season-from').value;
   if (mode === 'single') return q.season === from;
@@ -281,7 +283,9 @@ function selectedSeasonSet() {
 function questionFilesForSelection() {
   const files = Array.isArray(state.questionIndex?.files) ? state.questionIndex.files : [];
   const seasons = selectedSeasonSet();
-  if (seasons === null) return files;
+  if (seasons === null) {
+    return files.filter(entry => !entry.season || state.seasons.includes(entry.season));
+  }
   return files.filter(entry => entry.season && seasons.has(entry.season));
 }
 

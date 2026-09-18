@@ -17,6 +17,7 @@ def test_merge_exports_reads_and_writes_sharded_store(tmp_path):
         "version": 2,
         "count": 3,
         "clubs": {"Clavia": {"crest": "clavia.png"}},
+        "lnp_seasons": ["2022/23", "2026/27"],
         "questions": [
             {
                 "id": "old-1",
@@ -97,6 +98,7 @@ def test_merge_exports_reads_and_writes_sharded_store(tmp_path):
     assert (total, added, upgraded) == (4, 1, 1)
     assert merged["version"] == 3
     assert merged["count"] == 4
+    assert merged["lnp_seasons"] == ["2022/23", "2025/26", "2026/27"]
     updated = next(q for q in merged["questions"] if q["question"] == "Jaki wynik?")
     assert updated["answer"] == "2:0"
     assert updated["confidence"] == 1.0

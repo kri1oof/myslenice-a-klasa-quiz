@@ -15,6 +15,7 @@ def _payload():
         "version": 7,
         "count": 7,
         "clubs": {"Clavia": {"crest": "x.png"}},
+        "lnp_seasons": ["2022/23", "2025/26"],
         "questions": [
             {"id": "a1", "season": "2022/23", "type": "match_score", "question": "A"},
             {"id": "a2", "season": "2022/23", "type": "match_score", "question": "B"},
@@ -35,11 +36,13 @@ def test_question_store_round_trip_and_chunking(tmp_path):
     assert loaded["version"] == payload["version"]
     assert loaded["count"] == payload["count"]
     assert loaded["clubs"] == payload["clubs"]
+    assert loaded["lnp_seasons"] == payload["lnp_seasons"]
     assert {q["id"] for q in loaded["questions"]} == {q["id"] for q in payload["questions"]}
 
     meta = json.loads(index.read_text(encoding="utf-8"))
     assert meta["count"] == 7
     assert meta["seasons"] == ["2022/23", "2025/26"]
+    assert meta["lnp_seasons"] == ["2022/23", "2025/26"]
     assert meta["season_counts"] == {"2022/23": 3, "2025/26": 2}
     assert len(meta["files"]) == 4
     assert all(entry["count"] <= 2 for entry in meta["files"])
