@@ -627,17 +627,113 @@
   }
 
   function decisionById(id) { return DECISIONS.find(item => item.id === id) || null; }
+
+  function decisionRelevance(profile, decision) {
+    if (!profile || !decision) return 0;
+    const areas = normalizedAreas(profile.areas);
+    const trust = normalizedTrust(profile.trust);
+    const categoryArea = {
+      staff:'staff', squad:'squad', academy:'academy', facilities:'facilities',
+      organization:'organization', community:'community',
+    };
+    let score = 10;
+    const areaKey = categoryArea[decision.category];
+    if (areaKey) score += Math.max(0, 60 - areas[areaKey]) * 1.25;
+
+    if (decision.category === 'finance') {
+      if (Number(profile.budget || 0) < 2500) score += 42;
+      else if (Number(profile.budget || 0) < 5000) score += 22;
+    }
+    if (decision.category === 'staff') score += Math.max(0, 50 - trust.coach) * .9;
+    if (decision.category === 'squad') score += Math.max(0, 50 - trust.players) * .9;
+    if (decision.category === 'community') {
+      score += Math.max(0, 48 - trust.supporters) * .65;
+    }
+
+    if (decision.id === 'squad_integration') score += Math.max(0, 55 - trust.players) * 1.6;
+    if (['shirt_sponsor','sponsor_delay','club_merch','club_day'].includes(decision.id)) {
+      score += Math.max(0, trust.sponsors - 55) * .7;
+    }
+    if (['club_merch','club_day','school_partnership'].includes(decision.id)) {
+      score += Math.max(0, trust.supporters - 55) * .5;
+    }
+    if (['academy_tournament','new_youth_group','youth_pathway'].includes(decision.id)) {
+      score += Math.max(0, areas.academy - 65) * .6;
+    }
+    if (['pitch_renovation','lights','dressing_room','safety_fence','irrigation'].includes(decision.id)) {
+      score += Math.max(0, 55 - areas.facilities) * .85;
+    }
+    if (['federation_paperwork','registrations','matchday_security','volunteer_network'].includes(decision.id)) {
+      score += Math.max(0, 55 - areas.organization) * .75;
+    }
+
+    const recentCategories = (profile.history || [])
+      .filter(item => item.decisionId)
+      .slice(-2)
+      .map(item => item.category);
+    if (recentCategories.at(-1) === decision.category) score -= 18;
+    if (recentCategories.at(-2) === decision.category) score -= 7;
+    return Math.max(0, Math.round(score * 10) / 10);
+  }
+
+  function decisionTrigger(profile, decision) {
+    if (!profile || !decision) return { score:0, label:'Bieżąca sprawa sezonu.' };
+    const areas = normalizedAreas(profile.areas);
+    const trust = normalizedTrust(profile.trust);
+    if (decision.category === 'finance' && Number(profile.budget || 0) < 5000) {
+      return { score:decisionRelevance(profile, decision), label:'Napięty budżet zwiększa znaczenie spraw finansowych.' };
+    }
+    if (decision.id === 'squad_integration' && trust.players < 50) {
+      return { score:decisionRelevance(profile, decision), label:'Niskie zaufanie szatni zwiększa ryzyko problemów z atmosferą.' };
+    }
+    if (decision.category === 'staff' && trust.coach < 45) {
+      return { score:decisionRelevance(profile, decision), label:'Relacja z trenerem jest słaba, więc sprawy sztabu stają się pilniejsze.' };
+    }
+    if (decision.category === 'facilities' && areas.facilities < 55) {
+      return { score:decisionRelevance(profile, decision), label:'Słaby stan obiektu zwiększa częstotliwość problemów infrastrukturalnych.' };
+    }
+    if (decision.category === 'organization' && areas.organization < 55) {
+      return { score:decisionRelevance(profile, decision), label:'Niska organizacja klubu generuje więcej spraw administracyjnych.' };
+    }
+    if (decision.category === 'academy' && areas.academy < 55) {
+      return { score:decisionRelevance(profile, decision), label:'Akademia wymaga uwagi, więc częściej trafia na biurko prezesa.' };
+    }
+    if (decision.category === 'community' && trust.supporters < 48) {
+      return { score:decisionRelevance(profile, decision), label:'Słabsza relacja z kibicami zwiększa presję na działania lokalne.' };
+    }
+    if (['shirt_sponsor','club_merch','club_day'].includes(decision.id) && trust.sponsors >= 65) {
+      return { score:decisionRelevance(profile, decision), label:'Dobre relacje z partnerami otwierają dodatkowe okazje dla klubu.' };
+    }
+    if (['academy_tournament','new_youth_group','youth_pathway'].includes(decision.id) && areas.academy >= 70) {
+      return { score:decisionRelevance(profile, decision), label:'Mocna akademia tworzy nowe możliwości rozwoju.' };
+    }
+    return { score:decisionRelevance(profile, decision), label:'Sprawa wynika z bieżącego rytmu sezonu i stanu klubu.' };
+  }
+
   function pickDecision(profile, roundIndex = 0) {
     const used = new Set(profile?.usedIds || []);
     const order = Array.isArray(profile?.order) && profile.order.length ? profile.order : DECISIONS.map(item => item.id);
-    const fresh = order.find(id => !used.has(id));
-    if (fresh) return decisionById(fresh);
+    const orderRank = new Map(order.map((id, index) => [id, index]));
+    const freshCandidates = order
+      .filter(id => !used.has(id))
+      .map(id => decisionById(id))
+      .filter(Boolean);
+    if (freshCandidates.length) {
+      return freshCandidates.sort((a, b) =>
+        decisionRelevance(profile, b) - decisionRelevance(profile, a) ||
+        Number(orderRank.get(a.id) ?? 999) - Number(orderRank.get(b.id) ?? 999)
+      )[0] || null;
+    }
+
     const lastUsed = profile?.lastUsedRound || {};
-    const candidates = DECISIONS
-      .map(item => ({ item, last:Number(lastUsed[item.id] ?? -999) }))
-      .sort((a,b) => a.last - b.last || a.item.id.localeCompare(b.item.id));
-    const rested = candidates.find(row => Number(roundIndex) - row.last >= 4);
-    return (rested || candidates[0])?.item || null;
+    const restedCandidates = DECISIONS
+      .filter(item => Number(roundIndex) - Number(lastUsed[item.id] ?? -999) >= 4);
+    const candidates = restedCandidates.length ? restedCandidates : DECISIONS;
+    return [...candidates].sort((a, b) =>
+      decisionRelevance(profile, b) - decisionRelevance(profile, a) ||
+      Number(lastUsed[a.id] ?? -999) - Number(lastUsed[b.id] ?? -999) ||
+      a.id.localeCompare(b.id)
+    )[0] || null;
   }
   function canChoose(profile, selectedChoice) {
     return Number(profile?.budget || 0) + Number(selectedChoice?.effect?.budget || 0) >= 0;
@@ -1287,7 +1383,7 @@
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
     competitionByLevel, competitionMovement, competitionMovementLabel,
     seasonVerdict, completeSeason, prepareNextSeason,
-    decisionById, pickDecision, canChoose, applyChoice,
+    decisionById, decisionRelevance, decisionTrigger, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
     financeEntry, financeCategorySummary, roundFinanceBreakdown, roundFinance, applyPostRound, applyPostMatch:applyPostRound,
     averageTrust, averageAreas, trustLabel, areaLabel, financeLabel, money,
