@@ -74,11 +74,12 @@ jobs:
             --db lnp_history_build.db \
             --lnp-export lnp_history_questions.json \
             --player-export web/data/player-characters.json \
-            --existing web/data/questions.json \
-            --output web/data/questions.json | tee lnp_history_build_summary.txt
+            --existing web/data/questions \
+            --output web/data/questions | tee lnp_history_build_summary.txt
           END_TS=$(date +%s)
           echo "BUILD_SECONDS $((END_TS - START_TS))" | tee -a lnp_history_build_summary.txt
-          cp web/data/questions.json docs/data/questions.json
+          rm -rf docs/data/questions
+          cp -R web/data/questions docs/data/questions
           cp web/data/player-characters.json docs/data/player-characters.json
 
       - name: Validate historical question database
@@ -87,9 +88,13 @@ jobs:
           import json
           from collections import Counter
           from pathlib import Path
+          import sys
+
+          sys.path.insert(0, str(Path('scripts').resolve()))
+          from question_store import load_question_store
 
           raw = json.loads(Path('lnp_myslenice_all.json').read_text(encoding='utf-8'))
-          merged = json.loads(Path('web/data/questions.json').read_text(encoding='utf-8'))
+          merged = load_question_store('web/data/questions')
           lnp = json.loads(Path('lnp_history_questions.json').read_text(encoding='utf-8'))
           chars = json.loads(Path('web/data/player-characters.json').read_text(encoding='utf-8'))
 
@@ -123,7 +128,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add web/data/questions.json docs/data/questions.json web/data/player-characters.json docs/data/player-characters.json
+          git add -A web/data/questions docs/data/questions web/data/player-characters.json docs/data/player-characters.json
           if git diff --cached --quiet; then
             echo 'No historical database changes to commit.'
           else

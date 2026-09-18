@@ -10,6 +10,9 @@ const state = {
   availableCount: 0,
   clubMeta: {},
   seasons: [],
+  questionIndex: null,
+  loadedQuestionFiles: new Set(),
+  loadingQuestionFiles: new Map(),
 };
 
 const el = (id) => document.getElementById(id);
@@ -165,7 +168,8 @@ const categoryLabels = {
 
 function refreshTypeOptions() {
   const select = el('type');
-  const values = [...new Set(state.all.map(q => q.type).filter(Boolean))]
+  const indexedTypes = Array.isArray(state.questionIndex?.types) ? state.questionIndex.types : [];
+  const values = [...new Set((indexedTypes.length ? indexedTypes : state.all.map(q => q.type)).filter(Boolean))]
     .sort((a, b) => labelType(a).localeCompare(labelType(b), 'pl'));
   select.innerHTML = '<option value="all">Wszystkie rodzaje pytań</option>';
   Object.keys(categoryLabels).forEach(category => {
@@ -185,7 +189,10 @@ function refreshTypeOptions() {
 
 function refreshClubOptions() {
   const club = el('club');
-  const clubs = [...new Set(state.all.flatMap(q => Array.isArray(q.clubs) ? q.clubs : []))]
+  const indexedClubs = Object.keys(state.clubMeta || {});
+  const clubs = [...new Set(indexedClubs.length
+    ? indexedClubs
+    : state.all.flatMap(q => Array.isArray(q.clubs) ? q.clubs : []))]
     .filter(Boolean).sort((a, b) => a.localeCompare(b, 'pl'));
   club.innerHTML = clubs.map(name => `<option value="${name}">${name}</option>`).join('');
   el('scope-mode').querySelector('option[value="club"]').disabled = clubs.length === 0;
@@ -198,7 +205,9 @@ function seasonStartYear(label) {
 }
 
 function refreshSeasonOptions() {
-  state.seasons = [...new Set(state.all.map(q => q.season).filter(season => seasonStartYear(season) !== null))]
+  const indexedSeasons = Array.isArray(state.questionIndex?.seasons) ? state.questionIndex.seasons : [];
+  state.seasons = [...new Set((indexedSeasons.length ? indexedSeasons : state.all.map(q => q.season))
+    .filter(season => seasonStartYear(season) !== null))]
     .sort((a, b) => seasonStartYear(a) - seasonStartYear(b));
   const html = state.seasons.map(season => `<option value="${season}">${season}</option>`).join('');
   el('season-from').innerHTML = html;
@@ -252,6 +261,64 @@ function selectedSeasonLabel() {
   const fromIndex = state.seasons.indexOf(from);
   const toIndex = state.seasons.indexOf(to);
   return `sezony ${state.seasons[Math.min(fromIndex, toIndex)]}–${state.seasons[Math.max(fromIndex, toIndex)]}`;
+}
+
+function selectedSeasonSet() {
+  const mode = el('season-mode').value;
+  if (mode === 'all') return null;
+  const from = el('season-from').value;
+  if (mode === 'single') return new Set([from]);
+  const to = el('season-to').value;
+  const fromIndex = state.seasons.indexOf(from);
+  const toIndex = state.seasons.indexOf(to);
+  if (fromIndex < 0 || toIndex < 0) return new Set();
+  const lo = Math.min(fromIndex, toIndex);
+  const hi = Math.max(fromIndex, toIndex);
+  return new Set(state.seasons.slice(lo, hi + 1));
+}
+
+function questionFilesForSelection() {
+  const files = Array.isArray(state.questionIndex?.files) ? state.questionIndex.files : [];
+  const seasons = selectedSeasonSet();
+  if (seasons === null) return files;
+  return files.filter(entry => entry.season && seasons.has(entry.season));
+}
+
+async function loadQuestionFile(entry) {
+  const path = entry?.path;
+  if (!path || state.loadedQuestionFiles.has(path)) return;
+  if (state.loadingQuestionFiles.has(path)) return state.loadingQuestionFiles.get(path);
+
+  const promise = fetch(`data/questions/${path}`)
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status} dla ${path}`);
+      return response.json();
+    })
+    .then(payload => {
+      if (state.loadedQuestionFiles.has(path)) return;
+      const questions = Array.isArray(payload.questions) ? payload.questions : [];
+      state.all.push(...questions);
+      state.loadedQuestionFiles.add(path);
+    })
+    .finally(() => {
+      state.loadingQuestionFiles.delete(path);
+    });
+
+  state.loadingQuestionFiles.set(path, promise);
+  return promise;
+}
+
+async function ensureQuestionsLoadedForSelection() {
+  if (!state.questionIndex) return;
+  const needed = questionFilesForSelection();
+  const missing = needed.filter(entry => !state.loadedQuestionFiles.has(entry.path));
+  if (!missing.length) return;
+
+  const previous = el('status').textContent;
+  el('status').textContent = `Ładowanie pytań dla wybranego zakresu… (${missing.length} plików)`;
+  await Promise.all(missing.map(loadQuestionFile));
+  if (typeof sanitizeFrontClubData === 'function') sanitizeFrontClubData();
+  el('status').textContent = previous;
 }
 
 function getRequestedQuestionCount(available) {
@@ -630,19 +697,33 @@ el('season-mode').addEventListener('change', updateSeasonControls);
 el('new-game').addEventListener('click', startGame);
 el('play-again').addEventListener('click', startGame);
 
-fetch('data/questions.json')
-  .then(r => {
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  })
-  .then(data => {
-    state.all = data.questions || [];
-    state.clubMeta = data.clubs || {};
+async function loadQuestionDatabase() {
+  const indexResponse = await fetch('data/questions/index.json');
+  if (indexResponse.ok) {
+    const index = await indexResponse.json();
+    state.questionIndex = index;
+    state.clubMeta = index.clubs || {};
+    state.all = [];
     refreshTypeOptions();
     refreshClubOptions();
     refreshSeasonOptions();
     startGame();
-  })
-  .catch(err => {
-    el('status').textContent = `Nie udało się wczytać bazy pytań: ${err.message}`;
-  });
+    return;
+  }
+
+  const legacyResponse = await fetch('data/questions.json');
+  if (!legacyResponse.ok) {
+    throw new Error(`HTTP ${legacyResponse.status}`);
+  }
+  const data = await legacyResponse.json();
+  state.all = data.questions || [];
+  state.clubMeta = data.clubs || {};
+  refreshTypeOptions();
+  refreshClubOptions();
+  refreshSeasonOptions();
+  startGame();
+}
+
+loadQuestionDatabase().catch(err => {
+  el('status').textContent = `Nie udało się wczytać bazy pytań: ${err.message}`;
+});
