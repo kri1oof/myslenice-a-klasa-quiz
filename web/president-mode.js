@@ -109,6 +109,10 @@ function hidePresidentGameSurfaces() {
 function initializePresidentMode() {
   const career = careerState();
   if (!career?.active) return null;
+  if (career.competitionLevel === undefined || career.competitionLevel === null) {
+    career.competitionLevel = 1;
+    career.competitionLabel = presidentModeCore.competitionByLevel(1).label;
+  }
   if (!state.presidentMode?.active) {
     state.presidentMode = presidentModeCore.initialState(career.rounds?.length || 0);
   }
@@ -219,7 +223,8 @@ function renderPresidentStrategySelection() {
   panel.innerHTML = `
     <div class="president-strategy-card">
       <div class="president-report-kicker">👔 SEZON ${Number(profile.careerYear || 1)} · POSIEDZENIE ZARZĄDU</div>
-      <h2>${presidentEscape(career.club)} · ${presidentEscape(career.season)}${career.presidentSimulatedSeason ? " · SYMULACJA KARIERY" : ""}</h2>
+      <h2>${presidentEscape(career.club)} · ${presidentEscape(career.season)}</h2>
+      <div class="president-competition-chip">${presidentEscape(career.competitionLabel || presidentModeCore.competitionByLevel(career.competitionLevel ?? 1).label)}${career.presidentSimulatedSeason ? ' · SYMULACJA KARIERY' : ' · baza ŁNP'}</div>
       <p class="president-strategy-intro">Wybierz kierunek na ten sezon. Stan klubu z poprzednich lat pozostaje, a nowy plan zmienia oczekiwania zarządu i bieżące priorytety.</p>
       <div class="president-strategy-grid">
         ${presidentModeCore.STRATEGIES.map(strategy => {
@@ -316,7 +321,7 @@ function presidentDashboardHtml(profile, career) {
     <div class="president-dashboard">
       <div><small>BUDŻET GRY</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${presidentModeCore.financeLabel(profile)}</span></div>
       <div><small>STAŁY BILANS / KOLEJKĘ</small><strong>${recurring >= 0 ? '+' : ''}${presidentModeCore.money(recurring)}</strong><span>umowy i stałe zobowiązania</span></div>
-      <div><small>TABELA / CEL</small><strong>${standing.position === "—" ? "—" : standing.position + "."} / TOP ${board.target}</strong><span>${standing.points} pkt</span></div>
+      <div><small>TABELA / CEL</small><strong>${standing.position === "—" ? "—" : standing.position + "."} / TOP ${board.target}</strong><span>${presidentEscape(career.competitionLabel || presidentModeCore.competitionByLevel(career.competitionLevel ?? 1).short)} · ${standing.points} pkt</span></div>
       <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)}</span></div>
       <div><small>PLAN SEZONU</small><strong>${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : '—'}</strong><span>kondycja ${avgAreas}/100 · zaufanie ${avgTrust}/100</span></div>
     </div>
@@ -517,14 +522,59 @@ function presidentNextSeasonLabel(label) {
   return `${start}/${String((start + 1) % 100).padStart(2, '0')}`;
 }
 
+function presidentCompetitionMovement(career) {
+  const teamCount = Math.max(2, Object.keys(career?.table || {}).length || career?.clubs?.length || 14);
+  const position = seasonCareerCore.position(career?.table, career?.club) || teamCount;
+  return presidentModeCore.competitionMovement({
+    level:Number(career?.competitionLevel ?? 1),
+    position,
+    teamCount,
+  });
+}
+
+function presidentSimulatedCompetitionPlan(previousCareer, nextSeason, level) {
+  const competition = presidentModeCore.competitionByLevel(level);
+  const teamCount = Math.max(8, previousCareer?.clubs?.length || 14);
+  const ownClub = previousCareer.club;
+  const previousStrengths = Object.values(previousCareer?.strengths || {}).map(Number).filter(Number.isFinite);
+  const previousAverage = previousStrengths.length
+    ? previousStrengths.reduce((sum, value) => sum + value, 0) / previousStrengths.length
+    : 65;
+  const previousCompetition = presidentModeCore.competitionByLevel(previousCareer?.competitionLevel ?? 1);
+  const levelDelta = competition.strengthOffset - previousCompetition.strengthOffset;
+  const baseStrength = Math.max(48, Math.min(86, previousAverage + levelDelta));
+  const random = seasonCareerCore.seededRandom(`${nextSeason}|${ownClub}|competition-${level}`);
+  const rivals = Array.from({ length:teamCount - 1 }, (_, index) =>
+    `${competition.short} · Rywal ${String(index + 1).padStart(2, '0')}`
+  );
+  const clubs = [ownClub, ...rivals];
+  const strengths = { [ownClub]:Math.max(45, Math.min(90, Number(previousCareer?.strengths?.[ownClub] ?? 65))) };
+  rivals.forEach((club, index) => {
+    const variation = (random() - .5) * 12 + ((index % 5) - 2) * .7;
+    strengths[club] = Math.max(45, Math.min(90, baseStrength + variation));
+  });
+  return {
+    season:nextSeason,
+    club:ownClub,
+    clubs,
+    strengths,
+    simulated:true,
+    sourceSeason:previousCareer?.sourceSeason || previousCareer?.season || null,
+    competitionLevel:competition.level,
+    competitionLabel:competition.label,
+  };
+}
+
 function presidentNextSeasonPlan(previousCareer) {
   const nextSeason = presidentNextSeasonLabel(previousCareer?.season);
+  const movement = presidentCompetitionMovement(previousCareer);
+  const nextCompetition = presidentModeCore.competitionByLevel(movement.toLevel);
   const hasOfficialSeason = Array.isArray(state.seasons) && state.seasons.includes(nextSeason);
   const hasClubProfile = (state.playerCharacters || []).some(
     player => player?.season === nextSeason && player?.club === previousCareer?.club
   );
 
-  if (hasOfficialSeason && hasClubProfile) {
+  if (nextCompetition.level === 1 && hasOfficialSeason && hasClubProfile) {
     const clubs = seasonCareerCore.clubsForSeason(
       state.playerCharacters || [],
       state.all || [],
@@ -538,18 +588,15 @@ function presidentNextSeasonPlan(previousCareer) {
         strengths:seasonCareerCore.strengthMap(state.playerCharacters || [], clubs, nextSeason),
         simulated:false,
         sourceSeason:nextSeason,
+        competitionLevel:1,
+        competitionLabel:nextCompetition.label,
+        movement,
       };
     }
   }
 
-  return {
-    season:nextSeason,
-    club:previousCareer.club,
-    clubs:[...(previousCareer?.clubs || [])],
-    strengths:{ ...(previousCareer?.strengths || {}) },
-    simulated:true,
-    sourceSeason:previousCareer?.sourceSeason || previousCareer?.season || null,
-  };
+  const plan = presidentSimulatedCompetitionPlan(previousCareer, nextSeason, nextCompetition.level);
+  return { ...plan, movement };
 }
 
 function presidentCareerFromPlan(plan) {
@@ -571,6 +618,9 @@ function presidentCareerFromPlan(plan) {
     completed:false,
     presidentSimulatedSeason:Boolean(plan.simulated),
     sourceSeason:plan.sourceSeason || plan.season,
+    competitionLevel:Number(plan.competitionLevel ?? 1),
+    competitionLabel:plan.competitionLabel || presidentModeCore.competitionByLevel(plan.competitionLevel ?? 1).label,
+    entryMovement:plan.movement || null,
   };
 }
 
@@ -584,7 +634,7 @@ function presidentCareerHistoryHtml(profile) {
         ${seasons.map(item => {
           const verdict = presidentModeCore.seasonVerdict({ position:item.position, target:item.target });
           return `<div class="president-career-history-row">
-            <span><strong>Sezon ${item.careerYear} · ${presidentEscape(item.season)}</strong><small>${item.simulated ? 'symulowany sezon kariery' : 'sezon oparty na bazie ŁNP'}</small></span>
+            <span><strong>Sezon ${item.careerYear} · ${presidentEscape(item.season)}</strong><small>${presidentEscape(item.competitionLabel || 'A klasa Myślenice')} · ${item.simulated ? 'symulacja kariery' : 'baza ŁNP'}${item.movement?.code && item.movement.code !== 'stay' ? ' · ' + presidentEscape(presidentModeCore.competitionMovementLabel(item.movement)) : ''}</small></span>
             <span><b>${item.position}.</b><small>${item.points} pkt · ${item.wins}-${item.draws}-${item.losses}</small></span>
             <span class="president-history-verdict ${verdict.tone}">${verdict.icon} ${presidentEscape(verdict.label)}</span>
           </div>`;
@@ -614,6 +664,9 @@ function finalizePresidentSeasonProfile(profile, career) {
     ga:Number(row.ga || 0),
     target:board.target,
     boardConfidence:board.confidence,
+    competitionLevel:Number(career.competitionLevel ?? 1),
+    competitionLabel:career.competitionLabel || presidentModeCore.competitionByLevel(career.competitionLevel ?? 1).label,
+    teamCount:Object.keys(career.table || {}).length || career.clubs?.length || 14,
   });
 }
 
@@ -946,8 +999,8 @@ function renderPresidentOffseason() {
   const needs = presidentOffseasonNeeds(profile, career);
   const chosen = presidentModeCore.offseasonPlanById(offseason?.planId);
   const nextSource = nextPlan.simulated
-    ? 'Dalszy sezon będzie symulacją kariery na bazie ostatnich dostępnych danych.'
-    : `Kolejny sezon ${nextPlan.season} ma bazę ŁNP dla ${nextPlan.club}.`;
+    ? `Kolejny sezon: ${nextPlan.competitionLabel}. Liga będzie symulacją kariery; nie przypisujemy fikcyjnych rywali do danych ŁNP.`
+    : `Kolejny sezon ${nextPlan.season}: ${nextPlan.competitionLabel} z bazą ŁNP dla ${nextPlan.club}.`;
 
   panel.innerHTML = `
     <div class="president-offseason">
@@ -992,7 +1045,7 @@ function renderPresidentOffseason() {
       </section>
 
       <div class="president-offseason-next-source ${nextPlan.simulated ? 'simulated' : 'official'}">
-        <strong>${nextPlan.simulated ? '🧪 Dalsza symulacja kariery' : '✅ Kolejny sezon z bazą ŁNP'}</strong>
+        <strong>${nextPlan.movement?.code === 'promotion' ? '⬆️ AWANS' : nextPlan.movement?.code === 'relegation' ? '⬇️ SPADEK' : nextPlan.simulated ? '🧪 Dalsza symulacja kariery' : '✅ Kolejny sezon z bazą ŁNP'}</strong>
         <span>${presidentEscape(nextSource)}</span>
       </div>
 
@@ -1029,7 +1082,7 @@ function renderPresidentOffseason() {
 
       ${chosen && profile.offseason?.transferWindowClosed ? `
         <section class="president-offseason-continue">
-          <span><small>NASTĘPNY KROK</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextPlan.season)}</strong></span>
+          <span><small>NASTĘPNY KROK</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextPlan.season)} · ${presidentEscape(nextPlan.competitionLabel)}</strong></span>
           <p>Stan klubu, decyzja letnia i ruchy kadrowe przechodzą dalej. Teraz zarząd ustali cel oraz strategię na nowy rok.</p>
           <button type="button" class="president-start-next-season">Przejdź do planowania sezonu →</button>
         </section>
@@ -1096,8 +1149,8 @@ function startNextPresidentSeason() {
   panel?.classList.remove('hidden');
   if (el('status')) {
     el('status').textContent = plan.simulated
-      ? `Kariera prezesa · sezon ${state.presidentMode.careerYear} · ${plan.season} (symulacja dalszej kariery)`
-      : `Kariera prezesa · sezon ${state.presidentMode.careerYear} · ${plan.season} · baza ŁNP`;
+      ? `Kariera prezesa · sezon ${state.presidentMode.careerYear} · ${plan.season} · ${plan.competitionLabel} · symulacja`
+      : `Kariera prezesa · sezon ${state.presidentMode.careerYear} · ${plan.season} · ${plan.competitionLabel} · baza ŁNP`;
   }
   return renderPresidentStrategySelection();
 }
@@ -1133,6 +1186,8 @@ function renderPresidentSeasonFinal(lastRound = null) {
   const board = presidentBoardContext(profile, career);
   const strategy = presidentStrategy(profile);
   const verdict = presidentModeCore.seasonVerdict({ position, target:board.target });
+  const movement = presidentCompetitionMovement(career);
+  const movementLabel = presidentModeCore.competitionMovementLabel(movement);
   const seasonDecisionCount = (profile.history || []).filter(
     item => item.decisionId && Number(item.careerYear || 1) === Number(profile.careerYear || 1)
   ).length;
@@ -1146,13 +1201,18 @@ function renderPresidentSeasonFinal(lastRound = null) {
       <section class="president-season-hero ${verdict.tone}">
         <div class="president-season-hero-icon">${verdict.icon}</div>
         <div>
-          <small>SEZON ${profile.careerYear} ZAKOŃCZONY · ${presidentEscape(career.season)}</small>
+          <small>SEZON ${profile.careerYear} ZAKOŃCZONY · ${presidentEscape(career.season)} · ${presidentEscape(career.competitionLabel || 'A klasa Myślenice')}</small>
           <h2>${presidentEscape(verdict.label)}</h2>
-          <p>${presidentEscape(career.club)} kończy rozgrywki na <strong>${position}. miejscu</strong>. Cel zarządu: TOP ${board.target}.</p>
+          <p>${presidentEscape(career.club)} kończy rozgrywki na <strong>${position}. miejscu</strong>. Cel zarządu: TOP ${board.target}. <strong>${presidentEscape(movementLabel)}</strong></p>
         </div>
       </section>
 
       ${lastRound?.fixture ? `<div class="president-last-match compact"><small>OSTATNI MECZ</small><strong>${presidentMatchScore(lastRound)}</strong></div>` : ''}
+
+      <div class="president-league-movement ${movement.code}">
+        <span>${movement.code === 'promotion' ? '⬆️' : movement.code === 'relegation' ? '⬇️' : '➡️'}</span>
+        <div><small>STATUS LIGOWY</small><strong>${presidentEscape(movementLabel)}</strong><p>Zasada kariery: mistrz awansuje, dwa ostatnie miejsca spadają. To mechanika gry, nie odwzorowanie historycznego regulaminu sezonu.</p></div>
+      </div>
 
       <section class="president-final-primary" aria-label="Najważniejsze wyniki sezonu">
         <div><small>MIEJSCE</small><strong>${position}.</strong><span>cel TOP ${board.target}</span></div>
@@ -1191,7 +1251,7 @@ function renderPresidentSeasonFinal(lastRound = null) {
       </div>
 
       <section class="president-next-season-box">
-        <span><small>KARIERA TRWA DALEJ</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextSeason)}</strong></span>
+        <span><small>KARIERA TRWA DALEJ</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextSeason)} · ${presidentEscape(movement.toLabel)}</strong></span>
         <p>Budżet, inwestycje, stałe umowy i reputacja zostają w klubie. Zanim zacznie się kolejny rok, przejdziesz przez osobne lato prezesa.</p>
         <button type="button" class="president-continue-career">Przejdź do lata →</button>
         <button type="button" class="president-end-career">Zakończ karierę</button>
