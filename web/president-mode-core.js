@@ -391,6 +391,9 @@
       budget:12000,
       recurring:0,
       financeLedger:[],
+      supporterBase:220,
+      attendanceHistory:[],
+      recentResults:[],
       reputation:40,
       reputationHistory:[],
       contracts:[],
@@ -430,6 +433,10 @@
       roundsCompleted:0,
       totalRounds:Number(totalRounds || 0),
       lastFinance:0,
+      recentResults:[],
+      lastAttendance:null,
+      lastAttendanceCapacity:0,
+      lastSupporterBaseDelta:0,
       lastResult:null,
       lastMatch:null,
     };
@@ -949,6 +956,9 @@
         ...profile,
         budget:terms.budget,
         recurring:0,
+        supporterBase:Math.round(180 + Number(offer.competitionLevel ?? 1) * 70),
+        attendanceHistory:[],
+        recentResults:[],
         strategy:null,
         boardMandate:null,
         boardMandateHistory:mandateHistory,
@@ -1236,24 +1246,102 @@
     return clamp(Number(baseStrength || 65) + managementStrengthModifier(profile), 45, 90);
   }
 
-  function roundFinanceBreakdown(profile, { venue = 'DOM', result = 'D' } = {}) {
+  function supporterBaseValue(profile) {
+    return Math.round(clamp(Number(profile?.supporterBase ?? 220), 80, 2500));
+  }
+
+  function recentFormScore(profile) {
+    const results = (profile?.recentResults || []).slice(-5);
+    if (!results.length) return 0;
+    const score = results.reduce((sum, result) =>
+      sum + (result === 'W' ? 1 : result === 'D' ? .25 : -.6), 0
+    ) / results.length;
+    return clamp(score, -.6, 1);
+  }
+
+  function attendanceCapacity(profile, competitionLevel = 1) {
+    const areas = normalizedAreas(profile?.areas);
+    const level = competitionByLevel(competitionLevel).level;
+    return Math.round(clamp(
+      180 + Number(areas.facilities || 0) * 7 + Number(areas.organization || 0) * 1.5 + level * 55,
+      220,
+      1800,
+    ) / 5) * 5;
+  }
+
+  function estimateAttendance(profile, context = {}) {
+    const home = String(context.venue || 'DOM').toUpperCase() === 'DOM';
+    const level = competitionByLevel(context.competitionLevel ?? 1).level;
+    const capacity = attendanceCapacity(profile, level);
+    const supporterBase = supporterBaseValue(profile);
+    if (!home) {
+      return {
+        home:false,
+        attendance:0,
+        capacity,
+        supporterBase,
+        occupancy:0,
+        matchdayRevenue:-320,
+        level,
+      };
+    }
+
+    const trust = normalizedTrust(profile?.trust);
+    const areas = normalizedAreas(profile?.areas);
+    const levelMultiplier = [0.85, 1, 1.2, 1.4, 1.65][level] || 1;
+    const supporterFactor = .75 + Number(trust.supporters || 50) / 200;
+    const communityFactor = .85 + Number(areas.community || 50) / 330;
+    const formFactor = 1 + recentFormScore(profile) * .14;
+    const demand = supporterBase * levelMultiplier * supporterFactor * communityFactor * formFactor;
+    const attendance = Math.max(80, Math.min(capacity, Math.round(demand / 5) * 5));
+    const occupancy = capacity ? attendance / capacity : 0;
+    const unitYield = 1.8 + Number(areas.organization || 50) / 100 * 1.2;
+    const matchdayRevenue = Math.round(attendance * unitYield / 10) * 10;
+    return {
+      home:true,
+      attendance,
+      capacity,
+      supporterBase,
+      occupancy,
+      matchdayRevenue,
+      level,
+    };
+  }
+
+  function supporterBaseDelta(profile, context = {}, attendance = null) {
+    const areas = normalizedAreas(profile?.areas);
+    const result = context.result || 'D';
+    let delta = result === 'W' ? 5 : result === 'D' ? 1 : -3;
+    delta += Math.round((Number(areas.community || 50) - 50) / 25);
+    if (attendance?.home && Number(attendance.occupancy || 0) >= .75) delta += 2;
+    if (attendance?.home && Number(attendance.occupancy || 0) < .35) delta -= 1;
+    return Math.round(clamp(delta, -8, 10));
+  }
+
+  function roundFinanceBreakdown(profile, { venue = 'DOM', result = 'D', competitionLevel = 1 } = {}) {
     const trust = normalizedTrust(profile?.trust);
     const areas = normalizedAreas(profile?.areas);
     const home = String(venue).toUpperCase() === 'DOM';
-    const venueBase = home ? 620 : -320;
+    const attendance = estimateAttendance(profile, { venue, competitionLevel });
     const resultBonus = result === 'W' ? 150 : result === 'D' ? 50 : 0;
-    const supporterEffect = home ? Math.round((trust.supporters - 50) * 4) : 0;
     const sponsorEffect = Math.round((trust.sponsors - 50) * 2.5);
     const organizationEffect = Math.round((areas.organization - 50) * 2);
     const recurring = Math.round(Number(profile?.recurring || 0));
     const rows = [
-      { category:'matchday', label:home ? 'Mecz domowy i frekwencja' : 'Transport na wyjazd', amount:venueBase + supporterEffect },
+      {
+        category:'matchday',
+        label:home
+          ? 'Mecz domowy · frekwencja gry ' + attendance.attendance + '/' + attendance.capacity
+          : 'Transport na wyjazd',
+        amount:attendance.matchdayRevenue,
+      },
       { category:'matchday', label:'Premia za wynik', amount:resultBonus },
       { category:'sponsors', label:'Bieżący efekt partnerów', amount:sponsorEffect },
       { category:'contracts', label:'Stałe umowy i zobowiązania', amount:recurring },
       { category:'other', label:'Sprawność organizacyjna', amount:organizationEffect },
     ];
     return {
+      attendance,
       rows,
       total:Math.round(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0)),
     };
@@ -1272,6 +1360,21 @@
     const breakdown = roundFinanceBreakdown(profile, context);
     const finance = breakdown.total;
     const round = Number(profile.roundsCompleted || 0) + 1;
+    const baseDelta = supporterBaseDelta(profile, context, breakdown.attendance);
+    const supporterBase = Math.round(clamp(supporterBaseValue(profile) + baseDelta, 80, 2500));
+    const attendanceEntry = {
+      careerYear:Number(profile.careerYear || 1),
+      round,
+      home:Boolean(breakdown.attendance?.home),
+      attendance:Number(breakdown.attendance?.attendance || 0),
+      capacity:Number(breakdown.attendance?.capacity || 0),
+      occupancy:Number(breakdown.attendance?.occupancy || 0),
+      supporterBaseBefore:supporterBaseValue(profile),
+      supporterBaseAfter:supporterBase,
+      supporterBaseDelta:baseDelta,
+      result:context.result || null,
+      competitionLevel:Number(context.competitionLevel ?? 1),
+    };
     return {
       ...profile,
       budget:Number(profile.budget || 0) + finance,
@@ -1279,8 +1382,14 @@
         financeEntry(profile, row.category, row.label, row.amount, round)
       )),
       trust:applyMap(profile.trust, postRoundTrustDelta(context.result), TRUST_KEYS, normalizedTrust),
+      supporterBase,
+      attendanceHistory:[...(profile.attendanceHistory || []), attendanceEntry],
+      recentResults:[...(profile.recentResults || []), context.result || 'D'].slice(-5),
       roundsCompleted:Number(profile.roundsCompleted || 0) + 1,
       lastFinance:finance,
+      lastAttendance:breakdown.attendance?.home ? Number(breakdown.attendance.attendance || 0) : null,
+      lastAttendanceCapacity:Number(breakdown.attendance?.capacity || 0),
+      lastSupporterBaseDelta:baseDelta,
       lastResult:context.result || null,
       lastMatch:context.match ? { ...context.match } : null,
     };
@@ -2265,14 +2374,27 @@
       25,
     ));
     const afterReputation = Math.round(clamp(beforeReputation + reputationDelta, 0, 100));
+    const movementSupporterDelta = record.movement?.code === 'promotion'
+      ? 30
+      : record.movement?.code === 'relegation'
+        ? -20
+        : 0;
+    const supporterBaseAfter = Math.round(clamp(
+      supporterBaseValue(mandateProfile) + movementSupporterDelta,
+      80,
+      2500,
+    ));
     const enrichedRecord = {
       ...record,
       mandateOutcome:mandateSettlement.outcome,
+      supporterBaseDelta:movementSupporterDelta,
+      supporterBaseAfter,
       reputationDelta,
       reputationAfter:afterReputation,
     };
     return {
       ...mandateProfile,
+      supporterBase:supporterBaseAfter,
       reputation:afterReputation,
       reputationHistory:[...(profile.reputationHistory || []), {
         careerYear:record.careerYear,
@@ -2480,6 +2602,7 @@
     seasonVerdict, completeSeason, careerPlayerDevelopmentDelta, developCareerPlayer, developCareerSquad, prepareNextSeason,
     decisionById, decisionRelevance, decisionTrigger, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
+    supporterBaseValue, recentFormScore, attendanceCapacity, estimateAttendance, supporterBaseDelta,
     financeEntry, financeCategorySummary, roundFinanceBreakdown, roundFinance, applyPostRound, applyPostMatch:applyPostRound,
     averageTrust, averageAreas, trustLabel, areaLabel, financeLabel, money,
   };
