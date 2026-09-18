@@ -586,7 +586,7 @@ assert.match(runtime, /presidentSquadProfiles/);
 assert.match(runtime, /presidentCareerDevelopmentText/);
 assert.match(runtime, /ROZWÓJ KADRY PRZED SEZONEM/);
 assert.match(runtime, /ostatni rozwój/);
-assert.match(runtime, /nie zmienia danych ŁNP/);
+assert.match(runtime, /nie zmieniają danych ŁNP/);
 assert.match(runtime, /POPARCIE ZARZĄDU/);
 assert.match(runtime, /startNextPresidentSeason/);
 assert.match(runtime, /prepareNextSeason/);
