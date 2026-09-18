@@ -40,7 +40,7 @@ function installPresidentLandingCard() {
   button.dataset.mode = 'president';
   button.innerHTML = `
     <span class="mode-icon">👔</span>
-    <span><strong>Tryb prezesa</strong><small>Ustal strategię zarządu, rozwijaj klub, pilnuj budżetu i szatni. Kadra ŁNP, inwestycje, sponsorzy, akademia i obiekt. Mecze rozgrywają się w tle.</small></span>
+    <span><strong>Kariera prezesa</strong><small>Prowadź klub przez wiele sezonów. Strategia zarządu, budżet, kadra ŁNP, inwestycje, sponsorzy, akademia i obiekt przechodzą z roku na rok.</small></span>
     <span class="mode-check">✓</span>`;
   button.addEventListener('click', () => {
     frontSelectedMode = 'president';
@@ -79,7 +79,7 @@ function syncPresidentSetup() {
   }
   const description = el('format-description');
   if (description) {
-    description.textContent = 'Zarządzasz klubem przez cały sezon: wybierasz strategię, rozwijasz działy, pilnujesz zaufania zarządu i podejmujesz decyzje prezesowskie. Mecze są automatycznie symulowane w tle.';
+    description.textContent = 'Wieloletnia kariera prezesa: budżet, inwestycje, umowy i reputacja przechodzą między sezonami. Co roku wybierasz plan zarządu, a mecze są automatycznie symulowane w tle.';
   }
   window.setTimeout(() => {
     if (presidentSelected() && el('new-game')) el('new-game').textContent = '👔 Rozpocznij sezon prezesa';
@@ -199,9 +199,9 @@ function renderPresidentStrategySelection() {
   hidePresidentGameSurfaces();
   panel.innerHTML = `
     <div class="president-strategy-card">
-      <div class="president-report-kicker">👔 PIERWSZE POSIEDZENIE ZARZĄDU</div>
-      <h2>${presidentEscape(career.club)} · ${presidentEscape(career.season)}</h2>
-      <p class="president-strategy-intro">Na początku sezonu wybierz kierunek klubu. To zmieni budżet startowy, kondycję działów i wymagania zarządu.</p>
+      <div class="president-report-kicker">👔 SEZON ${Number(profile.careerYear || 1)} · POSIEDZENIE ZARZĄDU</div>
+      <h2>${presidentEscape(career.club)} · ${presidentEscape(career.season)}${career.presidentSimulatedSeason ? " · SYMULACJA KARIERY" : ""}</h2>
+      <p class="president-strategy-intro">Wybierz kierunek na ten sezon. Stan klubu z poprzednich lat pozostaje, a nowy plan zmienia oczekiwania zarządu i bieżące priorytety.</p>
       <div class="president-strategy-grid">
         ${presidentModeCore.STRATEGIES.map(strategy => {
           const effect = strategy.effect || {};
@@ -226,7 +226,7 @@ function renderPresidentStrategySelection() {
       showPresidentRound();
     });
   });
-  if (el('status')) el('status').textContent = 'Tryb prezesa · wybierz strategię zarządu na sezon';
+  if (el('status')) el('status').textContent = `Kariera prezesa · sezon ${Number(profile.careerYear || 1)} · wybierz strategię zarządu`;
   window.scrollTo({ top:0, behavior:'smooth' });
   return true;
 }
