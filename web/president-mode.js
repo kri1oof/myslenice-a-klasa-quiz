@@ -598,10 +598,169 @@ function finalizePresidentSeasonProfile(profile, career) {
   });
 }
 
+
+function presidentOffseasonNeeds(profile, career) {
+  const areas = presidentModeCore.normalizedAreas(profile?.areas);
+  const trust = presidentModeCore.normalizedTrust(profile?.trust);
+  const weakestAreaKey = Object.keys(areas).reduce((a, b) => areas[a] <= areas[b] ? a : b);
+  const weakestTrustKey = Object.keys(trust).reduce((a, b) => trust[a] <= trust[b] ? a : b);
+  const areaLabels = {
+    squad:'Kadra', staff:'Sztab', academy:'Akademia',
+    facilities:'Obiekt', organization:'Organizacja', community:'Społeczność',
+  };
+  const trustLabels = {
+    players:'Szatnia', coach:'Trener', supporters:'Kibice', sponsors:'Sponsorzy',
+  };
+  const profiles = presidentSquadProfiles(career);
+  return {
+    weakestAreaKey,
+    weakestAreaLabel:areaLabels[weakestAreaKey] || weakestAreaKey,
+    weakestAreaValue:areas[weakestAreaKey],
+    weakestTrustKey,
+    weakestTrustLabel:trustLabels[weakestTrustKey] || weakestTrustKey,
+    weakestTrustValue:trust[weakestTrustKey],
+    playerProfiles:profiles.length,
+  };
+}
+
+function applyPresidentOffseasonPlan(planId) {
+  const applied = presidentModeCore.applyOffseasonPlan(state.presidentMode, planId);
+  if (!applied.ok) return false;
+  state.presidentMode = applied.profile;
+  return renderPresidentOffseason();
+}
+
+function renderPresidentOffseason() {
+  const career = careerState();
+  const panel = ensurePresidentDecisionPanel();
+  if (!career || !state.presidentMode || !panel) return false;
+
+  hidePresidentGameSurfaces();
+  state.presidentMode = finalizePresidentSeasonProfile(state.presidentMode, career);
+  const begun = presidentModeCore.beginOffseason(state.presidentMode);
+  if (!begun.ok) return false;
+  state.presidentMode = begun.profile;
+
+  const profile = state.presidentMode;
+  const offseason = profile.offseason;
+  const settlement = offseason?.settlement || {};
+  const lastSeason = (profile.seasonHistory || []).at(-1) || {};
+  const nextPlan = presidentNextSeasonPlan(career);
+  const needs = presidentOffseasonNeeds(profile, career);
+  const chosen = presidentModeCore.offseasonPlanById(offseason?.planId);
+  const nextSource = nextPlan.simulated
+    ? 'Dalszy sezon będzie symulacją kariery na bazie ostatnich dostępnych danych.'
+    : `Kolejny sezon ${nextPlan.season} ma bazę ŁNP dla ${nextPlan.club}.`;
+
+  panel.innerHTML = `
+    <div class="president-offseason">
+      <section class="president-offseason-hero">
+        <span>☀️</span>
+        <div>
+          <small>MIĘDZY SEZONAMI · PO ROKU ${Number(profile.careerYear || 1)}</small>
+          <h2>Lato prezesa</h2>
+          <p>Najpierw zamykamy finanse i oceniamy stan klubu. Potem wybierasz jeden priorytet na lato przed kolejnym sezonem.</p>
+        </div>
+      </section>
+
+      <section class="president-offseason-finance">
+        <div><small>BUDŻET PO SEZONIE</small><strong>${presidentModeCore.money(settlement.budgetBefore)}</strong></div>
+        <div class="positive"><small>PREMIA ZA WYNIK</small><strong>+${presidentModeCore.money(settlement.performanceBonus)}</strong></div>
+        <div class="positive"><small>PARTNERZY I OTOCZENIE</small><strong>+${presidentModeCore.money(settlement.partnerBonus)}</strong></div>
+        <div class="negative"><small>UTRZYMANIE / PRZEGLĄDY</small><strong>−${presidentModeCore.money(settlement.maintenanceCost)}</strong></div>
+        <div class="total"><small>BUDŻET NA LATO</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${settlement.net >= 0 ? '+' : ''}${presidentModeCore.money(settlement.net)} po zamknięciu roku</span></div>
+      </section>
+
+      <section class="president-offseason-review">
+        <div>
+          <small>OCENA SEZONU</small>
+          <strong>${Number(lastSeason.position || 0)}. miejsce · ${Number(lastSeason.points || 0)} pkt</strong>
+          <span>cel TOP ${Number(lastSeason.target || 0)} · poparcie zarządu ${Number(lastSeason.boardConfidence || 0)}/100</span>
+        </div>
+        <div>
+          <small>NAJSŁABSZY OBSZAR</small>
+          <strong>${presidentEscape(needs.weakestAreaLabel)} · ${needs.weakestAreaValue}/100</strong>
+          <span>to naturalny kandydat do wzmocnienia latem</span>
+        </div>
+        <div>
+          <small>NAJNIŻSZE ZAUFANIE</small>
+          <strong>${presidentEscape(needs.weakestTrustLabel)} · ${needs.weakestTrustValue}/100</strong>
+          <span>warto uwzględnić przy wyborze priorytetu</span>
+        </div>
+        <div>
+          <small>KADRA ŹRÓDŁOWA</small>
+          <strong>${needs.playerProfiles || '—'} profili ŁNP</strong>
+          <span>${needs.playerProfiles ? 'punkt wyjścia do okna kadrowego' : 'brak indywidualnych profili dla tego roku'}</span>
+        </div>
+      </section>
+
+      <div class="president-offseason-next-source ${nextPlan.simulated ? 'simulated' : 'official'}">
+        <strong>${nextPlan.simulated ? '🧪 Dalsza symulacja kariery' : '✅ Kolejny sezon z bazą ŁNP'}</strong>
+        <span>${presidentEscape(nextSource)}</span>
+      </div>
+
+      <section class="president-offseason-choice">
+        <div class="president-offseason-choice-head">
+          <span><small>DECYZJA LETNIA</small><strong>${chosen ? presidentEscape(chosen.label) : 'Wybierz priorytet na lato'}</strong></span>
+          ${chosen ? '<em>✓ zatwierdzone</em>' : '<em>1 decyzja</em>'}
+        </div>
+        ${chosen ? `
+          <div class="president-offseason-selected">
+            <span>${chosen.icon}</span>
+            <div><strong>${presidentEscape(chosen.label)}</strong><p>${presidentEscape(chosen.copy)}</p></div>
+          </div>
+        ` : `
+          <div class="president-offseason-options">
+            ${presidentModeCore.OFFSEASON_PLANS.map(plan => {
+              const affordable = presidentModeCore.canChooseOffseasonPlan(profile, plan);
+              const cost = Number(plan.effect?.budget || 0);
+              return `<button type="button" class="president-offseason-option" data-offseason-plan="${plan.id}" ${affordable ? '' : 'disabled'}>
+                <span>${plan.icon}</span>
+                <strong>${presidentEscape(plan.label)}</strong>
+                <p>${presidentEscape(plan.copy)}</p>
+                <small>${cost ? 'koszt ' + presidentModeCore.money(Math.abs(cost)) : 'bez dodatkowego kosztu'}</small>
+                ${affordable ? '' : '<em>Brak środków</em>'}
+              </button>`;
+            }).join('')}
+          </div>
+        `}
+      </section>
+
+      ${chosen ? `
+        <section class="president-offseason-continue">
+          <span><small>NASTĘPNY KROK</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextPlan.season)}</strong></span>
+          <p>Stan klubu i decyzja letnia przechodzą dalej. Teraz zarząd ustali cel oraz strategię na nowy rok.</p>
+          <button type="button" class="president-start-next-season">Przejdź do planowania sezonu →</button>
+        </section>
+      ` : ''}
+
+      ${presidentCareerHistoryHtml(profile)}
+      <small class="president-disclaimer">Rozliczenie finansowe, koszty i efekty decyzji letnich są mechaniką gry. Dane ŁNP są używane tylko tam, gdzie faktycznie mamy źródłowe profile i sezony.</small>
+    </div>`;
+
+  panel.classList.remove('hidden');
+  panel.querySelectorAll('[data-offseason-plan]').forEach(button => {
+    button.addEventListener('click', () => applyPresidentOffseasonPlan(button.dataset.offseasonPlan));
+  });
+  panel.querySelector('.president-start-next-season')?.addEventListener('click', startNextPresidentSeason);
+
+  if (el('status')) {
+    el('status').textContent = chosen
+      ? `Lato prezesa · priorytet zatwierdzony · budżet ${presidentModeCore.money(profile.budget)}`
+      : 'Lato prezesa · zamknięcie sezonu · wybierz priorytet na lato';
+  }
+  window.scrollTo({ top:0, behavior:'smooth' });
+  return true;
+}
+
 function startNextPresidentSeason() {
   const previousCareer = careerState();
   if (!previousCareer || !state.presidentMode) return false;
   state.presidentMode = finalizePresidentSeasonProfile(state.presidentMode, previousCareer);
+  const begun = presidentModeCore.beginOffseason(state.presidentMode);
+  if (!begun.ok) return false;
+  state.presidentMode = begun.profile;
+  if (!state.presidentMode.offseason?.planId) return renderPresidentOffseason();
   const plan = presidentNextSeasonPlan(previousCareer);
   if (!plan.clubs.length || !plan.club) return false;
 
@@ -719,8 +878,8 @@ function renderPresidentSeasonFinal(lastRound = null) {
 
       <section class="president-next-season-box">
         <span><small>KARIERA TRWA DALEJ</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextSeason)}</strong></span>
-        <p>Budżet, inwestycje, stałe umowy i reputacja zostają w klubie. Na początku nowego sezonu wybierzesz kolejny plan zarządu.</p>
-        <button type="button" class="president-continue-career">Kontynuuj karierę →</button>
+        <p>Budżet, inwestycje, stałe umowy i reputacja zostają w klubie. Zanim zacznie się kolejny rok, przejdziesz przez osobne lato prezesa.</p>
+        <button type="button" class="president-continue-career">Przejdź do lata →</button>
         <button type="button" class="president-end-career">Zakończ karierę</button>
       </section>
 
@@ -728,7 +887,7 @@ function renderPresidentSeasonFinal(lastRound = null) {
     </div>`;
 
   panel.classList.remove('hidden');
-  panel.querySelector('.president-continue-career')?.addEventListener('click', startNextPresidentSeason);
+  panel.querySelector('.president-continue-career')?.addEventListener('click', renderPresidentOffseason);
   panel.querySelector('.president-end-career')?.addEventListener('click', finishPresidentCareer);
   if (el('status')) {
     el('status').textContent = `Kariera prezesa · sezon ${profile.careerYear} zakończony · ${position}. miejsce · ${row.points || 0} pkt`;
