@@ -247,7 +247,7 @@ assert.match(runtime, /OKNO KADROWE/);
 assert.match(runtime, /data-transfer-player/);
 assert.match(runtime, /fikcyjną mechaniką tej kariery/);
 assert.match(runtime, /Wzmocnienie kariery/);
-assert.match(runtime, /alternatywną historią tej kariery/);
+assert.match(runtime, /alternatywną historię tej kariery/);
 assert.match(runtime, /Zamknij okno transferowe/);
 assert.match(runtime, /Przejdź do planowania sezonu/);
 assert.match(runtime, /SYMULACJA KARIERY/);
