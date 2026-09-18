@@ -352,24 +352,33 @@ function presidentDashboardHtml(profile, career) {
 function presidentFinanceTabHtml(profile) {
   const recurring = Number(profile?.recurring || 0);
   const lastFinance = Number(profile?.lastFinance || 0);
-  const financialMoves = [...(profile?.history || [])]
-    .filter(item => Number(item.budgetDelta || 0) !== 0 || Number(item.recurringDelta || 0) !== 0)
-    .slice(-5)
+  const year = Number(profile?.careerYear || 1);
+  const summary = presidentModeCore.financeCategorySummary(profile, year);
+  const categoryRows = Object.entries(presidentModeCore.FINANCE_CATEGORIES || {}).map(([key, label]) => {
+    const amount = Number(summary[key] || 0);
+    return `<div class="president-finance-category ${amount < 0 ? 'negative' : amount > 0 ? 'positive' : ''}"><span>${presidentEscape(label)}</span><strong>${amount >= 0 ? '+' : ''}${presidentModeCore.money(amount)}</strong></div>`;
+  }).join('');
+  const ledger = [...(profile?.financeLedger || [])]
+    .filter(entry => Number(entry.careerYear || 0) === year)
+    .slice(-10)
     .reverse();
+  const seasonNet = Object.values(summary).reduce((sum, value) => sum + Number(value || 0), 0);
   return `
     <div class="president-finance-tab">
       <div class="president-tab-stat-grid">
         <div><small>BUDŻET</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${presidentModeCore.financeLabel(profile)}</span></div>
         <div><small>STAŁY BILANS</small><strong>${recurring >= 0 ? '+' : ''}${presidentModeCore.money(recurring)}</strong><span>na kolejkę</span></div>
-        <div><small>OSTATNIA KOLEJKA</small><strong>${lastFinance >= 0 ? '+' : ''}${presidentModeCore.money(lastFinance)}</strong><span>automatyczny bilans</span></div>
+        <div><small>BILANS SEZONU</small><strong>${seasonNet >= 0 ? '+' : ''}${presidentModeCore.money(seasonNet)}</strong><span>zarejestrowane przepływy</span></div>
+        <div><small>OSTATNIA KOLEJKA</small><strong>${lastFinance >= 0 ? '+' : ''}${presidentModeCore.money(lastFinance)}</strong><span>mecz + umowy + partnerzy</span></div>
       </div>
-      <div class="president-tab-list">
-        <strong>Ostatnie decyzje finansowe</strong>
-        ${financialMoves.length ? financialMoves.map(item => `<div><span>${presidentEscape(item.title || item.choice || 'Decyzja')}</span><b>${Number(item.budgetDelta || 0) >= 0 ? '+' : ''}${presidentModeCore.money(item.budgetDelta || 0)}</b></div>`).join('') : '<small>Brak większych ruchów finansowych w tym sezonie.</small>'}
+      <div class="president-finance-categories">${categoryRows}</div>
+      <div class="president-tab-list president-ledger-list">
+        <strong>Ostatnie operacje</strong>
+        ${ledger.length ? ledger.map(entry => `<div><span><small>${entry.round ? 'kolejka ' + entry.round : 'poza kolejką'} · ${presidentEscape(presidentModeCore.FINANCE_CATEGORIES?.[entry.category] || 'Pozostałe')}</small>${presidentEscape(entry.label)}</span><b class="${Number(entry.amount || 0) < 0 ? 'negative' : 'positive'}">${Number(entry.amount || 0) >= 0 ? '+' : ''}${presidentModeCore.money(entry.amount || 0)}</b></div>`).join('') : '<small>Brak zarejestrowanych przepływów w tym sezonie.</small>'}
       </div>
+      <small class="president-data-note">Wszystkie kwoty są elementem ekonomii gry i nie odwzorowują rzeczywistych finansów klubu.</small>
     </div>`;
 }
-
 function presidentClubTabHtml(profile, career) {
   return `
     <div class="president-club-tab">

@@ -1552,6 +1552,43 @@
 .president-club-tab .president-area-grid,
 .president-club-tab .president-trust-grid { margin:0; }
 
+
+.president-finance-categories {
+  margin-top: 9px;
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 7px;
+}
+.president-finance-category {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  padding:9px 10px;
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+  background:#fff;
+  font-size:.72rem;
+}
+.president-finance-category span { color:#475569; }
+.president-finance-category strong { color:#334155; }
+.president-finance-category.positive strong,
+.president-ledger-list b.positive { color:#166534; }
+.president-finance-category.negative strong,
+.president-ledger-list b.negative { color:#991b1b; }
+.president-ledger-list > div span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.president-ledger-list > div span small {
+  color:#94a3b8;
+  font-size:.6rem;
+}
+.president-ledger-list b {
+  flex:0 0 auto;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1583,6 +1620,7 @@
   }
   .president-hub-tabs button { min-width:64px; }
   .president-tab-stat-grid { grid-template-columns:1fr; }
+  .president-finance-categories { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .president-decision-card,
   .president-round-report,
   .president-season-final,
@@ -1612,6 +1650,7 @@
 }
 
 @media (max-width: 440px) {
+  .president-finance-categories { grid-template-columns:1fr; }
   .president-dashboard,
   .president-upgrade-grid,
   .president-final-primary,

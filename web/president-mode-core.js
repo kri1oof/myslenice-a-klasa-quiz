@@ -284,11 +284,49 @@
     return next;
   }
 
+  const FINANCE_CATEGORIES = Object.freeze({
+    matchday:'Mecze i transport',
+    sponsors:'Sponsorzy i partnerzy',
+    contracts:'Stałe umowy',
+    squad:'Kadra i transfery',
+    investment:'Inwestycje i klub',
+    other:'Pozostałe',
+  });
+
+  function financeEntry(profile, category, label, amount, round = null, meta = {}) {
+    return {
+      careerYear:Number(profile?.careerYear || 1),
+      round:round === null ? null : Number(round),
+      category:FINANCE_CATEGORIES[category] ? category : 'other',
+      label:String(label || FINANCE_CATEGORIES[category] || 'Operacja'),
+      amount:Math.round(Number(amount || 0)),
+      ...meta,
+    };
+  }
+
+  function appendFinanceEntries(profile, entries = []) {
+    const additions = entries.filter(entry => entry && Number(entry.amount || 0) !== 0);
+    return [...(profile?.financeLedger || []), ...additions];
+  }
+
+  function financeCategorySummary(profile, careerYear = null) {
+    const year = careerYear === null ? Number(profile?.careerYear || 1) : Number(careerYear);
+    const totals = Object.fromEntries(Object.keys(FINANCE_CATEGORIES).map(key => [key, 0]));
+    (profile?.financeLedger || [])
+      .filter(entry => Number(entry.careerYear || 0) === year)
+      .forEach(entry => {
+        const category = FINANCE_CATEGORIES[entry.category] ? entry.category : 'other';
+        totals[category] += Number(entry.amount || 0);
+      });
+    return totals;
+  }
+
   function initialState(totalRounds = 0, random = Math.random) {
     return {
       active:true,
       budget:12000,
       recurring:0,
+      financeLedger:[],
       careerYear:1,
       seasonsCompleted:0,
       seasonHistory:[],
@@ -338,6 +376,9 @@
         recurring:Number(profile.recurring || 0) + Number(effect.recurring || 0),
         trust:applyMap(profile.trust, effect.trust, TRUST_KEYS, normalizedTrust),
         areas:applyMap(profile.areas, effect.areas, AREA_KEYS, normalizedAreas),
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(profile, 'investment', 'Plan sezonu: ' + strategy.label, budgetDelta, 0),
+        ]),
         history:[...(profile.history || []), {
           round:0, careerYear:Number(profile.careerYear || 1), type:'strategy', title:'Plan sezonu', choice:strategy.label, result:strategy.copy,
           budgetDelta, recurringDelta:Number(effect.recurring || 0),
@@ -375,6 +416,9 @@
         areas:applyMap(profile.areas, { [area]:gain }, AREA_KEYS, normalizedAreas),
         upgradeLevels:levels,
         lastUpgradeRound:Number(roundIndex),
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(profile, 'investment', 'Inwestycja: ' + (meta?.label || area), -cost, Number(roundIndex) + 1),
+        ]),
         history:[...(profile.history || []), {
           round:Number(roundIndex) + 1, careerYear:Number(profile.careerYear || 1), type:'investment', category:area,
           title:'Inwestycja: ' + (meta?.label || area), choice:'Poziom ' + (level + 1),
@@ -578,6 +622,15 @@
       lastUsedRound:{ ...(profile.lastUsedRound || {}), [selectedDecision.id]:Number(roundIndex) },
       currentDecision:null,
       decidedRound:Number(roundIndex),
+      financeLedger:appendFinanceEntries(profile, [
+        financeEntry(
+          profile,
+          selectedDecision.category === 'finance' ? 'sponsors' : selectedDecision.category === 'squad' ? 'squad' : 'investment',
+          selectedDecision.title,
+          budgetDelta,
+          Number(roundIndex) + 1,
+        ),
+      ]),
       history:[...(profile.history || []), {
         round:Number(roundIndex) + 1,
         careerYear:Number(profile.careerYear || 1),
@@ -607,15 +660,31 @@
     return clamp(Number(baseStrength || 65) + managementStrengthModifier(profile), 45, 90);
   }
 
-  function roundFinance(profile, { venue = 'DOM', result = 'D' } = {}) {
+  function roundFinanceBreakdown(profile, { venue = 'DOM', result = 'D' } = {}) {
     const trust = normalizedTrust(profile?.trust);
     const areas = normalizedAreas(profile?.areas);
-    const venueBase = String(venue).toUpperCase() === 'DOM' ? 620 : -320;
+    const home = String(venue).toUpperCase() === 'DOM';
+    const venueBase = home ? 620 : -320;
     const resultBonus = result === 'W' ? 150 : result === 'D' ? 50 : 0;
-    const supporterEffect = String(venue).toUpperCase() === 'DOM' ? Math.round((trust.supporters - 50) * 4) : 0;
+    const supporterEffect = home ? Math.round((trust.supporters - 50) * 4) : 0;
     const sponsorEffect = Math.round((trust.sponsors - 50) * 2.5);
     const organizationEffect = Math.round((areas.organization - 50) * 2);
-    return Math.round(Number(profile?.recurring || 0) + venueBase + resultBonus + supporterEffect + sponsorEffect + organizationEffect);
+    const recurring = Math.round(Number(profile?.recurring || 0));
+    const rows = [
+      { category:'matchday', label:home ? 'Mecz domowy i frekwencja' : 'Transport na wyjazd', amount:venueBase + supporterEffect },
+      { category:'matchday', label:'Premia za wynik', amount:resultBonus },
+      { category:'sponsors', label:'Bieżący efekt partnerów', amount:sponsorEffect },
+      { category:'contracts', label:'Stałe umowy i zobowiązania', amount:recurring },
+      { category:'other', label:'Sprawność organizacyjna', amount:organizationEffect },
+    ];
+    return {
+      rows,
+      total:Math.round(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0)),
+    };
+  }
+
+  function roundFinance(profile, context = {}) {
+    return roundFinanceBreakdown(profile, context).total;
   }
   function postRoundTrustDelta(result) {
     if (result === 'W') return { players:1, coach:1, supporters:2, sponsors:1 };
@@ -624,10 +693,15 @@
   }
   function applyPostRound(profile, context = {}) {
     if (!profile) return null;
-    const finance = roundFinance(profile, context);
+    const breakdown = roundFinanceBreakdown(profile, context);
+    const finance = breakdown.total;
+    const round = Number(profile.roundsCompleted || 0) + 1;
     return {
       ...profile,
       budget:Number(profile.budget || 0) + finance,
+      financeLedger:appendFinanceEntries(profile, breakdown.rows.map(row =>
+        financeEntry(profile, row.category, row.label, row.amount, round)
+      )),
       trust:applyMap(profile.trust, postRoundTrustDelta(context.result), TRUST_KEYS, normalizedTrust),
       roundsCompleted:Number(profile.roundsCompleted || 0) + 1,
       lastFinance:finance,
@@ -700,6 +774,11 @@
       profile:{
         ...profile,
         budget:settlement.budgetAfter,
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(profile, 'sponsors', 'Premia za wynik sezonu', settlement.performanceBonus, null),
+          financeEntry(profile, 'sponsors', 'Partnerzy i otoczenie', settlement.partnerBonus, null),
+          financeEntry(profile, 'investment', 'Utrzymanie i przeglądy', -settlement.maintenanceCost, null),
+        ]),
         offseason,
       },
     };
@@ -743,6 +822,9 @@
         budget:Number(profile.budget || 0) + Number(effect.budget || 0),
         trust:applyMap(profile.trust, effect.trust, TRUST_KEYS, normalizedTrust),
         areas:applyMap(profile.areas, effect.areas, AREA_KEYS, normalizedAreas),
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(profile, 'investment', 'Lato: ' + plan.label, Number(effect.budget || 0), null),
+        ]),
         offseason,
         offseasonHistory:[...(profile.offseasonHistory || []), entry],
       },
@@ -805,6 +887,15 @@
           normalizedTrust,
         ),
         departedPlayerKeys:[...departed],
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(
+            profile,
+            'squad',
+            retained ? 'Zatrzymanie: ' + entry.player : 'Odejście: ' + entry.player,
+            retained ? -terms.retentionCost : terms.compensation,
+            null,
+          ),
+        ]),
         departureHistory:[...(profile.departureHistory || []), entry],
         offseason:{
           ...profile.offseason,
@@ -876,6 +967,9 @@
         recurring:Number(profile.recurring || 0) - terms.recurring,
         areas:applyMap(profile.areas, { squad:terms.squadGain }, AREA_KEYS, normalizedAreas),
         trust:applyMap(profile.trust, { coach:2, supporters:1 }, TRUST_KEYS, normalizedTrust),
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(profile, 'squad', 'Transfer: ' + entry.player, -terms.fee, null),
+        ]),
         transferRoster:[...(profile.transferRoster || []), entry],
         transferHistory:[...(profile.transferHistory || []), entry],
       },
@@ -1030,7 +1124,7 @@
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, COMPETITIONS, DECISIONS,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, COMPETITIONS, FINANCE_CATEGORIES, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardTargetPosition, boardConfidence, boardLabel, jobOfferTerms, acceptJobOffer, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
@@ -1040,7 +1134,7 @@
     seasonVerdict, completeSeason, prepareNextSeason,
     decisionById, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
-    roundFinance, applyPostRound, applyPostMatch:applyPostRound,
+    financeEntry, financeCategorySummary, roundFinanceBreakdown, roundFinance, applyPostRound, applyPostMatch:applyPostRound,
     averageTrust, averageAreas, trustLabel, areaLabel, financeLabel, money,
   };
 
