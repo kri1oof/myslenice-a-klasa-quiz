@@ -168,6 +168,15 @@ function presidentCareerDevelopmentText(item) {
   return parts.join(' · ');
 }
 
+function presidentCareerContractText(item, kind = 'transfer') {
+  const normalized = presidentModeCore.normalizeCareerPlayerContract(item, kind);
+  const remaining = Math.max(0, Number(normalized?.contractRemaining || 0));
+  const years = Math.max(1, Number(normalized?.contractYears || 1));
+  return remaining > 0
+    ? `umowa kariery ${remaining} sez. (z ${years})`
+    : 'umowa kariery wygasła';
+}
+
 function presidentLatestDevelopmentHtml(profile) {
   const latest = [...(profile?.playerDevelopmentHistory || [])].at(-1);
   if (!latest?.changes?.length) return '';
@@ -191,28 +200,42 @@ function presidentSquadHtml(career) {
   const currentKeys = new Set(players.map(player => presidentStablePlayerKey(player)));
   const careerSignings = (state.presidentMode?.transferRoster || []).map(item => {
     const development = presidentCareerDevelopmentText(item);
+    const contract = presidentCareerContractText(item, 'transfer');
     return `
     <div class="president-squad-player president-career-signing">
-      <span><strong>${presidentEscape(item.player)}</strong><small>Wzmocnienie kariery · źródło ŁNP: ${presidentEscape(item.sourceClub || 'inny klub')} / ${presidentEscape(item.sourceSeason || '')}${development ? ' · ' + presidentEscape(development) : ''}</small></span>
+      <span><strong>${presidentEscape(item.player)}</strong><small>Wzmocnienie kariery · źródło ŁNP: ${presidentEscape(item.sourceClub || 'inny klub')} / ${presidentEscape(item.sourceSeason || '')} · ${presidentEscape(contract)}${development ? ' · ' + presidentEscape(development) : ''}</small></span>
       <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
     </div>`;
   }).join('');
   const careerAcademy = academyPlayers.map(item => {
     const development = presidentCareerDevelopmentText(item);
+    const contract = presidentCareerContractText(item, 'academy');
     return `
     <div class="president-squad-player president-career-academy">
-      <span><strong>${presidentEscape(item.player)}</strong><small>🌱 Fikcyjny wychowanek kariery · ${presidentEscape(item.role || item.archetype || 'Zawodnik')} · potencjał ${Number(item?.ratings?.potential || 0) || '—'}${development ? ' · ' + presidentEscape(development) : ''}</small></span>
+      <span><strong>${presidentEscape(item.player)}</strong><small>🌱 Fikcyjny wychowanek kariery · ${presidentEscape(item.role || item.archetype || 'Zawodnik')} · potencjał ${Number(item?.ratings?.potential || 0) || '—'} · ${presidentEscape(contract)}${development ? ' · ' + presidentEscape(development) : ''}</small></span>
       <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
     </div>`;
   }).join('');
-  const careerRetentions = (state.presidentMode?.departureHistory || [])
-    .filter(item => item.outcome === 'retain' && !currentKeys.has(item.playerKey))
+  const retainedRoster = state.presidentMode?.retainedRoster || [];
+  const retainedKeys = new Set(retainedRoster.map(item => item.playerKey || item.id));
+  const activeRetentions = retainedRoster.map(item => {
+    const development = presidentCareerDevelopmentText(item);
+    const contract = presidentCareerContractText(item, 'retained');
+    return `
+      <div class="president-squad-player president-career-retention">
+        <span><strong>${presidentEscape(item.player)}</strong><small>Zatrzymany w alternatywnej karierze · profil ŁNP ${presidentEscape(item.sourceSeason || '')} · ${presidentEscape(contract)}${development ? ' · ' + presidentEscape(development) : ''}</small></span>
+        <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
+      </div>`;
+  }).join('');
+  const legacyRetentions = (state.presidentMode?.departureHistory || [])
+    .filter(item => item.outcome === 'retain' && !currentKeys.has(item.playerKey) && !retainedKeys.has(item.playerKey))
     .filter((item, index, list) => list.findIndex(other => other.playerKey === item.playerKey) === index)
     .map(item => `
       <div class="president-squad-player president-career-retention">
-        <span><strong>${presidentEscape(item.player)}</strong><small>Zatrzymany w alternatywnej karierze · profil ŁNP ${presidentEscape(item.sourceSeason || '')}</small></span>
+        <span><strong>${presidentEscape(item.player)}</strong><small>Zatrzymany w starszym zapisie kariery · profil ŁNP ${presidentEscape(item.sourceSeason || '')}</small></span>
         <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
       </div>`).join('');
+  const careerRetentions = activeRetentions + legacyRetentions;
 
   const extras = careerAcademy + careerRetentions + careerSignings;
   if (!players.length && !extras) {
@@ -226,7 +249,8 @@ function presidentSquadHtml(career) {
   if (players.length) summaryParts.push(`${players.length} profili ŁNP`);
   if (academyPlayers.length) summaryParts.push(`${academyPlayers.length} wychowanków kariery`);
   if (state.presidentMode?.transferRoster?.length) summaryParts.push(`${state.presidentMode.transferRoster.length} transferów kariery`);
-  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra</strong><small>${summaryParts.join(' · ') || 'kadra kariery'}</small></span><em>Pokaż</em></summary>${presidentLatestDevelopmentHtml(state.presidentMode)}<div class="president-squad-list">${careerAcademy}${careerRetentions}${careerSignings}${leaders}</div><small class="president-data-note">${sourceCopy} Rozwój ocen między sezonami dotyczy wyłącznie alternatywnej warstwy kariery i nie zmienia danych ŁNP.</small></details>`;
+  if (retainedRoster.length) summaryParts.push(`${retainedRoster.length} zatrzymanych w karierze`);
+  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra</strong><small>${summaryParts.join(' · ') || 'kadra kariery'}</small></span><em>Pokaż</em></summary>${presidentLatestDevelopmentHtml(state.presidentMode)}<div class="president-squad-list">${careerAcademy}${careerRetentions}${careerSignings}${leaders}</div><small class="president-data-note">${sourceCopy} Rozwój ocen i umowy między sezonami dotyczą wyłącznie alternatywnej warstwy kariery i nie zmieniają danych ŁNP ani nie opisują realnych kontraktów.</small></details>`;
 }
 
 function presidentEmploymentHtml(profile, career) {
@@ -1153,6 +1177,77 @@ function presidentSponsorContractsHtml(profile) {
 }
 
 
+function resolvePresidentCareerContract(caseId, outcome) {
+  const resolved = presidentModeCore.resolveCareerPlayerContract(state.presidentMode, caseId, outcome);
+  if (!resolved.ok) return false;
+  state.presidentMode = resolved.profile;
+  return renderPresidentOffseason();
+}
+
+function presidentCareerContractsHtml(profile) {
+  const offseason = profile?.offseason;
+  if (!offseason?.planId || !offseason.sponsorDecisionResolved) return '';
+  const cases = offseason.playerContractCases || [];
+  const retirements = offseason.retirementNotices || [];
+  const unresolved = cases.filter(item => !item.resolved);
+  const current = unresolved[0] || null;
+  const resolvedCount = cases.length - unresolved.length;
+
+  if (!current) {
+    const retirementRows = retirements.map(item => `
+      <div class="president-player-contract-retirement">
+        <span><strong>${presidentEscape(item.player)}</strong><small>fikcyjny koniec kariery · wiek ${item.age || '—'} · RPG ${item.rating || '—'}</small></span>
+        <em>zakończył karierę</em>
+      </div>`).join('');
+    return `
+      <section class="president-player-contracts resolved">
+        <div class="president-player-contracts-head">
+          <span><small>📄 UMOWY KADRY KARIERY</small><strong>${cases.length ? 'Wszystkie wygasające umowy rozstrzygnięte' : 'Brak umów wymagających decyzji'}</strong></span>
+          <em>✓ gotowe</em>
+        </div>
+        ${retirementRows ? `<div class="president-player-contract-retirements">${retirementRows}</div>` : ''}
+      </section>`;
+  }
+
+  const kindLabel = current.kind === 'academy'
+    ? 'wychowanek kariery'
+    : current.kind === 'retained'
+      ? 'zatrzymany zawodnik kariery'
+      : 'transfer kariery';
+  const canRenew = presidentModeCore.canResolveCareerPlayerContract(profile, current.id, 'renew');
+  return `
+    <section class="president-player-contracts">
+      <div class="president-player-contracts-head">
+        <span><small>📄 UMOWY KADRY KARIERY · MECHANIKA GRY</small><strong>Wygasa umowa: ${presidentEscape(current.player)}</strong></span>
+        <em>${resolvedCount + 1}/${cases.length}</em>
+      </div>
+      <p class="president-player-contract-note">To <strong>fikcyjna umowa w alternatywnej karierze</strong>. Nie opisuje rzeczywistego kontraktu, statusu ani planów zawodnika.</p>
+      <div class="president-player-contract-card">
+        <div class="president-player-contract-player">
+          <span><small>${presidentEscape(kindLabel)}</small><strong>${presidentEscape(current.player)}</strong><em>${current.age ? 'wiek kariery ' + current.age + ' · ' : ''}RPG ${current.rating}</em></span>
+          <b>${current.rating}</b>
+        </div>
+        <div class="president-player-contract-terms">
+          <span><small>NOWA UMOWA</small><strong>${current.renewalYears} sez.</strong></span>
+          <span><small>PREMIA</small><strong>${presidentModeCore.money(current.renewalBonus)}</strong></span>
+          <span><small>STAŁY KOSZT</small><strong>−${presidentModeCore.money(current.renewalRecurring)}/kol.</strong></span>
+          <span><small>DOTYCHCZAS</small><strong>−${presidentModeCore.money(current.currentRecurring)}/kol.</strong></span>
+        </div>
+        <div class="president-player-contract-actions">
+          <button type="button" data-career-contract-id="${presidentEscape(current.id)}" data-career-contract-outcome="renew" ${canRenew ? '' : 'disabled'}>
+            <strong>🤝 Odnów umowę</strong>
+            <span>${current.renewalYears} sez. · premia ${presidentModeCore.money(current.renewalBonus)}</span>
+            ${canRenew ? '' : '<em>Brak środków na premię</em>'}
+          </button>
+          <button type="button" data-career-contract-id="${presidentEscape(current.id)}" data-career-contract-outcome="release">
+            <strong>➡️ Pozwól odejść</strong>
+            <span>Stały koszt zawodnika znika z budżetu kariery.</span>
+          </button>
+        </div>
+      </div>
+    </section>`;
+}
+
 function promotePresidentAcademyProspect(prospectId) {
   const promoted = presidentModeCore.promoteAcademyProspect(state.presidentMode, prospectId);
   if (!promoted.ok) return false;
@@ -1168,7 +1263,11 @@ function skipPresidentAcademyIntake() {
 }
 
 function presidentAcademyIntakeHtml(profile) {
-  if (!profile?.offseason?.planId || !profile.offseason.sponsorDecisionResolved) return '';
+  if (
+    !profile?.offseason?.planId ||
+    !profile.offseason.sponsorDecisionResolved ||
+    !profile.offseason.playerContractsResolved
+  ) return '';
   const prospects = profile.offseason.academyProspects || [];
   const resolved = Boolean(profile.offseason.academyDecisionResolved);
   const selected = profile.offseason.academySelectedId
@@ -1184,7 +1283,7 @@ function presidentAcademyIntakeHtml(profile) {
         </div>
         ${selected ? `
           <div class="president-academy-selected">
-            <span><strong>${presidentEscape(selected.player)}</strong><small>Fikcyjny wychowanek kariery · ${presidentEscape(selected.role)} · wiek ${selected.age}</small></span>
+            <span><strong>${presidentEscape(selected.player)}</strong><small>Fikcyjny wychowanek kariery · ${presidentEscape(selected.role)} · wiek ${selected.age} · umowa kariery ${Number(selected.contractRemaining || 3)} sez.</small></span>
             <b>RPG ${Number(selected?.ratings?.game_rating || 0)} · potencjał ${Number(selected?.ratings?.potential || 0)}</b>
           </div>` : ''}
       </section>`;
@@ -1211,6 +1310,7 @@ function presidentAcademyIntakeHtml(profile) {
                 <span><small>POTENCJAŁ</small><strong>${Number(prospect?.ratings?.potential || 0)}</strong></span>
                 <span><small>WDROŻENIE</small><strong>${presidentModeCore.money(prospect.developmentCost)}</strong></span>
                 <span><small>STAŁY KOSZT</small><strong>−${presidentModeCore.money(prospect.recurring)}/kol.</strong></span>
+                <span><small>UMOWA KARIERY</small><strong>3 sez.</strong></span>
               </div>
               <button type="button" data-academy-prospect="${prospect.id}" ${affordable ? '' : 'disabled'}>
                 ${affordable ? 'Włącz do kadry seniorów' : 'Brak środków na wdrożenie'}
@@ -1354,7 +1454,7 @@ function presidentDepartureHtml(profile, career) {
       <div class="president-departure-options">
         <button type="button" data-departure-outcome="retain" ${retainAvailable ? '' : 'disabled'}>
           <strong>🤝 Zatrzymaj zawodnika</strong>
-          <span>Premia ${presidentModeCore.money(terms.retentionCost)} · stały koszt −${presidentModeCore.money(terms.retentionRecurring)}/kolejkę</span>
+          <span>Premia ${presidentModeCore.money(terms.retentionCost)} · stały koszt −${presidentModeCore.money(terms.retentionRecurring)}/kolejkę · umowa kariery 2 sez.</span>
           <small>Kariera odchodzi od rzeczywistej ścieżki danych, jeśli ŁNP pokazuje zmianę klubu.</small>
           ${retainAvailable ? '' : '<em>Brak środków na zatrzymanie</em>'}
         </button>
@@ -1469,6 +1569,7 @@ function presidentTransferMarketHtml(profile, career) {
             <div class="president-transfer-terms">
               <span>Jednorazowo <strong>${presidentModeCore.money(terms.fee)}</strong></span>
               <span>Stały koszt <strong>−${presidentModeCore.money(terms.recurring)}/kolejkę</strong></span>
+              <span>Umowa kariery <strong>2 sez.</strong></span>
             </div>
             <button type="button" data-transfer-player="${player.id}" ${canSign ? '' : 'disabled'}>
               ${alreadySigned ? '✓ Sprowadzony' : signings >= 2 ? 'Limit 2/2' : canSign ? 'Sprowadź zawodnika' : 'Brak środków'}
@@ -1671,13 +1772,15 @@ function renderPresidentOffseason() {
 
       ${chosen && offseason?.competitionReadinessResolved ? presidentSponsorContractsHtml(profile) : ''}
 
-      ${chosen && profile.offseason?.sponsorDecisionResolved ? presidentAcademyIntakeHtml(profile) : ''}
+      ${chosen && profile.offseason?.sponsorDecisionResolved ? presidentCareerContractsHtml(profile) : ''}
 
-      ${chosen && profile.offseason?.sponsorDecisionResolved && profile.offseason?.academyDecisionResolved ? presidentDepartureHtml(profile, career) : ''}
+      ${chosen && profile.offseason?.sponsorDecisionResolved && profile.offseason?.playerContractsResolved ? presidentAcademyIntakeHtml(profile) : ''}
+
+      ${chosen && profile.offseason?.sponsorDecisionResolved && profile.offseason?.playerContractsResolved && profile.offseason?.academyDecisionResolved ? presidentDepartureHtml(profile, career) : ''}
 
       ${chosen && profile.offseason?.departureResolved ? presidentTransferMarketHtml(profile, career) : ''}
 
-      ${chosen && profile.offseason?.competitionReadinessResolved && profile.offseason?.sponsorDecisionResolved && profile.offseason?.academyDecisionResolved && profile.offseason?.transferWindowClosed ? `
+      ${chosen && profile.offseason?.competitionReadinessResolved && profile.offseason?.sponsorDecisionResolved && profile.offseason?.playerContractsResolved && profile.offseason?.academyDecisionResolved && profile.offseason?.transferWindowClosed ? `
         <section class="president-offseason-continue">
           <span><small>NASTĘPNY KROK</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextPlan.season)} · ${presidentEscape(nextPlan.competitionLabel)}</strong></span>
           <p>Stan klubu, decyzja letnia i ruchy kadrowe przechodzą dalej. Teraz zarząd ustali cel oraz strategię na nowy rok.</p>
@@ -1704,6 +1807,12 @@ function renderPresidentOffseason() {
     button.addEventListener('click', () => acceptPresidentSponsorContract(button.dataset.sponsorContract));
   });
   panel.querySelector('.president-skip-sponsor-contract')?.addEventListener('click', skipPresidentSponsorContract);
+  panel.querySelectorAll('[data-career-contract-id]').forEach(button => {
+    button.addEventListener('click', () => resolvePresidentCareerContract(
+      button.dataset.careerContractId,
+      button.dataset.careerContractOutcome,
+    ));
+  });
   panel.querySelectorAll('[data-academy-prospect]').forEach(button => {
     button.addEventListener('click', () => promotePresidentAcademyProspect(button.dataset.academyProspect));
   });
@@ -1737,6 +1846,7 @@ function startNextPresidentSeason() {
     !state.presidentMode.offseason?.competitionReadinessResolved ||
     !state.presidentMode.offseason?.planId ||
     !state.presidentMode.offseason?.sponsorDecisionResolved ||
+    !state.presidentMode.offseason?.playerContractsResolved ||
     !state.presidentMode.offseason?.academyDecisionResolved ||
     !state.presidentMode.offseason?.departureResolved ||
     !state.presidentMode.offseason?.transferWindowClosed
