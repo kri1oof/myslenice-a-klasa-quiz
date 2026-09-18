@@ -264,6 +264,7 @@
       history:[],
       currentDecision:null,
       decidedRound:-1,
+      lastUpgradeRound:-99,
       roundsCompleted:0,
       totalRounds:Number(totalRounds || 0),
       lastFinance:0,
