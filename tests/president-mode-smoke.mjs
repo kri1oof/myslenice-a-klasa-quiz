@@ -440,6 +440,50 @@ assert.equal(core.applyOffseasonPlan(summer.profile, 'community').reason, 'alrea
 assert.equal(core.CONTRACT_TEMPLATES.length, 3);
 assert.equal(summer.profile.offseason.sponsorDecisionResolved, false);
 assert.ok(core.availableContractTemplates(summer.profile).length >= 3);
+assert.ok(core.availableContractOffers(summer.profile).length >= 3);
+
+const commercial = core.commercialValue(summer.profile);
+assert.ok(commercial.score >= 0 && commercial.score <= 100);
+assert.ok(commercial.multiplier >= .75 && commercial.multiplier <= 1.5);
+assert.ok(commercial.attendance > 0);
+const performanceOffer = core.sponsorOfferTerms(summer.profile, 'performance_partner');
+assert.ok(performanceOffer);
+assert.equal(performanceOffer.commercialScore, commercial.score);
+assert.equal(performanceOffer.commercialMultiplier, commercial.multiplier);
+
+const weakCommercialProfile = {
+  ...summer.profile,
+  supporterBase:100,
+  attendanceHistory:[],
+  trust:{ ...summer.profile.trust, sponsors:25, supporters:30 },
+  reputation:25,
+  areas:{ ...summer.profile.areas, community:30, facilities:40, organization:40 },
+};
+const strongCommercialProfile = {
+  ...summer.profile,
+  supporterBase:950,
+  attendanceHistory:[
+    { home:true, attendance:720 },
+    { home:true, attendance:760 },
+    { home:true, attendance:800 },
+  ],
+  trust:{ ...summer.profile.trust, sponsors:85, supporters:85 },
+  reputation:80,
+  areas:{ ...summer.profile.areas, community:80, facilities:80, organization:80 },
+};
+const weakCommercial = core.commercialValue(weakCommercialProfile);
+const strongCommercial = core.commercialValue(strongCommercialProfile);
+assert.ok(strongCommercial.score > weakCommercial.score);
+assert.ok(strongCommercial.multiplier > weakCommercial.multiplier);
+assert.ok(
+  core.sponsorOfferTerms(strongCommercialProfile, 'performance_partner').signingBonus >
+  core.sponsorOfferTerms(weakCommercialProfile, 'performance_partner').signingBonus
+);
+assert.ok(
+  core.sponsorOfferTerms(strongCommercialProfile, 'performance_partner').recurring >
+  core.sponsorOfferTerms(weakCommercialProfile, 'performance_partner').recurring
+);
+
 const sponsorContract = core.acceptSponsorContract(summer.profile, 'performance_partner');
 assert.equal(sponsorContract.ok, true);
 assert.equal(sponsorContract.profile.contracts.length, 1);
@@ -447,12 +491,16 @@ assert.equal(sponsorContract.profile.offseason.sponsorDecisionResolved, true);
 assert.equal(sponsorContract.profile.contracts[0].remainingSeasons, 2);
 assert.equal(
   sponsorContract.profile.budget,
-  summer.profile.budget + core.contractTemplateById('performance_partner').signingBonus,
+  summer.profile.budget + performanceOffer.signingBonus,
 );
 assert.equal(
   sponsorContract.profile.recurring,
-  summer.profile.recurring + core.contractTemplateById('performance_partner').recurring,
+  summer.profile.recurring + performanceOffer.recurring,
 );
+assert.equal(sponsorContract.profile.contracts[0].commercialScore, commercial.score);
+assert.equal(sponsorContract.profile.contracts[0].commercialMultiplier, commercial.multiplier);
+assert.equal(sponsorContract.profile.contracts[0].signingBonus, performanceOffer.signingBonus);
+assert.equal(sponsorContract.profile.contracts[0].recurring, performanceOffer.recurring);
 const contractMet = core.processSeasonContracts(sponsorContract.profile, { position:4 });
 assert.equal(contractMet.contracts.length, 1);
 assert.equal(contractMet.contracts[0].remainingSeasons, 1);
@@ -461,7 +509,7 @@ const contractFailed = core.processSeasonContracts(sponsorContract.profile, { po
 assert.equal(contractFailed.contracts.length, 0);
 assert.equal(
   contractFailed.recurring,
-  sponsorContract.profile.recurring - core.contractTemplateById('performance_partner').recurring,
+  sponsorContract.profile.recurring - sponsorContract.profile.contracts[0].recurring,
 );
 assert.equal(contractFailed.contractHistory.at(-1).endReason, 'condition');
 
@@ -761,6 +809,11 @@ assert.match(runtime, /Rozwiązanie tymczasowe/);
 assert.match(runtime, /UMOWY WIELOSEZONOWE/);
 assert.match(runtime, /data-sponsor-contract/);
 assert.match(runtime, /Pakiety są fikcyjne/);
+assert.match(runtime, /WARTOŚĆ KOMERCYJNA GRY/);
+assert.match(runtime, /symulowanej wartości komercyjnej klubu/);
+assert.match(runtime, /MNOŻNIK OFERT/);
+assert.match(runtime, /Stawka podpisywana przy wartości komercyjnej/);
+assert.match(runtime, /po podpisaniu nie zmienia się w trakcie umowy/);
 assert.match(runtime, /Aktywne umowy wielosezonowe/);
 assert.match(runtime, /UMOWY KADRY KARIERY/);
 assert.match(runtime, /fikcyjna umowa w alternatywnej karierze/);
