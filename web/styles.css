@@ -76,3 +76,118 @@ button:hover { transform: translateY(-1px); }
   font-size: .72rem;
   font-weight: 800;
 }
+
+
+.feedback {
+  padding: 0;
+  background: transparent;
+}
+
+.fact-card {
+  overflow: hidden;
+  border: 1px solid #dbe3ec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, .05);
+}
+.fact-card-correct { border-color: #86efac; }
+.fact-card-wrong { border-color: #fecaca; }
+
+.fact-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.fact-card-correct .fact-card-head { background: #f0fdf4; border-bottom-color: #bbf7d0; }
+.fact-card-wrong .fact-card-head { background: #fef2f2; border-bottom-color: #fecaca; }
+
+.fact-card-status {
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+.fact-card-correct .fact-card-status { color: #166534; }
+.fact-card-wrong .fact-card-status { color: #991b1b; }
+
+.fact-card-answer {
+  color: #111827;
+  font-size: .96rem;
+  text-align: right;
+}
+.fact-card-explanation {
+  margin: 0;
+  padding: 13px 14px 8px;
+  color: #334155;
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+.fact-card-highlights,
+.fact-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 14px 10px;
+}
+.fact-card-meta {
+  padding-top: 2px;
+  padding-bottom: 13px;
+}
+.fact-card-chip {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: .62rem;
+  font-weight: 800;
+}
+.fact-card-chip-highlight {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.fact-card-chip-season { background: #f5f3ff; color: #6d28d9; }
+.fact-card-chip-club { background: #f0fdf4; color: #166534; }
+.fact-card-chip-difficulty { background: #fff7ed; color: #9a3412; }
+
+.fact-card-fallback {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.fact-source-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.fact-source-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid #dbe3ec;
+  border-radius: 10px;
+  background: #fff;
+  text-decoration: none;
+}
+.fact-source-link span {
+  color: #1d4ed8;
+  font-weight: 800;
+}
+.fact-source-link small {
+  color: #64748b;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  .fact-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .fact-card-answer { text-align: left; }
+}
