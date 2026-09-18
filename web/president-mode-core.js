@@ -373,6 +373,8 @@
       transferHistory:[],
       academyRoster:[],
       academyHistory:[],
+      retainedRoster:[],
+      playerContractHistory:[],
       playerDevelopmentHistory:[],
       readinessHistory:[],
       departedPlayerKeys:[],
@@ -714,6 +716,7 @@
         lastUpgradeRound:-99,
         transferRoster:[],
         academyRoster:[],
+        retainedRoster:[],
         contracts:[],
         departedPlayerKeys:[],
         jobMarket:null,
@@ -1227,7 +1230,11 @@
   }
 
   function canPromoteAcademyProspect(profile, prospectId) {
-    if (!profile?.offseason || profile.offseason.academyDecisionResolved) return false;
+    if (
+      !profile?.offseason ||
+      !profile.offseason.playerContractsResolved ||
+      profile.offseason.academyDecisionResolved
+    ) return false;
     const prospect = academyProspectById(profile, prospectId);
     if (!prospect) return false;
     return Number(profile.budget || 0) >= Number(prospect.developmentCost || 0);
@@ -1239,6 +1246,12 @@
     const entry = {
       ...prospect,
       promotedCareerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+      careerSeasons:0,
+      lastDevelopmentDelta:0,
+      contractYears:3,
+      contractRemaining:3,
+      contractRecurring:Number(prospect.recurring || 0),
+      contractRenewals:0,
     };
     return {
       ok:true,
@@ -1268,7 +1281,11 @@
   }
 
   function skipAcademyIntake(profile) {
-    if (!profile?.offseason || profile.offseason.academyDecisionResolved) return { ok:false, reason:'unavailable' };
+    if (
+      !profile?.offseason ||
+      !profile.offseason.playerContractsResolved ||
+      profile.offseason.academyDecisionResolved
+    ) return { ok:false, reason:'unavailable' };
     return {
       ok:true,
       profile:{
@@ -1282,6 +1299,270 @@
           ...profile.offseason,
           academyDecisionResolved:true,
           academySelectedId:null,
+        },
+      },
+    };
+  }
+
+  function careerContractDefaults(kind = 'transfer') {
+    return kind === 'academy'
+      ? { years:3 }
+      : { years:2 };
+  }
+
+  function normalizeCareerPlayerContract(player, kind = 'transfer') {
+    const defaults = careerContractDefaults(kind);
+    const yearsRaw = Number(player?.contractYears);
+    const years = Number.isFinite(yearsRaw) && yearsRaw > 0 ? Math.round(yearsRaw) : defaults.years;
+    const remainingRaw = Number(player?.contractRemaining);
+    const hasExplicitRemaining = Number.isFinite(remainingRaw) && remainingRaw >= 0;
+    const recurring = Math.max(0, Number(player?.contractRecurring ?? player?.recurring ?? 0));
+    return {
+      ...player,
+      contractYears:years,
+      contractRemaining:hasExplicitRemaining ? Math.round(remainingRaw) : years,
+      contractRecurring:recurring,
+      contractRenewals:Math.max(0, Number(player?.contractRenewals || 0)),
+      __careerContractMigrated:!hasExplicitRemaining,
+    };
+  }
+
+  function careerContractTerms(player, kind = 'transfer') {
+    const normalized = normalizeCareerPlayerContract(player, kind);
+    const rating = clamp(Number(normalized?.ratings?.game_rating || 60), 35, 95);
+    const ageValue = Number(normalized?.careerAge ?? normalized?.age ?? 0);
+    const age = Number.isFinite(ageValue) && ageValue > 0 ? ageValue : null;
+    const currentRecurring = Math.max(0, Number(normalized.contractRecurring || 0));
+    const years = age !== null && age >= 34
+      ? 1
+      : kind === 'academy' && (age === null || age <= 23)
+        ? 3
+        : 2;
+    const marketRecurring = kind === 'academy'
+      ? Math.max(15, Math.round((rating - 34) * .90 / 5) * 5)
+      : Math.max(25, Math.round((rating - 34) * 1.35 / 5) * 5);
+    const recurring = Math.max(currentRecurring, marketRecurring);
+    const renewalBonus = Math.max(
+      300,
+      Math.round((220 + Math.max(0, rating - 50) * 28 + years * 90) / 50) * 50,
+    );
+    return {
+      years,
+      renewalBonus,
+      recurring,
+      currentRecurring,
+      rating,
+      age,
+      retiring:Boolean(age !== null && age >= 37),
+    };
+  }
+
+  function careerRosterSpecs(profile) {
+    return [
+      { key:'academyRoster', kind:'academy', rows:profile?.academyRoster || [] },
+      { key:'transferRoster', kind:'transfer', rows:profile?.transferRoster || [] },
+      { key:'retainedRoster', kind:'retained', rows:profile?.retainedRoster || [] },
+    ];
+  }
+
+  function careerPlayerContractId(player, kind = 'transfer') {
+    return String(player?.id || player?.playerKey || (kind + ':' + String(player?.player || 'player')));
+  }
+
+  function processCareerPlayerContracts(profile, season = {}) {
+    if (!profile) return { profile, cases:[], retirements:[] };
+    let recurring = Number(profile.recurring || 0);
+    let areas = normalizedAreas(profile.areas);
+    let trust = normalizedTrust(profile.trust);
+    const history = [...(profile.playerContractHistory || [])];
+    const cases = [];
+    const retirements = [];
+    const rosters = {};
+    const careerYear = Number(profile.careerYear || season?.careerYear || 1);
+
+    for (const spec of careerRosterSpecs(profile)) {
+      const kept = [];
+      for (const source of spec.rows) {
+        const player = normalizeCareerPlayerContract(source, spec.kind);
+        const joinedYear = Number(
+          spec.kind === 'academy'
+            ? player?.promotedCareerYear ?? careerYear
+            : player?.careerYear ?? careerYear,
+        );
+
+        // Legacy players from saves created before contracts existed receive a fresh
+        // contract window instead of expiring immediately after an update.
+        if (player.__careerContractMigrated) {
+          const migrated = { ...player };
+          delete migrated.__careerContractMigrated;
+          kept.push(migrated);
+          continue;
+        }
+
+        // A player added in this same career year has not completed a full season yet.
+        if (joinedYear >= careerYear) {
+          const unchanged = { ...player };
+          delete unchanged.__careerContractMigrated;
+          kept.push(unchanged);
+          continue;
+        }
+
+        const nextRemaining = Math.max(0, Number(player.contractRemaining || 0) - 1);
+        const terms = careerContractTerms(player, spec.kind);
+        const clean = { ...player, contractRemaining:nextRemaining };
+        delete clean.__careerContractMigrated;
+
+        if (nextRemaining > 0) {
+          kept.push(clean);
+          continue;
+        }
+
+        if (terms.retiring) {
+          recurring += terms.currentRecurring;
+          const squadLoss = Math.max(1, Number(player.squadGain || 1));
+          areas = applyMap(areas, { squad:-squadLoss }, AREA_KEYS, normalizedAreas);
+          trust = applyMap(trust, { players:1, supporters:1 }, TRUST_KEYS, normalizedTrust);
+          const event = {
+            careerYear,
+            season:String(season?.season || ''),
+            type:'retired',
+            kind:spec.kind,
+            playerId:careerPlayerContractId(player, spec.kind),
+            player:player.player || 'Zawodnik',
+            age:terms.age,
+            rating:terms.rating,
+            releasedRecurring:terms.currentRecurring,
+          };
+          retirements.push(event);
+          history.push(event);
+          continue;
+        }
+
+        kept.push(clean);
+        cases.push({
+          id:'career-contract:' + careerYear + ':' + spec.kind + ':' + careerPlayerContractId(player, spec.kind),
+          kind:spec.kind,
+          rosterKey:spec.key,
+          playerId:careerPlayerContractId(player, spec.kind),
+          player:player.player || 'Zawodnik',
+          age:terms.age,
+          rating:terms.rating,
+          currentRecurring:terms.currentRecurring,
+          renewalYears:terms.years,
+          renewalBonus:terms.renewalBonus,
+          renewalRecurring:terms.recurring,
+          squadGain:Math.max(1, Number(player.squadGain || 1)),
+          resolved:false,
+          outcome:null,
+        });
+      }
+      rosters[spec.key] = kept;
+    }
+
+    return {
+      cases,
+      retirements,
+      profile:{
+        ...profile,
+        ...rosters,
+        recurring,
+        areas,
+        trust,
+        playerContractHistory:history,
+      },
+    };
+  }
+
+  function currentCareerPlayerContractCase(profile) {
+    return (profile?.offseason?.playerContractCases || []).find(item => !item.resolved) || null;
+  }
+
+  function canResolveCareerPlayerContract(profile, caseId, outcome) {
+    if (
+      !profile?.offseason ||
+      !profile.offseason.sponsorDecisionResolved ||
+      profile.offseason.playerContractsResolved
+    ) return false;
+    const item = (profile.offseason.playerContractCases || []).find(row => row.id === caseId && !row.resolved);
+    if (!item || !['renew','release'].includes(outcome)) return false;
+    if (outcome === 'renew') return Number(profile.budget || 0) >= Number(item.renewalBonus || 0);
+    return true;
+  }
+
+  function resolveCareerPlayerContract(profile, caseId, outcome) {
+    if (!canResolveCareerPlayerContract(profile, caseId, outcome)) {
+      return { ok:false, reason:'unavailable' };
+    }
+    const cases = (profile.offseason.playerContractCases || []).map(item => ({ ...item }));
+    const caseIndex = cases.findIndex(item => item.id === caseId);
+    const item = cases[caseIndex];
+    const roster = [...(profile[item.rosterKey] || [])];
+    const playerIndex = roster.findIndex(player => careerPlayerContractId(player, item.kind) === item.playerId);
+    if (playerIndex < 0) return { ok:false, reason:'missing-player' };
+    const player = normalizeCareerPlayerContract(roster[playerIndex], item.kind);
+    const oldRecurring = Math.max(0, Number(player.contractRecurring ?? item.currentRecurring ?? 0));
+    let budget = Number(profile.budget || 0);
+    let recurring = Number(profile.recurring || 0);
+    let areas = normalizedAreas(profile.areas);
+    let trust = normalizedTrust(profile.trust);
+    let financeLedger = [...(profile.financeLedger || [])];
+
+    if (outcome === 'renew') {
+      budget -= Number(item.renewalBonus || 0);
+      recurring += oldRecurring - Number(item.renewalRecurring || 0);
+      roster[playerIndex] = {
+        ...player,
+        recurring:Number(item.renewalRecurring || 0),
+        contractYears:Number(item.renewalYears || 1),
+        contractRemaining:Number(item.renewalYears || 1),
+        contractRecurring:Number(item.renewalRecurring || 0),
+        contractRenewals:Number(player.contractRenewals || 0) + 1,
+      };
+      trust = applyMap(trust, { players:2, coach:1 }, TRUST_KEYS, normalizedTrust);
+      financeLedger = appendFinanceEntries(
+        { ...profile, financeLedger },
+        [financeEntry(profile, 'squad', 'Odnowienie umowy kariery: ' + item.player, -Number(item.renewalBonus || 0), null)],
+      );
+    } else {
+      roster.splice(playerIndex, 1);
+      recurring += oldRecurring;
+      areas = applyMap(areas, { squad:-Math.max(1, Number(item.squadGain || 1)) }, AREA_KEYS, normalizedAreas);
+      trust = applyMap(trust, { players:-1, supporters:-1 }, TRUST_KEYS, normalizedTrust);
+    }
+
+    cases[caseIndex] = { ...item, resolved:true, outcome };
+    const resolved = cases.every(row => row.resolved);
+    const event = {
+      careerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+      season:String(profile.offseason?.season || ''),
+      type:outcome === 'renew' ? 'renewed' : 'released',
+      kind:item.kind,
+      playerId:item.playerId,
+      player:item.player,
+      age:item.age,
+      rating:item.rating,
+      years:outcome === 'renew' ? Number(item.renewalYears || 1) : 0,
+      bonus:outcome === 'renew' ? Number(item.renewalBonus || 0) : 0,
+      recurringBefore:oldRecurring,
+      recurringAfter:outcome === 'renew' ? Number(item.renewalRecurring || 0) : 0,
+    };
+
+    return {
+      ok:true,
+      event,
+      profile:{
+        ...profile,
+        [item.rosterKey]:roster,
+        budget,
+        recurring,
+        areas,
+        trust,
+        financeLedger,
+        playerContractHistory:[...(profile.playerContractHistory || []), event],
+        offseason:{
+          ...profile.offseason,
+          playerContractCases:cases,
+          playerContractsResolved:resolved,
         },
       },
     };
@@ -1329,22 +1610,40 @@
     const season = latestSeasonRecord(profile);
     if (!season) return { ok:false, reason:'season' };
     if (profile.offseason && Number(profile.offseason.careerYear) === Number(season.careerYear)) {
-      if (profile.offseason.competitionReadinessResolved === undefined) {
+      let migratedOffseason = { ...profile.offseason };
+      let changed = false;
+      if (migratedOffseason.competitionReadinessResolved === undefined) {
         const targetLevel = Number(season?.movement?.toLevel ?? season?.competitionLevel ?? 1);
         const readiness = competitionReadiness(profile, targetLevel);
-        const migratedOffseason = {
-          ...profile.offseason,
+        migratedOffseason = {
+          ...migratedOffseason,
           competitionReadinessLevel:targetLevel,
           competitionReadiness:readiness,
           competitionReadinessResolved:readiness.ready,
           competitionReadinessMethod:readiness.ready ? 'already_ready' : null,
         };
+        changed = true;
+      }
+      // Do not introduce a surprise expiry decision halfway through an already-saved
+      // offseason created by an older version of the game.
+      if (migratedOffseason.playerContractsResolved === undefined) {
+        migratedOffseason = {
+          ...migratedOffseason,
+          playerContractCases:[],
+          playerContractsResolved:true,
+          retirementNotices:[],
+        };
+        changed = true;
+      }
+      if (changed) {
         const migrated = { ...profile, offseason:migratedOffseason };
         return { ok:true, profile:migrated, offseason:migratedOffseason, reused:true };
       }
       return { ok:true, profile, offseason:profile.offseason, reused:true };
     }
-    const processed = processSeasonContracts(profile, season);
+    const sponsorProcessed = processSeasonContracts(profile, season);
+    const contractProcess = processCareerPlayerContracts(sponsorProcessed, season);
+    const processed = contractProcess.profile;
     const settlement = offseasonSettlement(processed);
     if (!settlement) return { ok:false, reason:'settlement' };
     const academyProspects = createAcademyProspects(processed, season);
@@ -1363,6 +1662,9 @@
       planResult:null,
       sponsorDecisionResolved:(processed.contracts || []).length >= 2 || availableContractTemplates(processed).length === 0,
       selectedContractId:null,
+      playerContractCases:contractProcess.cases,
+      playerContractsResolved:contractProcess.cases.length === 0,
+      retirementNotices:contractProcess.retirements,
       academyProspects,
       academyDecisionResolved:academyProspects.length === 0,
       academySelectedId:null,
@@ -1481,6 +1783,30 @@
     };
     const departed = new Set(profile.departedPlayerKeys || []);
     if (!retained) departed.add(candidate.playerKey);
+    const retainedEntry = retained ? {
+      id:'retained:' + candidate.playerKey + ':' + Number(profile.offseason?.careerYear || profile.careerYear || 1),
+      playerKey:candidate.playerKey,
+      player:candidate.player || 'Zawodnik',
+      sourceClub:candidate.club || null,
+      sourceSeason:candidate.season || null,
+      archetype:candidate.archetype || null,
+      stats:{ ...(candidate.stats || {}) },
+      ratings:{ ...(candidate.ratings || {}) },
+      sourceGameRating:Number(candidate?.ratings?.game_rating || 0) || null,
+      careerAge:Number(candidate?.age || candidate?.stats?.age || 0) || null,
+      careerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+      careerSeasons:0,
+      lastDevelopmentDelta:0,
+      recurring:terms.retentionRecurring,
+      squadGain:1,
+      contractYears:2,
+      contractRemaining:2,
+      contractRecurring:terms.retentionRecurring,
+      contractRenewals:0,
+      factualTransition:Boolean(candidate.factualTransition),
+      observedNextClub:candidate.observedNextClub || null,
+      observedNextSeason:candidate.observedNextSeason || null,
+    } : null;
     return {
       ok:true,
       terms,
@@ -1496,6 +1822,7 @@
           normalizedTrust,
         ),
         departedPlayerKeys:[...departed],
+        retainedRoster:retained ? [...(profile.retainedRoster || []), retainedEntry] : [...(profile.retainedRoster || [])],
         financeLedger:appendFinanceEntries(profile, [
           financeEntry(
             profile,
@@ -1575,6 +1902,10 @@
       careerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
       careerSeasons:0,
       lastDevelopmentDelta:0,
+      contractYears:2,
+      contractRemaining:2,
+      contractRecurring:terms.recurring,
+      contractRenewals:0,
       fee:terms.fee,
       recurring:terms.recurring,
       squadGain:terms.squadGain,
@@ -1798,7 +2129,10 @@
     const transferChanges = (profile.transferRoster || []).map(player =>
       developCareerPlayer(player, profile, 'transfer', nextYear)
     );
-    const changes = [...academyChanges, ...transferChanges]
+    const retainedChanges = (profile.retainedRoster || []).map(player =>
+      developCareerPlayer(player, profile, 'retained', nextYear)
+    );
+    const changes = [...academyChanges, ...transferChanges, ...retainedChanges]
       .map(item => item.change)
       .filter(Boolean);
     const totalDelta = changes.reduce((sum, item) => sum + Number(item.delta || 0), 0);
@@ -1808,6 +2142,7 @@
       ...profile,
       academyRoster:academyChanges.map(item => item.player),
       transferRoster:transferChanges.map(item => item.player),
+      retainedRoster:retainedChanges.map(item => item.player),
       areas:applyMap(profile.areas, { squad:squadDelta }, AREA_KEYS, normalizedAreas),
       playerDevelopmentHistory:[...(profile.playerDevelopmentHistory || []), {
         targetCareerYear:nextYear,
@@ -1886,6 +2221,8 @@
     contractTemplateById, contractConditionMet, processSeasonContracts, availableContractTemplates,
     canAcceptContract, acceptSponsorContract, skipSponsorContract,
     createAcademyProspects, academyProspectById, canPromoteAcademyProspect, promoteAcademyProspect, skipAcademyIntake,
+    careerContractDefaults, normalizeCareerPlayerContract, careerContractTerms, processCareerPlayerContracts,
+    currentCareerPlayerContractCase, canResolveCareerPlayerContract, resolveCareerPlayerContract,
     departureGameTerms, canResolveDeparture, resolveDeparture,
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
     competitionByLevel, competitionMovement, competitionMovementLabel,
