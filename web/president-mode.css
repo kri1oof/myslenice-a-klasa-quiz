@@ -1456,6 +1456,102 @@
 }
 .president-decline-job-offers:hover { background:#f8fafc; }
 
+
+.president-management-hub {
+  margin: 10px 0 14px;
+  border: 1px solid #dbe3ec;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+.president-hub-tabs {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  gap: 0;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.president-hub-tabs button {
+  min-height: 52px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-right: 1px solid #e2e8f0;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+.president-hub-tabs button:last-child { border-right: 0; }
+.president-hub-tabs button span { font-size: 1rem; }
+.president-hub-tabs button strong { font-size: .7rem; }
+.president-hub-tabs button.active {
+  background: #f0fdf4;
+  color: #166534;
+  box-shadow: inset 0 -3px 0 #16a34a;
+}
+.president-hub-content { padding: 12px; }
+.president-hub-pane { display: none; }
+.president-hub-pane.active { display: block; }
+.president-hub-pane .president-dashboard { margin: 0; }
+.president-hub-pane .president-employment-alert,
+.president-hub-pane .president-warnings { margin-top: 9px; }
+.president-hub-pane .president-squad-details,
+.president-hub-pane .president-investments,
+.president-hub-pane .president-career-history { margin: 0; }
+
+.president-tab-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 8px;
+}
+.president-tab-stat-grid > div {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.president-tab-stat-grid small,
+.president-tab-stat-grid strong,
+.president-tab-stat-grid span { display:block; }
+.president-tab-stat-grid small {
+  color:#64748b;
+  font-size:.64rem;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.president-tab-stat-grid strong { margin-top:3px; color:#111827; }
+.president-tab-stat-grid span { margin-top:2px; color:#64748b; font-size:.7rem; }
+
+.president-tab-list {
+  margin-top: 9px;
+  display: grid;
+  gap: 6px;
+}
+.president-tab-list > strong { color:#334155; font-size:.78rem; }
+.president-tab-list > div {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px;
+  border:1px solid #e2e8f0;
+  border-radius:9px;
+  background:#fff;
+  font-size:.73rem;
+}
+.president-tab-list > div b { color:#166534; }
+.president-tab-list > small { color:#64748b; font-size:.72rem; }
+
+.president-club-tab {
+  display:grid;
+  gap:10px;
+}
+.president-club-tab .president-area-grid,
+.president-club-tab .president-trust-grid { margin:0; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1481,6 +1577,12 @@
 }
 
 @media (max-width: 700px) {
+  .president-hub-tabs {
+    grid-template-columns: repeat(5,minmax(64px,1fr));
+    overflow-x:auto;
+  }
+  .president-hub-tabs button { min-width:64px; }
+  .president-tab-stat-grid { grid-template-columns:1fr; }
   .president-decision-card,
   .president-round-report,
   .president-season-final,
