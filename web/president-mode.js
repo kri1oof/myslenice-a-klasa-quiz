@@ -727,13 +727,17 @@ function renderPresidentDismissal(lastRound = null) {
         <div><small>POPARCIE</small><strong>${board.confidence}/100</strong><span>${presidentEscape(job.reason || 'wyniki i kondycja klubu')}</span></div>
       </section>
       ${presidentCareerHistoryHtml(profile)}
+      ${presidentJobOffersHtml(profile, career, 'dismissal')}
       <div class="president-dismissal-actions">
-        <p>W kolejnym etapie kariery będzie można szukać pracy w innym klubie. Na razie możesz zakończyć tę karierę.</p>
+        <p>Możesz przyjąć ofertę i rozpocząć kolejny sezon w innym klubie albo zakończyć karierę.</p>
         <button type="button" class="president-end-career">Zakończ karierę</button>
       </div>
       <small class="president-disclaimer">Zwolnienie i kryteria oceny są mechaniką gry, nie informacją o realnych władzach ani sytuacji klubu.</small>
     </div>`;
   panel.classList.remove('hidden');
+  panel.querySelectorAll('[data-president-job-offer]').forEach(button => {
+    button.addEventListener('click', () => acceptPresidentJobOffer(button.dataset.presidentJobOffer));
+  });
   panel.querySelector('.president-end-career')?.addEventListener('click', finishPresidentCareer);
   if (el('status')) el('status').textContent = `Kariera prezesa · zwolnienie po kolejce ${career.roundIndex}`;
   window.scrollTo({ top:0, behavior:'smooth' });
@@ -859,7 +863,7 @@ function presidentCareerHistoryHtml(profile) {
         ${seasons.map(item => {
           const verdict = presidentModeCore.seasonVerdict({ position:item.position, target:item.target });
           return `<div class="president-career-history-row">
-            <span><strong>Sezon ${item.careerYear} · ${presidentEscape(item.season)}</strong><small>${presidentEscape(item.competitionLabel || 'A klasa Myślenice')} · ${item.simulated ? 'symulacja kariery' : 'baza ŁNP'}${item.movement?.code && item.movement.code !== 'stay' ? ' · ' + presidentEscape(presidentModeCore.competitionMovementLabel(item.movement)) : ''}</small></span>
+            <span><strong>Sezon ${item.careerYear} · ${presidentEscape(item.season)} · ${presidentEscape(item.club || '')}</strong><small>${presidentEscape(item.competitionLabel || 'A klasa Myślenice')} · ${item.simulated ? 'symulacja kariery' : 'baza ŁNP'}${item.movement?.code && item.movement.code !== 'stay' ? ' · ' + presidentEscape(presidentModeCore.competitionMovementLabel(item.movement)) : ''}</small></span>
             <span><b>${item.position}.</b><small>${item.points} pkt · ${item.wins}-${item.draws}-${item.losses}</small></span>
             <span class="president-history-verdict ${verdict.tone}">${verdict.icon} ${presidentEscape(verdict.label)}</span>
           </div>`;
