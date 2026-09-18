@@ -250,6 +250,9 @@
       active:true,
       budget:12000,
       recurring:0,
+      careerYear:1,
+      seasonsCompleted:0,
+      seasonHistory:[],
       strategy:null,
       upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
       lastUpgradeRound:-99,
@@ -287,7 +290,7 @@
         trust:applyMap(profile.trust, effect.trust, TRUST_KEYS, normalizedTrust),
         areas:applyMap(profile.areas, effect.areas, AREA_KEYS, normalizedAreas),
         history:[...(profile.history || []), {
-          round:0, type:'strategy', title:'Plan sezonu', choice:strategy.label, result:strategy.copy,
+          round:0, careerYear:Number(profile.careerYear || 1), type:'strategy', title:'Plan sezonu', choice:strategy.label, result:strategy.copy,
           budgetDelta, recurringDelta:Number(effect.recurring || 0),
           trustDelta:{ ...(effect.trust || {}) }, areaDelta:{ ...(effect.areas || {}) },
         }],
@@ -324,7 +327,7 @@
         upgradeLevels:levels,
         lastUpgradeRound:Number(roundIndex),
         history:[...(profile.history || []), {
-          round:Number(roundIndex) + 1, type:'investment', category:area,
+          round:Number(roundIndex) + 1, careerYear:Number(profile.careerYear || 1), type:'investment', category:area,
           title:'Inwestycja: ' + (meta?.label || area), choice:'Poziom ' + (level + 1),
           result:'Stały rozwój obszaru: +' + gain + '.', budgetDelta:-cost, recurringDelta:0,
           trustDelta:{}, areaDelta:{ [area]:gain },
@@ -409,6 +412,7 @@
       decidedRound:Number(roundIndex),
       history:[...(profile.history || []), {
         round:Number(roundIndex) + 1,
+        careerYear:Number(profile.careerYear || 1),
         decisionId:selectedDecision.id,
         category:selectedDecision.category,
         title:selectedDecision.title,
@@ -464,6 +468,64 @@
     };
   }
 
+  function seasonVerdict(summary = {}) {
+    const position = Math.max(1, Number(summary.position || 999));
+    const target = Math.max(1, Number(summary.target || 999));
+    if (position === 1) return { code:'champion', icon:'🏆', label:'Mistrz ligi', tone:'champion' };
+    if (position <= target) return { code:'target', icon:'✅', label:'Cel zarządu osiągnięty', tone:'success' };
+    const gap = position - target;
+    if (gap <= 2) return { code:'close', icon:'🟡', label:'Cel był blisko', tone:'warning' };
+    return { code:'missed', icon:'⚠️', label:'Cel zarządu nieosiągnięty', tone:'danger' };
+  }
+
+  function completeSeason(profile, summary = {}) {
+    if (!profile) return null;
+    const record = {
+      careerYear:Number(profile.careerYear || 1),
+      season:String(summary.season || ''),
+      club:String(summary.club || ''),
+      simulated:Boolean(summary.simulated),
+      position:Number(summary.position || 0),
+      points:Number(summary.points || 0),
+      wins:Number(summary.wins || 0),
+      draws:Number(summary.draws || 0),
+      losses:Number(summary.losses || 0),
+      gf:Number(summary.gf || 0),
+      ga:Number(summary.ga || 0),
+      target:Number(summary.target || 0),
+      boardConfidence:Number(summary.boardConfidence || 0),
+      budget:Number(profile.budget || 0),
+      averageTrust:averageTrust(profile),
+      averageAreas:averageAreas(profile),
+      strategy:profile.strategy || null,
+      verdict:seasonVerdict(summary).code,
+    };
+    return {
+      ...profile,
+      seasonsCompleted:Number(profile.seasonsCompleted || 0) + 1,
+      seasonHistory:[...(profile.seasonHistory || []), record],
+    };
+  }
+
+  function prepareNextSeason(profile, totalRounds = 0, random = Math.random) {
+    if (!profile) return null;
+    return {
+      ...profile,
+      careerYear:Number(profile.careerYear || 1) + 1,
+      strategy:null,
+      order:shuffle(DECISIONS.map(item => item.id), random),
+      usedIds:[],
+      lastUsedRound:{},
+      currentDecision:null,
+      decidedRound:-1,
+      roundsCompleted:0,
+      totalRounds:Number(totalRounds || 0),
+      lastFinance:0,
+      lastResult:null,
+      lastMatch:null,
+    };
+  }
+
   function averageTrust(profile) {
     const trust = normalizedTrust(profile?.trust);
     return Math.round(TRUST_KEYS.reduce((sum, key) => sum + trust[key], 0) / TRUST_KEYS.length);
@@ -502,6 +564,7 @@
     TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardTargetPosition, boardConfidence, boardLabel, managementWarnings,
+    seasonVerdict, completeSeason, prepareNextSeason,
     decisionById, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
     roundFinance, applyPostRound, applyPostMatch:applyPostRound,
