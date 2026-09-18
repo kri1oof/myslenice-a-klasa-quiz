@@ -2169,6 +2169,194 @@
   font-size: .68rem;
 }
 
+
+.president-player-contracts {
+  border:1px solid #bfdbfe;
+  border-radius:15px;
+  overflow:hidden;
+  background:#fff;
+}
+.president-player-contracts.resolved { border-color:#bbf7d0; }
+.president-player-contracts-head {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  padding:12px 13px;
+  border-bottom:1px solid #dbeafe;
+  background:#eff6ff;
+}
+.president-player-contracts.resolved .president-player-contracts-head {
+  border-bottom-color:#dcfce7;
+  background:#f0fdf4;
+}
+.president-player-contracts-head > span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.president-player-contracts-head small {
+  color:#1d4ed8;
+  font-size:.64rem;
+  font-weight:900;
+  letter-spacing:.055em;
+}
+.president-player-contracts.resolved .president-player-contracts-head small { color:#166534; }
+.president-player-contracts-head strong { color:#111827; }
+.president-player-contracts-head em {
+  flex:0 0 auto;
+  color:#1d4ed8;
+  font-size:.68rem;
+  font-style:normal;
+  font-weight:900;
+}
+.president-player-contracts.resolved .president-player-contracts-head em { color:#166534; }
+.president-player-contract-note {
+  margin:0;
+  padding:11px 13px 0;
+  color:#475569;
+  font-size:.73rem;
+  line-height:1.45;
+}
+.president-player-contract-note strong { color:#1e3a8a; }
+.president-player-contract-card {
+  margin:12px;
+  padding:12px;
+  display:grid;
+  gap:10px;
+  border:1px solid #cbd5e1;
+  border-radius:13px;
+  background:#fff;
+}
+.president-player-contract-player {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+.president-player-contract-player > span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+.president-player-contract-player small {
+  color:#2563eb;
+  font-size:.58rem;
+  font-weight:900;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+.president-player-contract-player strong {
+  color:#111827;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.president-player-contract-player em {
+  color:#64748b;
+  font-size:.67rem;
+  font-style:normal;
+}
+.president-player-contract-player > b {
+  flex:0 0 auto;
+  min-width:42px;
+  padding:8px 6px;
+  border-radius:9px;
+  background:#dbeafe;
+  color:#1e40af;
+  text-align:center;
+}
+.president-player-contract-terms {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:6px;
+}
+.president-player-contract-terms > span {
+  padding:8px;
+  border-radius:9px;
+  background:#f8fafc;
+}
+.president-player-contract-terms small,
+.president-player-contract-terms strong { display:block; }
+.president-player-contract-terms small {
+  color:#94a3b8;
+  font-size:.54rem;
+  font-weight:900;
+}
+.president-player-contract-terms strong {
+  margin-top:2px;
+  color:#334155;
+  font-size:.68rem;
+}
+.president-player-contract-actions {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.president-player-contract-actions button {
+  min-height:94px;
+  padding:11px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  align-items:flex-start;
+  text-align:left;
+  border:1px solid #cbd5e1;
+  border-radius:11px;
+  background:#fff;
+  color:#111827;
+  cursor:pointer;
+}
+.president-player-contract-actions button:first-child {
+  border-color:#86efac;
+  background:#f0fdf4;
+}
+.president-player-contract-actions button:hover:not(:disabled) { border-color:#2563eb; }
+.president-player-contract-actions button:disabled {
+  opacity:.45;
+  cursor:not-allowed;
+}
+.president-player-contract-actions button strong { color:#111827; }
+.president-player-contract-actions button span {
+  color:#64748b;
+  font-size:.68rem;
+  line-height:1.35;
+}
+.president-player-contract-actions button em {
+  color:#991b1b;
+  font-size:.64rem;
+  font-style:normal;
+}
+.president-player-contract-retirements {
+  display:grid;
+  gap:7px;
+  padding:12px;
+}
+.president-player-contract-retirement {
+  padding:9px 10px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+  background:#f8fafc;
+}
+.president-player-contract-retirement > span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.president-player-contract-retirement strong { color:#334155; }
+.president-player-contract-retirement small { color:#64748b; font-size:.66rem; }
+.president-player-contract-retirement em {
+  color:#64748b;
+  font-size:.67rem;
+  font-style:normal;
+  font-weight:800;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -2188,6 +2376,7 @@
   .president-sponsor-offers { grid-template-columns:1fr; }
   .president-academy-grid { grid-template-columns:1fr; }
   .president-readiness-options { grid-template-columns:1fr; }
+  .president-player-contract-terms { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .president-transfer-grid { grid-template-columns: 1fr; }
   .president-departure-player { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .president-board-summary { grid-template-columns: 1fr; }
@@ -2199,6 +2388,7 @@
 
 @media (max-width: 700px) {
   .president-development-summary { align-items:flex-start; flex-direction:column; }
+  .president-player-contract-actions { grid-template-columns:1fr; }
   .president-development-summary > div { width:100%; }
   .president-development-summary b { flex:1; }
   .president-resume-card { align-items:stretch; flex-direction:column; }
@@ -2246,6 +2436,10 @@
   .president-contract-summary-head { align-items:flex-start; flex-direction:column; }
   .president-academy-selected { align-items:flex-start; flex-direction:column; }
   .president-readiness-head { align-items:flex-start; flex-direction:column; }
+  .president-player-contracts-head,
+  .president-player-contract-player,
+  .president-player-contract-retirement { align-items:flex-start; flex-direction:column; }
+  .president-player-contract-terms { grid-template-columns:1fr; }
   .president-readiness-metrics { grid-template-columns:1fr; }
   .president-dashboard,
   .president-upgrade-grid,
