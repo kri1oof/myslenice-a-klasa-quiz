@@ -120,12 +120,14 @@ function refreshPresidentResumeCard() {
   card.classList.remove('hidden');
   const title = card.querySelector('[data-president-save-title]');
   const detail = card.querySelector('[data-president-save-meta]');
-  if (title) title.textContent = `${meta.club} · sezon ${meta.season}`;
+  const titleText = `${meta.club} · sezon ${meta.season}`;
+  if (title && title.textContent !== titleText) title.textContent = titleText;
   if (detail) {
     const progress = meta.totalRounds
       ? `kolejka ${Math.min(meta.round + 1, meta.totalRounds)}/${meta.totalRounds}`
       : 'między sezonami';
-    detail.textContent = `Rok kariery ${meta.careerYear} · ${meta.competition} · ${progress} · zapis ${presidentFormatSavedAt(meta.savedAt)}`;
+    const detailText = `Rok kariery ${meta.careerYear} · ${meta.competition} · ${progress} · zapis ${presidentFormatSavedAt(meta.savedAt)}`;
+    if (detail.textContent !== detailText) detail.textContent = detailText;
   }
   return true;
 }
