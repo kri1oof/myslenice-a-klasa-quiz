@@ -56,7 +56,7 @@
 
 .president-dashboard {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0,1fr));
+  grid-template-columns: repeat(6, minmax(0,1fr));
   gap: 9px;
   margin: 12px 0;
 }
@@ -1390,6 +1390,32 @@
   font-size:.75rem;
   line-height:1.4;
 }
+
+.president-reputation-market {
+  margin: 9px 12px 0;
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 7px;
+}
+.president-reputation-market > span {
+  padding: 9px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #eff6ff;
+}
+.president-reputation-market small,
+.president-reputation-market strong { display:block; }
+.president-reputation-market small {
+  color:#64748b;
+  font-size:.58rem;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.president-reputation-market strong {
+  margin-top:2px;
+  color:#1e3a8a;
+  font-size:.72rem;
+}
 .president-job-offers {
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -1820,6 +1846,7 @@
   .president-offseason-review { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-offseason-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-job-offers { grid-template-columns: 1fr; }
+  .president-reputation-market { grid-template-columns:1fr; }
   .president-sponsor-offers { grid-template-columns:1fr; }
   .president-transfer-grid { grid-template-columns: 1fr; }
   .president-departure-player { grid-template-columns: repeat(3,minmax(0,1fr)); }
