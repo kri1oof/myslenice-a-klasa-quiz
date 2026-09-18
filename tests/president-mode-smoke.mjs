@@ -32,6 +32,8 @@ assert.equal(initial.seasonsCompleted, 0);
 assert.deepEqual(initial.seasonHistory, []);
 assert.equal(initial.offseason, null);
 assert.deepEqual(initial.offseasonHistory, []);
+assert.deepEqual(initial.transferRoster, []);
+assert.deepEqual(initial.transferHistory, []);
 assert.deepEqual(initial.upgradeLevels, { squad:0, staff:0, academy:0, facilities:0, organization:0, community:0 });
 assert.equal(initial.lastUpgradeRound, -99);
 assert.equal('currentMatchEffect' in initial, false, 'president mode must not keep an in-match president modifier');
@@ -144,13 +146,47 @@ assert.equal(summer.profile.offseason.planId, 'reserve');
 assert.equal(summer.profile.offseasonHistory.length, 1);
 assert.equal(core.applyOffseasonPlan(summer.profile, 'community').reason, 'already');
 
-const nextSeason = core.prepareNextSeason(summer.profile, 26, () => 0.25);
+
+const marketCandidate = {
+  id:'2025/26|Tempo|lnp:test-transfer',
+  playerKey:'lnp:test-transfer',
+  player:'Testowy Zawodnik',
+  club:'Tempo',
+  season:'2025/26',
+  archetype:'Lider',
+  stats:{ appearances:20, minutes:1700, goals:7 },
+  ratings:{ game_rating:78 },
+};
+const transferTerms = core.transferGameTerms(marketCandidate);
+assert.ok(transferTerms.fee >= 350);
+assert.ok(transferTerms.recurring > 0);
+assert.ok(transferTerms.squadGain >= 2);
+assert.equal(core.canSignTransfer(summer.profile, marketCandidate), true);
+const signed = core.signTransfer(summer.profile, marketCandidate);
+assert.equal(signed.ok, true);
+assert.equal(signed.profile.transferRoster.length, 1);
+assert.equal(signed.profile.transferHistory.length, 1);
+assert.equal(signed.profile.budget, summer.profile.budget - transferTerms.fee);
+assert.equal(signed.profile.recurring, summer.profile.recurring - transferTerms.recurring);
+assert.ok(signed.profile.areas.squad > summer.profile.areas.squad);
+assert.equal(core.canSignTransfer(signed.profile, marketCandidate), false, 'same player cannot be signed twice');
+const closedWindow = core.closeTransferWindow(signed.profile);
+assert.equal(closedWindow.ok, true);
+assert.equal(closedWindow.profile.offseason.transferWindowClosed, true);
+assert.equal(core.canSignTransfer(closedWindow.profile, {
+  ...marketCandidate,
+  id:'other',
+  playerKey:'lnp:other',
+}), false, 'closed transfer window must block signings');
+
+const nextSeason = core.prepareNextSeason(closedWindow.profile, 26, () => 0.25);
 assert.equal(nextSeason.careerYear, 2);
 assert.equal(nextSeason.strategy, null);
-assert.equal(nextSeason.budget, summer.profile.budget, 'post-settlement summer budget must carry across seasons');
-assert.equal(nextSeason.recurring, summer.profile.recurring, 'contracts must carry across seasons');
-assert.deepEqual(nextSeason.upgradeLevels, summer.profile.upgradeLevels, 'investments must carry across seasons');
-assert.deepEqual(nextSeason.seasonHistory, summer.profile.seasonHistory, 'career history must carry across seasons');
+assert.equal(nextSeason.budget, closedWindow.profile.budget, 'post-transfer summer budget must carry across seasons');
+assert.equal(nextSeason.recurring, closedWindow.profile.recurring, 'contracts and transfer costs must carry across seasons');
+assert.deepEqual(nextSeason.upgradeLevels, closedWindow.profile.upgradeLevels, 'investments must carry across seasons');
+assert.deepEqual(nextSeason.transferRoster, closedWindow.profile.transferRoster, 'career signings must carry across seasons');
+assert.deepEqual(nextSeason.seasonHistory, closedWindow.profile.seasonHistory, 'career history must carry across seasons');
 assert.equal(nextSeason.offseason, null, 'the finished offseason should close when the next season starts');
 assert.equal(nextSeason.offseasonHistory.length, 1, 'summer decisions should remain in career history');
 assert.equal(nextSeason.lastUpgradeRound, -99, 'offseason should clear investment cooldown');
@@ -172,6 +208,12 @@ assert.match(runtime, /Przejdź do lata/);
 assert.match(runtime, /renderPresidentOffseason/);
 assert.match(runtime, /Lato prezesa/);
 assert.match(runtime, /DECYZJA LETNIA/);
+assert.match(runtime, /OKNO KADROWE/);
+assert.match(runtime, /data-transfer-player/);
+assert.match(runtime, /fikcyjną mechaniką tej kariery/);
+assert.match(runtime, /Wzmocnienie kariery/);
+assert.match(runtime, /alternatywną historią tej kariery/);
+assert.match(runtime, /Zamknij okno transferowe/);
 assert.match(runtime, /Przejdź do planowania sezonu/);
 assert.match(runtime, /SYMULACJA KARIERY/);
 assert.doesNotMatch(runtime, /scenarioOdds\s*=/, 'president mode must not alter individual RPG action odds');
