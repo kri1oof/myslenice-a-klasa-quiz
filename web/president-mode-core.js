@@ -298,6 +298,8 @@
       transferHistory:[],
       departedPlayerKeys:[],
       departureHistory:[],
+      employmentHistory:[],
+      jobMarket:null,
       jobSecurity:{ status:'secure', lowRounds:0, ultimatumRoundsLeft:0, fired:false, reason:null, history:[] },
       strategy:null,
       upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
@@ -411,6 +413,55 @@
     if (score >= 30) return 'narastająca presja';
     return 'kryzys zaufania';
   }
+  function jobOfferTerms(offer = {}) {
+    const level = competitionByLevel(offer.competitionLevel ?? 1).level;
+    const budget = Math.round((9000 + level * 1800 + Number(offer.budgetBonus || 0)) / 500) * 500;
+    const areas = {
+      squad:clamp(50 + level * 3, 45, 70),
+      staff:clamp(50 + level * 2, 45, 68),
+      academy:48,
+      facilities:clamp(45 + level * 2, 40, 65),
+      organization:52,
+      community:50,
+    };
+    return { budget, areas };
+  }
+
+  function acceptJobOffer(profile, offer) {
+    if (!profile || !offer?.club) return { ok:false, reason:'invalid' };
+    const terms = jobOfferTerms(offer);
+    const entry = {
+      careerYear:Number(profile.careerYear || 1),
+      fromClub:offer.fromClub || null,
+      toClub:String(offer.club),
+      competitionLevel:Number(offer.competitionLevel ?? 1),
+      competitionLabel:String(offer.competitionLabel || competitionByLevel(offer.competitionLevel ?? 1).label),
+      reason:offer.reason || 'offer',
+      simulated:Boolean(offer.simulated),
+      budget:terms.budget,
+    };
+    return {
+      ok:true,
+      terms,
+      profile:{
+        ...profile,
+        budget:terms.budget,
+        recurring:0,
+        strategy:null,
+        trust:normalizedTrust({ players:55, coach:55, supporters:50, sponsors:50 }),
+        areas:normalizedAreas(terms.areas),
+        upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
+        lastUpgradeRound:-99,
+        transferRoster:[],
+        departedPlayerKeys:[],
+        jobMarket:null,
+        offseason:null,
+        jobSecurity:{ status:'secure', lowRounds:0, ultimatumRoundsLeft:0, fired:false, reason:null, history:[] },
+        employmentHistory:[...(profile.employmentHistory || []), entry],
+      },
+    };
+  }
+
   function normalizedJobSecurity(job = {}) {
     return {
       status:['secure','warning','ultimatum','fired'].includes(job.status) ? job.status : 'secure',
@@ -981,7 +1032,7 @@
   const api = {
     TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, COMPETITIONS, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
-    boardTargetPosition, boardConfidence, boardLabel, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
+    boardTargetPosition, boardConfidence, boardLabel, jobOfferTerms, acceptJobOffer, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
     departureGameTerms, canResolveDeparture, resolveDeparture,
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
