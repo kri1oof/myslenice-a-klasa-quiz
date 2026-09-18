@@ -2357,6 +2357,164 @@
   font-weight:800;
 }
 
+
+.president-mandate-select,
+.president-mandate-active {
+  margin:12px 0;
+  border:1px solid #c4b5fd;
+  border-radius:15px;
+  overflow:hidden;
+  background:#fff;
+}
+.president-mandate-select-head,
+.president-mandate-active-head {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  padding:12px 13px;
+  border-bottom:1px solid #ddd6fe;
+  background:#f5f3ff;
+}
+.president-mandate-select-head > span,
+.president-mandate-active-head > span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.president-mandate-select-head small,
+.president-mandate-active-head small {
+  color:#6d28d9;
+  font-size:.63rem;
+  font-weight:900;
+  letter-spacing:.055em;
+}
+.president-mandate-select-head strong,
+.president-mandate-active-head strong { color:#3b0764; }
+.president-mandate-select-head em,
+.president-mandate-active-head em {
+  flex:0 0 auto;
+  color:#6d28d9;
+  font-size:.72rem;
+  font-style:normal;
+  font-weight:900;
+}
+.president-mandate-select > p {
+  margin:0;
+  padding:11px 13px 0;
+  color:#475569;
+  font-size:.73rem;
+  line-height:1.45;
+}
+.president-mandate-previous {
+  margin:10px 12px 0;
+  padding:8px 10px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  border-radius:10px;
+  background:#f8fafc;
+  color:#475569;
+  font-size:.69rem;
+}
+.president-mandate-previous.achieved {
+  background:#f0fdf4;
+  color:#166534;
+}
+.president-mandate-previous.failed {
+  background:#fef2f2;
+  color:#991b1b;
+}
+.president-mandate-options {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+  padding:12px;
+}
+.president-mandate-options button {
+  min-height:132px;
+  padding:12px;
+  display:grid;
+  grid-template-columns:36px 1fr;
+  grid-template-rows:auto auto 1fr auto;
+  column-gap:9px;
+  text-align:left;
+  border:1px solid #ddd6fe;
+  border-radius:12px;
+  background:#fff;
+  color:#111827;
+  cursor:pointer;
+}
+.president-mandate-options button:hover {
+  border-color:#7c3aed;
+  background:#faf5ff;
+}
+.president-mandate-options button > span {
+  grid-row:1 / span 3;
+  font-size:1.4rem;
+}
+.president-mandate-options button strong { color:#3b0764; }
+.president-mandate-options button p {
+  margin:4px 0;
+  color:#64748b;
+  font-size:.69rem;
+  line-height:1.4;
+}
+.president-mandate-options button small {
+  color:#6d28d9;
+  font-size:.63rem;
+  font-weight:900;
+}
+.president-mandate-active {
+  border-color:#c4b5fd;
+}
+.president-mandate-active.resolved.achieved {
+  border-color:#86efac;
+}
+.president-mandate-active.resolved.failed {
+  border-color:#fca5a5;
+}
+.president-mandate-active.resolved.achieved .president-mandate-active-head {
+  border-bottom-color:#bbf7d0;
+  background:#f0fdf4;
+}
+.president-mandate-active.resolved.failed .president-mandate-active-head {
+  border-bottom-color:#fecaca;
+  background:#fef2f2;
+}
+.president-mandate-progress {
+  height:8px;
+  margin:12px 13px 6px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#ede9fe;
+}
+.president-mandate-progress i {
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:#7c3aed;
+}
+.president-mandate-detail {
+  padding:6px 13px 12px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  color:#475569;
+  font-size:.69rem;
+}
+.president-mandate-detail b {
+  flex:0 0 auto;
+  color:#6d28d9;
+}
+.president-strategy-intro.mandate-first {
+  padding:12px;
+  border:1px dashed #c4b5fd;
+  border-radius:12px;
+  background:#faf5ff;
+  color:#6b21a8;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -2374,6 +2532,7 @@
   .president-job-offers { grid-template-columns: 1fr; }
   .president-reputation-market { grid-template-columns:1fr; }
   .president-sponsor-offers { grid-template-columns:1fr; }
+  .president-mandate-options { grid-template-columns:1fr; }
   .president-academy-grid { grid-template-columns:1fr; }
   .president-readiness-options { grid-template-columns:1fr; }
   .president-player-contract-terms { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -2388,6 +2547,10 @@
 
 @media (max-width: 700px) {
   .president-development-summary { align-items:flex-start; flex-direction:column; }
+  .president-mandate-select-head,
+  .president-mandate-active-head,
+  .president-mandate-detail,
+  .president-mandate-previous { align-items:flex-start; flex-direction:column; }
   .president-player-contract-actions { grid-template-columns:1fr; }
   .president-development-summary > div { width:100%; }
   .president-development-summary b { flex:1; }

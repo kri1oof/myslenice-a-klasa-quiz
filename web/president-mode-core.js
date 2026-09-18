@@ -26,6 +26,37 @@
     },
   ]);
 
+  const BOARD_MANDATES = Object.freeze([
+    {
+      id:'promotion_path',
+      icon:'⬆️',
+      label:'Wejść poziom wyżej',
+      duration:3,
+      copy:'Zarząd daje kilka sezonów na sportowy krok naprzód. Liczy się osiągnięcie wyższego poziomu rozgrywek, nie jeden dobry miesiąc.',
+    },
+    {
+      id:'academy_path',
+      icon:'🌱',
+      label:'Zbudować ścieżkę z akademii',
+      duration:3,
+      copy:'Akademia ma stać się realnym źródłem pierwszej drużyny: wysoki poziom szkolenia i co najmniej dwóch wychowanków wprowadzonych w tej kadencji.',
+    },
+    {
+      id:'financial_stability',
+      icon:'💰',
+      label:'Ustabilizować finanse',
+      duration:2,
+      copy:'Zarząd oczekuje bezpiecznej rezerwy i nieujemnego stałego bilansu, żeby klub nie żył wyłącznie od kolejki do kolejki.',
+    },
+    {
+      id:'club_foundations',
+      icon:'🏟️',
+      label:'Zbudować zaplecze klubu',
+      duration:3,
+      copy:'Priorytetem są obiekt i organizacja. Klub ma być gotowy na większe wymagania kolejnych poziomów kariery.',
+    },
+  ]);
+
   const UPGRADE_META = Object.freeze({
     squad:{ label:'Kadra', icon:'👥' }, staff:{ label:'Sztab', icon:'📋' },
     academy:{ label:'Akademia', icon:'🧒' }, facilities:{ label:'Obiekt', icon:'🏟️' },
@@ -367,6 +398,8 @@
       careerYear:1,
       seasonsCompleted:0,
       seasonHistory:[],
+      boardMandate:null,
+      boardMandateHistory:[],
       offseason:null,
       offseasonHistory:[],
       transferRoster:[],
@@ -472,6 +505,203 @@
     };
   }
 
+  function boardMandateTemplateById(id) {
+    return BOARD_MANDATES.find(item => item.id === id) || null;
+  }
+
+  function canChooseBoardMandate(profile, mandateId) {
+    const template = boardMandateTemplateById(mandateId);
+    return Boolean(
+      profile &&
+      template &&
+      (!profile.boardMandate || profile.boardMandate.status !== 'active')
+    );
+  }
+
+  function chooseBoardMandate(profile, mandateId, context = {}) {
+    const template = boardMandateTemplateById(mandateId);
+    if (!canChooseBoardMandate(profile, mandateId) || !template) {
+      return { ok:false, reason:'unavailable' };
+    }
+    const careerYear = Number(profile.careerYear || 1);
+    const level = competitionByLevel(context.competitionLevel ?? 1).level;
+    const target = {};
+    if (template.id === 'promotion_path') {
+      if (level < 4) target.level = Math.min(4, level + 1);
+      else target.position = 3;
+    } else if (template.id === 'academy_path') {
+      target.academy = 70;
+      target.graduates = 2;
+    } else if (template.id === 'financial_stability') {
+      target.budget = 16000;
+      target.recurring = 0;
+    } else if (template.id === 'club_foundations') {
+      target.facilities = 65;
+      target.organization = 65;
+    }
+    const mandate = {
+      id:template.id,
+      icon:template.icon,
+      label:template.label,
+      duration:Number(template.duration || 2),
+      startedCareerYear:careerYear,
+      deadlineCareerYear:careerYear + Number(template.duration || 2) - 1,
+      startCompetitionLevel:level,
+      status:'active',
+      target,
+      lastProgress:0,
+      lastDetail:'Mandat dopiero się rozpoczął.',
+    };
+    return { ok:true, mandate, profile:{ ...profile, boardMandate:mandate } };
+  }
+
+  function mandateAcademyGraduates(profile, mandate) {
+    return (profile?.academyHistory || []).filter(item =>
+      item?.type === 'promoted' &&
+      Number(item.careerYear || 0) >= Number(mandate?.startedCareerYear || 1)
+    ).length;
+  }
+
+  function boardMandateProgress(profile, context = {}) {
+    const mandate = profile?.boardMandate;
+    if (!mandate) return null;
+    const template = boardMandateTemplateById(mandate.id);
+    if (!template) return null;
+    const areas = normalizedAreas(profile?.areas);
+    let percent = 0;
+    let achieved = false;
+    let detail = '';
+
+    if (mandate.id === 'promotion_path') {
+      if (Number.isFinite(Number(mandate.target?.level))) {
+        const currentLevel = competitionByLevel(
+          context?.movement?.toLevel ?? context.competitionLevel ?? mandate.startCompetitionLevel ?? 1
+        ).level;
+        const targetLevel = Number(mandate.target.level);
+        const startLevel = Number(mandate.startCompetitionLevel || 0);
+        const span = Math.max(1, targetLevel - startLevel);
+        percent = clamp(((currentLevel - startLevel) / span) * 100, 0, 100);
+        achieved = currentLevel >= targetLevel;
+        detail = 'Poziom ' + currentLevel + ' → cel ' + targetLevel + ' (' + competitionByLevel(targetLevel).short + ')';
+      } else {
+        const position = Number(context.position || 999);
+        percent = position <= 3 ? 100 : clamp((14 - position) / 11 * 100, 0, 95);
+        achieved = position <= Number(mandate.target?.position || 3);
+        detail = 'Miejsce ' + (Number.isFinite(position) && position < 999 ? position : '—') + ' → cel TOP ' + Number(mandate.target?.position || 3);
+      }
+    } else if (mandate.id === 'academy_path') {
+      const academyTarget = Number(mandate.target?.academy || 70);
+      const graduatesTarget = Number(mandate.target?.graduates || 2);
+      const graduates = mandateAcademyGraduates(profile, mandate);
+      const academyPart = clamp(Number(areas.academy || 0) / academyTarget, 0, 1);
+      const graduatePart = clamp(graduates / graduatesTarget, 0, 1);
+      percent = Math.round((academyPart + graduatePart) * 50);
+      achieved = Number(areas.academy || 0) >= academyTarget && graduates >= graduatesTarget;
+      detail = 'Akademia ' + Number(areas.academy || 0) + '/' + academyTarget + ' · wychowankowie ' + graduates + '/' + graduatesTarget;
+    } else if (mandate.id === 'financial_stability') {
+      const budgetTarget = Number(mandate.target?.budget || 16000);
+      const recurringTarget = Number(mandate.target?.recurring || 0);
+      const budgetPart = clamp(Number(profile?.budget || 0) / budgetTarget, 0, 1);
+      const recurringPart = Number(profile?.recurring || 0) >= recurringTarget ? 1 : clamp(1 + Number(profile?.recurring || 0) / 500, 0, .95);
+      percent = Math.round((budgetPart + recurringPart) * 50);
+      achieved = Number(profile?.budget || 0) >= budgetTarget && Number(profile?.recurring || 0) >= recurringTarget;
+      detail = 'Budżet ' + money(profile?.budget || 0) + '/' + money(budgetTarget) + ' · stały bilans ' + (Number(profile?.recurring || 0) >= 0 ? '+' : '') + money(profile?.recurring || 0) + '/kol.';
+    } else if (mandate.id === 'club_foundations') {
+      const facilitiesTarget = Number(mandate.target?.facilities || 65);
+      const organizationTarget = Number(mandate.target?.organization || 65);
+      percent = Math.round((
+        clamp(Number(areas.facilities || 0) / facilitiesTarget, 0, 1) +
+        clamp(Number(areas.organization || 0) / organizationTarget, 0, 1)
+      ) * 50);
+      achieved = Number(areas.facilities || 0) >= facilitiesTarget && Number(areas.organization || 0) >= organizationTarget;
+      detail = 'Obiekt ' + Number(areas.facilities || 0) + '/' + facilitiesTarget + ' · organizacja ' + Number(areas.organization || 0) + '/' + organizationTarget;
+    }
+
+    return {
+      ...mandate,
+      template,
+      percent:Math.round(clamp(percent, 0, 100)),
+      achieved,
+      detail,
+      yearsLeft:Math.max(0, Number(mandate.deadlineCareerYear || 0) - Number(profile?.careerYear || 1) + 1),
+    };
+  }
+
+  function boardMandateConfidenceModifier(profile, context = {}) {
+    const progress = boardMandateProgress(profile, context);
+    let modifier = 0;
+    if (progress?.status === 'active') {
+      if (progress.percent >= 80) modifier += 5;
+      else if (progress.percent >= 50) modifier += 2;
+      else if (Number(profile?.careerYear || 1) > Number(progress.startedCareerYear || 1)) modifier -= 4;
+    }
+    const recent = [...(profile?.boardMandateHistory || [])].at(-1);
+    if (recent && Number(recent.resolvedCareerYear || 0) >= Number(profile?.careerYear || 1) - 1) {
+      if (recent.status === 'achieved') modifier += 4;
+      if (recent.status === 'failed') modifier -= 6;
+    }
+    return modifier;
+  }
+
+  function settleBoardMandateSeason(profile, record) {
+    const mandate = profile?.boardMandate;
+    if (!mandate || mandate.status !== 'active') {
+      return { profile, reputationDelta:0, outcome:null };
+    }
+    const progress = boardMandateProgress(profile, {
+      competitionLevel:record.competitionLevel,
+      movement:record.movement,
+      position:record.position,
+    });
+    const deadlineReached = Number(record.careerYear || 0) >= Number(mandate.deadlineCareerYear || 0);
+    if (!progress?.achieved && !deadlineReached) {
+      return {
+        reputationDelta:0,
+        outcome:null,
+        profile:{
+          ...profile,
+          boardMandate:{
+            ...mandate,
+            lastProgress:Number(progress?.percent || 0),
+            lastDetail:progress?.detail || mandate.lastDetail,
+          },
+        },
+      };
+    }
+
+    const achieved = Boolean(progress?.achieved);
+    const resolved = {
+      ...mandate,
+      status:achieved ? 'achieved' : 'failed',
+      resolvedCareerYear:Number(record.careerYear || profile.careerYear || 1),
+      lastProgress:Number(progress?.percent || 0),
+      lastDetail:progress?.detail || '',
+    };
+    let jobSecurity = normalizedJobSecurity(profile.jobSecurity);
+    if (achieved) {
+      if (jobSecurity.status === 'warning') {
+        jobSecurity = { ...jobSecurity, status:'secure', lowRounds:0, reason:null };
+      } else {
+        jobSecurity = { ...jobSecurity, lowRounds:Math.max(0, Number(jobSecurity.lowRounds || 0) - 1) };
+      }
+    } else if (jobSecurity.status === 'secure') {
+      jobSecurity = { ...jobSecurity, status:'warning', lowRounds:Math.max(1, Number(jobSecurity.lowRounds || 0)), reason:'niewykonany mandat zarządu' };
+    } else if (jobSecurity.status === 'warning') {
+      jobSecurity = { ...jobSecurity, lowRounds:Number(jobSecurity.lowRounds || 0) + 1, reason:'niewykonany mandat zarządu' };
+    }
+
+    return {
+      outcome:resolved.status,
+      reputationDelta:achieved ? 6 : -6,
+      profile:{
+        ...profile,
+        boardMandate:resolved,
+        boardMandateHistory:[...(profile.boardMandateHistory || []), resolved],
+        jobSecurity,
+      },
+    };
+  }
+
   function boardTargetPosition(profile, teamCount = 14) {
     const teams = Math.max(2, Number(teamCount || 14));
     if (profile?.strategy === 'promotion') return Math.min(3, teams);
@@ -490,7 +720,8 @@
     if (profile?.strategy === 'academy') strategyBonus = (Number(profile?.areas?.academy || 0) - 50) * .18;
     if (profile?.strategy === 'balanced') strategyBonus = (Number(profile?.areas?.organization || 0) - 50) * .12;
     if (profile?.strategy === 'promotion') strategyBonus = (Number(profile?.areas?.squad || 0) - 50) * .12;
-    return Math.round(clamp(performance * .38 + finance * .20 + club * .22 + trust * .20 + strategyBonus, 0, 100));
+    const mandateBonus = boardMandateConfidenceModifier(profile, context);
+    return Math.round(clamp(performance * .38 + finance * .20 + club * .22 + trust * .20 + strategyBonus + mandateBonus, 0, 100));
   }
   function boardLabel(value) {
     const score = Number(value || 0);
@@ -692,6 +923,15 @@
   function acceptJobOffer(profile, offer) {
     if (!profile || !offer?.club) return { ok:false, reason:'invalid' };
     const terms = jobOfferTerms(offer);
+    const mandateHistory = [...(profile.boardMandateHistory || [])];
+    if (profile.boardMandate?.status === 'active') {
+      mandateHistory.push({
+        ...profile.boardMandate,
+        status:'abandoned',
+        resolvedCareerYear:Number(profile.careerYear || 1),
+        lastDetail:'Mandat przerwany przez zmianę klubu.',
+      });
+    }
     const entry = {
       careerYear:Number(profile.careerYear || 1),
       fromClub:offer.fromClub || null,
@@ -710,6 +950,8 @@
         budget:terms.budget,
         recurring:0,
         strategy:null,
+        boardMandate:null,
+        boardMandateHistory:mandateHistory,
         trust:normalizedTrust({ players:55, coach:55, supporters:50, sponsors:50 }),
         areas:normalizedAreas(terms.areas),
         upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
@@ -2014,16 +2256,23 @@
       }),
       verdict:seasonVerdict(summary).code,
     };
+    const mandateSettlement = settleBoardMandateSeason(profile, record);
+    const mandateProfile = mandateSettlement.profile;
     const beforeReputation = reputationScore(profile);
-    const reputationDelta = seasonReputationDelta(record);
+    const reputationDelta = Math.round(clamp(
+      seasonReputationDelta(record) + Number(mandateSettlement.reputationDelta || 0),
+      -20,
+      25,
+    ));
     const afterReputation = Math.round(clamp(beforeReputation + reputationDelta, 0, 100));
     const enrichedRecord = {
       ...record,
+      mandateOutcome:mandateSettlement.outcome,
       reputationDelta,
       reputationAfter:afterReputation,
     };
     return {
-      ...profile,
+      ...mandateProfile,
       reputation:afterReputation,
       reputationHistory:[...(profile.reputationHistory || []), {
         careerYear:record.careerYear,
@@ -2211,8 +2460,10 @@
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, CONTRACT_TEMPLATES, COMPETITIONS, COMPETITION_REQUIREMENTS, FINANCE_CATEGORIES, DECISIONS,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, BOARD_MANDATES, UPGRADE_META, OFFSEASON_PLANS, CONTRACT_TEMPLATES, COMPETITIONS, COMPETITION_REQUIREMENTS, FINANCE_CATEGORIES, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
+    boardMandateTemplateById, canChooseBoardMandate, chooseBoardMandate, boardMandateProgress,
+    boardMandateConfidenceModifier, settleBoardMandateSeason,
     boardTargetPosition, boardConfidence, boardLabel,
     reputationScore, reputationLabel, seasonReputationDelta, jobMarketLevels, jobMarketSummary,
     competitionRequirements, competitionReadiness, resolveCompetitionReadiness,
