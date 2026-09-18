@@ -1841,6 +1841,64 @@
     };
   }
 
+  function careerHonours(profile, currentCompetitionLevel = 1) {
+    const seasons = [...(profile?.seasonHistory || [])];
+    const completedLevels = seasons.flatMap(record => [
+      Number(record?.competitionLevel ?? 1),
+      Number(record?.movement?.toLevel ?? record?.competitionLevel ?? 1),
+    ]);
+    const highestLevel = Math.max(
+      Number(currentCompetitionLevel ?? 1),
+      ...(completedLevels.length ? completedLevels : [1]),
+    );
+    const clubs = [...new Set([
+      ...seasons.map(record => String(record?.club || '')).filter(Boolean),
+      ...(profile?.employmentHistory || []).map(item => String(item?.toClub || '')).filter(Boolean),
+    ])];
+    const titles = seasons.filter(record => Number(record?.position || 0) === 1);
+    const promotions = seasons.filter(record => record?.movement?.code === 'promotion');
+    const relegations = seasons.filter(record => record?.movement?.code === 'relegation');
+    const targetsMet = seasons.filter(record => ['champion','target'].includes(record?.verdict));
+    const bestSeason = seasons.length
+      ? [...seasons].sort((a,b) =>
+          Number(a?.position || 999) - Number(b?.position || 999) ||
+          Number(b?.points || 0) - Number(a?.points || 0) ||
+          Number(b?.gf || 0) - Number(a?.gf || 0)
+        )[0]
+      : null;
+    const pointsRecord = seasons.length
+      ? [...seasons].sort((a,b) => Number(b?.points || 0) - Number(a?.points || 0))[0]
+      : null;
+    const majorMoments = seasons
+      .filter(record => Number(record?.position || 0) === 1 || record?.movement?.code === 'promotion')
+      .map(record => ({
+        careerYear:Number(record?.careerYear || 0),
+        season:String(record?.season || ''),
+        club:String(record?.club || ''),
+        title:Number(record?.position || 0) === 1,
+        promotion:record?.movement?.code === 'promotion',
+        fromLevel:Number(record?.movement?.fromLevel ?? record?.competitionLevel ?? 1),
+        toLevel:Number(record?.movement?.toLevel ?? record?.competitionLevel ?? 1),
+      }));
+
+    return {
+      seasons:seasons.length,
+      titles:titles.length,
+      promotions:promotions.length,
+      relegations:relegations.length,
+      targetsMet:targetsMet.length,
+      targetRate:seasons.length ? Math.round(targetsMet.length / seasons.length * 100) : 0,
+      clubs,
+      clubCount:clubs.length,
+      highestLevel,
+      highestCompetition:competitionByLevel(highestLevel).label,
+      bestSeason,
+      pointsRecord,
+      majorMoments,
+      reputation:reputationScore(profile),
+    };
+  }
+
   function averageTrust(profile) {
     const trust = normalizedTrust(profile?.trust);
     return Math.round(TRUST_KEYS.reduce((sum, key) => sum + trust[key], 0) / TRUST_KEYS.length);
@@ -1893,7 +1951,7 @@
     decisionById, decisionRelevance, decisionTrigger, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
     financeEntry, financeCategorySummary, roundFinanceBreakdown, roundFinance, applyPostRound, applyPostMatch:applyPostRound,
-    averageTrust, averageAreas, trustLabel, areaLabel, financeLabel, money,
+    careerHonours, averageTrust, averageAreas, trustLabel, areaLabel, financeLabel, money,
   };
 
   global.PresidentModeCore = api;
