@@ -678,6 +678,31 @@ function declinePresidentJobOffers() {
   return renderPresidentOffseason();
 }
 
+
+function presidentJobOffersHtml(profile, career, reason = 'career') {
+  const offers = presidentBuildJobOffers(profile, career, reason);
+  if (!offers.length) return '';
+  return `
+    <section class="president-job-market ${reason}">
+      <div class="president-job-market-head">
+        <span><small>${reason === 'dismissal' ? 'RYNEK PRACY · PO ZWOLNIENIU' : 'OFERTY DLA PREZESA'}</small><strong>${reason === 'dismissal' ? 'Kariera może trwać w innym klubie' : 'Możesz zmienić klub przed kolejnym sezonem'}</strong></span>
+        <em>${offers.length} oferty</em>
+      </div>
+      <p class="president-job-market-note">${reason === 'dismissal'
+        ? 'Nowy klub oznacza nowy budżet, zaufanie i infrastrukturę. Historia Twojej kariery pozostaje.'
+        : 'Zmiana klubu jest dobrowolna. Majątek obecnego klubu nie przechodzi razem z prezesem.'}</p>
+      <div class="president-job-offers">
+        ${offers.map(offer => `
+          <article class="president-job-offer ${offer.simulated ? 'simulated' : 'official'}">
+            <div><small>${offer.simulated ? 'SYMULACJA KARIERY' : 'KLUB Z BAZY ŁNP'}</small><strong>${presidentEscape(offer.club)}</strong><span>${presidentEscape(offer.competitionLabel)} · ${presidentEscape(offer.season)}</span></div>
+            <div class="president-job-offer-terms"><span>Budżet startowy</span><strong>${presidentModeCore.money(offer.terms?.budget || 0)}</strong></div>
+            <button type="button" data-president-job-offer="${presidentEscape(offer.id)}">Przyjmij ofertę</button>
+          </article>`).join('')}
+      </div>
+      ${reason === 'career' ? '<button type="button" class="president-decline-job-offers">Zostaję w obecnym klubie</button>' : ''}
+    </section>`;
+}
+
 function renderPresidentDismissal(lastRound = null) {
   const profile = state.presidentMode;
   const career = careerState();
