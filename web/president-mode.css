@@ -1351,6 +1351,111 @@
   cursor: pointer;
 }
 
+
+.president-job-market {
+  border: 1px solid #cbd5e1;
+  border-radius: 15px;
+  overflow: hidden;
+  background: #fff;
+}
+.president-job-market.dismissal {
+  border-color: #fecaca;
+}
+.president-job-market-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 13px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.president-job-market-head span { display:flex; flex-direction:column; gap:2px; }
+.president-job-market-head small {
+  color:#64748b;
+  font-size:.66rem;
+  font-weight:900;
+  letter-spacing:.06em;
+}
+.president-job-market-head em {
+  color:#166534;
+  font-size:.72rem;
+  font-style:normal;
+  font-weight:900;
+}
+.president-job-market-note {
+  margin:0;
+  padding:11px 13px 0;
+  color:#475569;
+  font-size:.75rem;
+  line-height:1.4;
+}
+.president-job-offers {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  padding:12px;
+}
+.president-job-offer {
+  padding:12px;
+  display:grid;
+  gap:10px;
+  border:1px solid #cbd5e1;
+  border-radius:13px;
+  background:#fff;
+}
+.president-job-offer.official {
+  border-color:#86efac;
+  background:#f0fdf4;
+}
+.president-job-offer.simulated {
+  border-color:#fde68a;
+  background:#fffbeb;
+}
+.president-job-offer > div:first-child { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.president-job-offer small {
+  color:#64748b;
+  font-size:.62rem;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.president-job-offer strong {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#111827;
+}
+.president-job-offer span { color:#64748b; font-size:.7rem; }
+.president-job-offer-terms {
+  padding:8px;
+  border-radius:9px;
+  background:rgba(255,255,255,.72);
+}
+.president-job-offer-terms span,
+.president-job-offer-terms strong { display:block; }
+.president-job-offer-terms strong { margin-top:2px; color:#166534; }
+.president-job-offer button,
+.president-decline-job-offers {
+  min-height:40px;
+  border-radius:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.president-job-offer button {
+  border:0;
+  background:#166534;
+  color:#fff;
+}
+.president-job-offer button:hover { background:#14532d; }
+.president-decline-job-offers {
+  width:calc(100% - 24px);
+  margin:0 12px 12px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  color:#334155;
+}
+.president-decline-job-offers:hover { background:#f8fafc; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1365,6 +1470,7 @@
   .president-offseason-finance .total { grid-column: 1 / -1; }
   .president-offseason-review { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-offseason-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .president-job-offers { grid-template-columns: 1fr; }
   .president-transfer-grid { grid-template-columns: 1fr; }
   .president-departure-player { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .president-board-summary { grid-template-columns: 1fr; }
