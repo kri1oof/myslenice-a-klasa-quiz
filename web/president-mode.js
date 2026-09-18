@@ -465,6 +465,7 @@ function renderPresidentDecision(decision) {
   const round = career.roundIndex + 1;
   const opponent = fixture ? careerOpponent(fixture) : 'pauza';
   const category = presidentModeCore.CATEGORY_LABELS[decision.category] || 'Sprawy klubowe';
+  const trigger = presidentModeCore.decisionTrigger(profile, decision);
   panel.innerHTML = `
     <div class="president-decision-card">
       <div class="president-decision-head">
@@ -472,6 +473,7 @@ function renderPresidentDecision(decision) {
         <span class="president-background-match"><small>⚽ MECZ</small><strong>automatycznie</strong><em>bez pytań i decyzji boiskowych</em></span>
       </div>
       ${presidentManagementHubHtml(profile, career)}
+      <div class="president-case-trigger"><span>🧭 DLACZEGO TERAZ?</span><strong>${presidentEscape(trigger.label)}</strong></div>
       <div class="president-case">
         <span class="president-case-icon">${decision.icon}</span>
         <div><small>${presidentEscape(category).toUpperCase()}</small><h2>${presidentEscape(decision.title)}</h2><p>${presidentEscape(decision.copy)}</p></div>
