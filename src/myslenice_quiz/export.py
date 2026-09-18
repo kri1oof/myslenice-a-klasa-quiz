@@ -8,7 +8,10 @@ from pathlib import Path
 from .normalize import canonical_club_name, normalize_text
 
 
-_INVALID_CLUB_NAMES = {"za artyzm nie ma punktow"}
+_INVALID_CLUB_NAMES = {
+    "za artyzm nie ma punktow",
+    "za artyzm punktow nie ma",
+}
 
 _CLUB_TEXT_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bClavia\b(?!\s+(?:Świątniki|Swiatniki))", re.I), "Clavia Świątniki Górne"),
@@ -31,7 +34,12 @@ def _clean_club_name(value: str | None) -> str | None:
     if not value:
         return None
     canonical = canonical_club_name(value)
-    if normalize_text(canonical) in _INVALID_CLUB_NAMES:
+    normalized = normalize_text(canonical)
+    if not normalized:
+        return None
+    if any(key in normalized for key in _INVALID_CLUB_NAMES):
+        return None
+    if not any(ch.isalpha() for ch in canonical):
         return None
     return canonical
 
