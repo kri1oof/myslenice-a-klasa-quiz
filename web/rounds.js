@@ -297,11 +297,17 @@ startGame = function roundStartGame() {
   if (['truth', 'hints', 'earlier', 'fake', 'overtime'].includes(round)) {
     matching = buildSpecialRound(base, round);
   } else {
-    matching = shuffle(base.filter(q => questionFitsRound(q, round)));
+    matching = base.filter(q => questionFitsRound(q, round));
   }
 
   state.availableCount = matching.length;
-  state.pool = matching.slice(0, roundQuestionCount(matching.length, round));
+  const requestedCount = roundQuestionCount(matching.length, round);
+  if (difficulty === 'all' && adaptiveDifficultyCore) {
+    configureAdaptiveDynamicPool(matching, requestedCount);
+  } else {
+    resetAdaptiveDifficulty(false);
+    state.pool = smartPick(matching, requestedCount);
+  }
   state.index = 0;
   state.correct = 0;
   state.answered = 0;
