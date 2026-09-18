@@ -19,3 +19,14 @@ def test_known_club_aliases_collapse_to_one_club():
 
     assert canonical_club_name("Opatkowianka") == "Opatkowianka"
     assert canonical_club_name("Opatkowianka Opatkowice") == "Opatkowianka"
+
+
+def test_uppercase_official_club_names_use_preferred_casing():
+    assert canonical_club_name("BESKID TOKARNIA") == "Beskid Tokarnia"
+    assert canonical_club_name("DALIN II MYŚLENICE") == "Dalin II Myślenice"
+    assert canonical_club_name("DZIECANOVIA DZIEKANOWICE") == "Dziecanovia Dziekanowice"
+    assert canonical_club_name("GOŚCIBIA SUŁKOWICE") == "Gościbia Sułkowice"
+    assert canonical_club_name("ISKRA GŁOGOCZÓW") == "Iskra Głogoczów"
+    assert canonical_club_name("LKS RUDNIK") == "LKS Rudnik"
+    assert canonical_club_name("ORZEŁ NOWA WIEŚ") == "Orzeł Nowa Wieś"
+    assert canonical_club_name("SKALNIK TRZEMEŚNIA") == "Skalnik Trzemeśnia"
