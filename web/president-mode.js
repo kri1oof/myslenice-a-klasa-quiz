@@ -1123,6 +1123,76 @@ function presidentSponsorContractsHtml(profile) {
     </section>`;
 }
 
+
+function promotePresidentAcademyProspect(prospectId) {
+  const promoted = presidentModeCore.promoteAcademyProspect(state.presidentMode, prospectId);
+  if (!promoted.ok) return false;
+  state.presidentMode = promoted.profile;
+  return renderPresidentOffseason();
+}
+
+function skipPresidentAcademyIntake() {
+  const skipped = presidentModeCore.skipAcademyIntake(state.presidentMode);
+  if (!skipped.ok) return false;
+  state.presidentMode = skipped.profile;
+  return renderPresidentOffseason();
+}
+
+function presidentAcademyIntakeHtml(profile) {
+  if (!profile?.offseason?.planId || !profile.offseason.sponsorDecisionResolved) return '';
+  const prospects = profile.offseason.academyProspects || [];
+  const resolved = Boolean(profile.offseason.academyDecisionResolved);
+  const selected = profile.offseason.academySelectedId
+    ? (profile.academyRoster || []).find(item => item.id === profile.offseason.academySelectedId)
+    : null;
+
+  if (resolved) {
+    return `
+      <section class="president-academy-intake resolved">
+        <div class="president-academy-head">
+          <span><small>🌱 NABÓR Z AKADEMII</small><strong>${selected ? presidentEscape(selected.player) + ' dołącza do seniorów' : 'Tego lata bez awansu wychowanka'}</strong></span>
+          <em>✓ rozstrzygnięte</em>
+        </div>
+        ${selected ? `
+          <div class="president-academy-selected">
+            <span><strong>${presidentEscape(selected.player)}</strong><small>Fikcyjny wychowanek kariery · ${presidentEscape(selected.role)} · wiek ${selected.age}</small></span>
+            <b>RPG ${Number(selected?.ratings?.game_rating || 0)} · potencjał ${Number(selected?.ratings?.potential || 0)}</b>
+          </div>` : ''}
+      </section>`;
+  }
+
+  return `
+    <section class="president-academy-intake">
+      <div class="president-academy-head">
+        <span><small>🌱 NABÓR Z AKADEMII · MECHANIKA GRY</small><strong>Wybierz jednego wychowanka do pierwszej drużyny</strong></span>
+        <em>akademia ${Number(profile?.areas?.academy || 0)}/100</em>
+      </div>
+      <p class="president-academy-note">To <strong>fikcyjni zawodnicy wygenerowani wyłącznie dla tej kariery</strong>. Nie pochodzą z ŁNP i nie są używani jako fakty ani pytania quizowe.</p>
+      <div class="president-academy-grid">
+        ${prospects.map(prospect => {
+          const affordable = presidentModeCore.canPromoteAcademyProspect(profile, prospect.id);
+          return `
+            <article class="president-academy-card">
+              <div class="president-academy-player">
+                <span><small>FIKCYJNY WYCHOWANEK</small><strong>${presidentEscape(prospect.player)}</strong><em>${presidentEscape(prospect.role)} · ${presidentEscape(prospect.archetype)} · ${prospect.age} lat</em></span>
+                <b>${Number(prospect?.ratings?.game_rating || 0)}</b>
+              </div>
+              <div class="president-academy-stats">
+                <span><small>RPG</small><strong>${Number(prospect?.ratings?.game_rating || 0)}</strong></span>
+                <span><small>POTENCJAŁ</small><strong>${Number(prospect?.ratings?.potential || 0)}</strong></span>
+                <span><small>WDROŻENIE</small><strong>${presidentModeCore.money(prospect.developmentCost)}</strong></span>
+                <span><small>STAŁY KOSZT</small><strong>−${presidentModeCore.money(prospect.recurring)}/kol.</strong></span>
+              </div>
+              <button type="button" data-academy-prospect="${prospect.id}" ${affordable ? '' : 'disabled'}>
+                ${affordable ? 'Włącz do kadry seniorów' : 'Brak środków na wdrożenie'}
+              </button>
+            </article>`;
+        }).join('')}
+      </div>
+      <button type="button" class="president-skip-academy-intake">Nie włączam wychowanka tego lata</button>
+    </section>`;
+}
+
 function presidentDepartureCandidate(profile, career) {
   if (!profile?.offseason || !career) return null;
   const stored = profile.offseason.departureCase;
@@ -1209,7 +1279,11 @@ function presidentDepartureCandidate(profile, career) {
 }
 
 function presidentDepartureHtml(profile, career) {
-  if (!profile?.offseason?.planId || !profile.offseason.sponsorDecisionResolved) return '';
+  if (
+    !profile?.offseason?.planId ||
+    !profile.offseason.sponsorDecisionResolved ||
+    !profile.offseason.academyDecisionResolved
+  ) return '';
   const year = Number(profile.offseason.careerYear || profile.careerYear || 1);
   const resolved = (profile.departureHistory || []).find(item => Number(item.careerYear) === year);
   if (profile.offseason.departureResolved) {
@@ -1504,11 +1578,13 @@ function renderPresidentOffseason() {
 
       ${chosen ? presidentSponsorContractsHtml(profile) : ''}
 
-      ${chosen && profile.offseason?.sponsorDecisionResolved ? presidentDepartureHtml(profile, career) : ''}
+      ${chosen && profile.offseason?.sponsorDecisionResolved ? presidentAcademyIntakeHtml(profile) : ''}
+
+      ${chosen && profile.offseason?.sponsorDecisionResolved && profile.offseason?.academyDecisionResolved ? presidentDepartureHtml(profile, career) : ''}
 
       ${chosen && profile.offseason?.departureResolved ? presidentTransferMarketHtml(profile, career) : ''}
 
-      ${chosen && profile.offseason?.sponsorDecisionResolved && profile.offseason?.transferWindowClosed ? `
+      ${chosen && profile.offseason?.sponsorDecisionResolved && profile.offseason?.academyDecisionResolved && profile.offseason?.transferWindowClosed ? `
         <section class="president-offseason-continue">
           <span><small>NASTĘPNY KROK</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextPlan.season)} · ${presidentEscape(nextPlan.competitionLabel)}</strong></span>
           <p>Stan klubu, decyzja letnia i ruchy kadrowe przechodzą dalej. Teraz zarząd ustali cel oraz strategię na nowy rok.</p>
@@ -1532,6 +1608,10 @@ function renderPresidentOffseason() {
     button.addEventListener('click', () => acceptPresidentSponsorContract(button.dataset.sponsorContract));
   });
   panel.querySelector('.president-skip-sponsor-contract')?.addEventListener('click', skipPresidentSponsorContract);
+  panel.querySelectorAll('[data-academy-prospect]').forEach(button => {
+    button.addEventListener('click', () => promotePresidentAcademyProspect(button.dataset.academyProspect));
+  });
+  panel.querySelector('.president-skip-academy-intake')?.addEventListener('click', skipPresidentAcademyIntake);
   panel.querySelectorAll('[data-departure-outcome]').forEach(button => {
     button.addEventListener('click', () => resolvePresidentDeparture(button.dataset.departureOutcome));
   });
@@ -1560,6 +1640,7 @@ function startNextPresidentSeason() {
   if (
     !state.presidentMode.offseason?.planId ||
     !state.presidentMode.offseason?.sponsorDecisionResolved ||
+    !state.presidentMode.offseason?.academyDecisionResolved ||
     !state.presidentMode.offseason?.departureResolved ||
     !state.presidentMode.offseason?.transferWindowClosed
   ) {
