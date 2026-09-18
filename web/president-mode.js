@@ -344,6 +344,7 @@ function presidentDashboardHtml(profile, career) {
       <div><small>STAŁY BILANS / KOLEJKĘ</small><strong>${recurring >= 0 ? '+' : ''}${presidentModeCore.money(recurring)}</strong><span>umowy i stałe zobowiązania</span></div>
       <div><small>TABELA / CEL</small><strong>${standing.position === "—" ? "—" : standing.position + "."} / TOP ${board.target}</strong><span>${presidentEscape(career.competitionLabel || presidentModeCore.competitionByLevel(career.competitionLevel ?? 1).short)} · ${standing.points} pkt</span></div>
       <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)} · ${presidentModeCore.employmentLabel(profile)}</span></div>
+      <div><small>REPUTACJA PREZESA</small><strong>${presidentModeCore.reputationScore(profile)}/100</strong><span>${presidentEscape(presidentModeCore.reputationLabel(presidentModeCore.reputationScore(profile)))}</span></div>
       <div><small>PLAN SEZONU</small><strong>${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : '—'}</strong><span>kondycja ${avgAreas}/100 · zaufanie ${avgTrust}/100</span></div>
     </div>`;
 }
@@ -639,19 +640,23 @@ function renderPresidentRoundOutcome(context = {}) {
 
 function presidentBuildJobOffers(profile, career, reason = 'career') {
   if (!profile || !career) return [];
-  const key = `${profile.careerYear}|${career.club}|${career.season}|${reason}`;
+  const reputation = presidentModeCore.reputationScore(profile);
+  const key = `${profile.careerYear}|${career.club}|${career.season}|${reason}|rep-${reputation}`;
   if (profile.jobMarket?.key === key && Array.isArray(profile.jobMarket.offers)) {
     return profile.jobMarket.offers;
   }
 
   const nextSeason = presidentNextSeasonLabel(career.season);
   const currentLevel = Number(career.competitionLevel ?? 1);
+  const market = presidentModeCore.jobMarketSummary(profile, currentLevel, reason);
+  const allowedLevels = new Set(market.levels);
   const offers = [];
-  const addOffer = (club, level, simulated, sourceSeason = null, kind = 'same') => {
-    if (!club || club === career.club || offers.some(item => item.club === club)) return;
+  const addOffer = (club, level, simulated, sourceSeason = null) => {
+    if (!club || club === career.club || offers.some(item => item.club === club) || offers.length >= 3) return;
     const competition = presidentModeCore.competitionByLevel(level);
+    const kind = competition.level > currentLevel ? 'higher' : competition.level < currentLevel ? 'lower' : 'same';
     const offer = {
-      id:`${reason}|${nextSeason}|${level}|${club}`,
+      id:`${reason}|${nextSeason}|${competition.level}|${club}`,
       club,
       fromClub:career.club,
       season:nextSeason,
@@ -661,13 +666,20 @@ function presidentBuildJobOffers(profile, career, reason = 'career') {
       sourceSeason,
       reason,
       kind,
+      reputationAtOffer:reputation,
     };
     offer.terms = presidentModeCore.jobOfferTerms(offer);
     offers.push(offer);
   };
 
-  if (currentLevel === 1 && Array.isArray(state.seasons) && state.seasons.includes(nextSeason)) {
-    const officialClubs = seasonCareerCore.clubsForSeason(
+  let officialSameLevel = [];
+  if (
+    currentLevel === 1 &&
+    allowedLevels.has(1) &&
+    Array.isArray(state.seasons) &&
+    state.seasons.includes(nextSeason)
+  ) {
+    officialSameLevel = seasonCareerCore.clubsForSeason(
       state.playerCharacters || [],
       state.all || [],
       nextSeason,
@@ -676,32 +688,43 @@ function presidentBuildJobOffers(profile, career, reason = 'career') {
       (state.playerCharacters || []).some(player => player?.season === nextSeason && player?.club === club)
     );
     const random = seasonCareerCore.seededRandom(`${key}|official-offers`);
-    officialClubs
+    officialSameLevel = officialSameLevel
       .map(club => ({ club, sort:random() }))
       .sort((a,b) => a.sort - b.sort)
-      .slice(0, reason === 'dismissal' ? 3 : 2)
-      .forEach(row => addOffer(row.club, 1, false, nextSeason, 'same'));
-  } else {
-    (career.clubs || [])
-      .filter(club => club !== career.club)
-      .slice(0, 2)
-      .forEach(club => addOffer(club, currentLevel, true, career.sourceSeason || null, 'same'));
+      .map(row => row.club);
+    officialSameLevel.slice(0, reason === 'dismissal' ? 1 : 2).forEach(club => addOffer(club, 1, false, nextSeason));
   }
 
-  if (reason === 'career' && Number(profile.seasonsCompleted || 0) >= 2 && currentLevel < 4) {
-    const higher = presidentModeCore.competitionByLevel(currentLevel + 1);
-    addOffer(`Nowy klub · ${higher.short}`, higher.level, true, career.sourceSeason || null, 'higher');
+  market.levels
+    .filter(level => level !== currentLevel)
+    .forEach(level => {
+      const competition = presidentModeCore.competitionByLevel(level);
+      addOffer(`Nowy klub · ${competition.short}`, level, true, career.sourceSeason || null);
+    });
+
+  if (offers.length < 3 && currentLevel === 1) {
+    officialSameLevel.slice(reason === 'dismissal' ? 1 : 2).forEach(club => addOffer(club, 1, false, nextSeason));
   }
-  if (reason === 'dismissal' && offers.length < 3 && currentLevel > 0) {
-    const lower = presidentModeCore.competitionByLevel(currentLevel - 1);
-    addOffer(`Nowy klub · ${lower.short}`, lower.level, true, career.sourceSeason || null, 'lower');
-  }
+
+  let filler = 1;
   while (offers.length < 3) {
-    const competition = presidentModeCore.competitionByLevel(currentLevel);
-    addOffer(`Nowy klub · ${competition.short} ${offers.length + 1}`, currentLevel, true, career.sourceSeason || null, 'same');
+    const fallbackLevel = market.levels[Math.min(filler - 1, market.levels.length - 1)] ?? currentLevel;
+    const competition = presidentModeCore.competitionByLevel(fallbackLevel);
+    addOffer(`Nowy klub · ${competition.short} ${filler}`, fallbackLevel, true, career.sourceSeason || null);
+    filler += 1;
+    if (filler > 8) break;
   }
 
-  profile.jobMarket = { key, reason, season:nextSeason, offers, declined:false };
+  profile.jobMarket = {
+    key,
+    reason,
+    season:nextSeason,
+    reputation,
+    reputationLabel:market.label,
+    levels:[...market.levels],
+    offers,
+    declined:false,
+  };
   return offers;
 }
 
@@ -775,6 +798,8 @@ function declinePresidentJobOffers() {
 function presidentJobOffersHtml(profile, career, reason = 'career') {
   const offers = presidentBuildJobOffers(profile, career, reason);
   if (!offers.length) return '';
+  const market = presidentModeCore.jobMarketSummary(profile, Number(career?.competitionLevel ?? 1), reason);
+  const availableLevels = market.levels.map(level => presidentModeCore.competitionByLevel(level).short).join(' · ');
   return `
     <section class="president-job-market ${reason}">
       <div class="president-job-market-head">
@@ -784,10 +809,14 @@ function presidentJobOffersHtml(profile, career, reason = 'career') {
       <p class="president-job-market-note">${reason === 'dismissal'
         ? 'Nowy klub oznacza nowy budżet, zaufanie i infrastrukturę. Historia Twojej kariery pozostaje.'
         : 'Zmiana klubu jest dobrowolna. Majątek obecnego klubu nie przechodzi razem z prezesem.'}</p>
+      <div class="president-reputation-market">
+        <span><small>REPUTACJA</small><strong>${market.reputation}/100 · ${presidentEscape(market.label)}</strong></span>
+        <span><small>RYNEK DOSTĘPNY NA POZIOMACH</small><strong>${presidentEscape(availableLevels)}</strong></span>
+      </div>
       <div class="president-job-offers">
         ${offers.map(offer => `
           <article class="president-job-offer ${offer.simulated ? 'simulated' : 'official'}">
-            <div><small>${offer.simulated ? 'SYMULACJA KARIERY' : 'KLUB Z BAZY ŁNP'}</small><strong>${presidentEscape(offer.club)}</strong><span>${presidentEscape(offer.competitionLabel)} · ${presidentEscape(offer.season)}</span></div>
+            <div><small>${offer.simulated ? 'SYMULACJA KARIERY' : 'KLUB Z BAZY ŁNP'} · ${offer.kind === 'higher' ? 'KROK WYŻEJ' : offer.kind === 'lower' ? 'POZIOM NIŻEJ' : 'TEN SAM POZIOM'}</small><strong>${presidentEscape(offer.club)}</strong><span>${presidentEscape(offer.competitionLabel)} · ${presidentEscape(offer.season)}</span></div>
             <div class="president-job-offer-terms"><span>Budżet startowy</span><strong>${presidentModeCore.money(offer.terms?.budget || 0)}</strong></div>
             <button type="button" data-president-job-offer="${presidentEscape(offer.id)}">Przyjmij ofertę</button>
           </article>`).join('')}
@@ -818,6 +847,7 @@ function renderPresidentDismissal(lastRound = null) {
         <div><small>TABELA</small><strong>${position}.</strong><span>${Number(row.points || 0)} pkt</span></div>
         <div><small>BUDŻET</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${presidentModeCore.financeLabel(profile)}</span></div>
         <div><small>POPARCIE</small><strong>${board.confidence}/100</strong><span>${presidentEscape(job.reason || 'wyniki i kondycja klubu')}</span></div>
+        <div><small>REPUTACJA</small><strong>${presidentModeCore.reputationScore(profile)}/100</strong><span>${presidentEscape(presidentModeCore.reputationLabel(presidentModeCore.reputationScore(profile)))}</span></div>
       </section>
       ${presidentCareerHistoryHtml(profile)}
       ${presidentJobOffersHtml(profile, career, 'dismissal')}
@@ -957,7 +987,7 @@ function presidentCareerHistoryHtml(profile) {
           const verdict = presidentModeCore.seasonVerdict({ position:item.position, target:item.target });
           return `<div class="president-career-history-row">
             <span><strong>Sezon ${item.careerYear} · ${presidentEscape(item.season)} · ${presidentEscape(item.club || '')}</strong><small>${presidentEscape(item.competitionLabel || 'A klasa Myślenice')} · ${item.simulated ? 'symulacja kariery' : 'baza ŁNP'}${item.movement?.code && item.movement.code !== 'stay' ? ' · ' + presidentEscape(presidentModeCore.competitionMovementLabel(item.movement)) : ''}</small></span>
-            <span><b>${item.position}.</b><small>${item.points} pkt · ${item.wins}-${item.draws}-${item.losses}</small></span>
+            <span><b>${item.position}.</b><small>${item.points} pkt · ${item.wins}-${item.draws}-${item.losses} · reputacja ${Number(item.reputationDelta || 0) >= 0 ? '+' : ''}${Number(item.reputationDelta || 0)}</small></span>
             <span class="president-history-verdict ${verdict.tone}">${verdict.icon} ${presidentEscape(verdict.label)}</span>
           </div>`;
         }).join('')}
