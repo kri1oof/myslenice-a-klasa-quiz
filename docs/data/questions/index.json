@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": 4,
-  "count": 74774,
+  "count": 115232,
   "clubs": {
     "12": {
       "slug": "12",
@@ -161,7 +161,7 @@
       "city": "Myślenice",
       "crest": "assets/crests/gorki-myslenice.jpg",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/b/a/f/630fd0ac92382fb955839fab__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=b89891e4-a5eb-428a-abd5-a9528d097fa3&group=8c5c8ed5-a99f-4745-8a13-469c37374792&genderType=Male"
     },
     "Hejnał Krzyszkowice": {
       "slug": "hejnal-krzyszkowice",
@@ -193,7 +193,7 @@
       "city": "Zakliczyn",
       "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/b/9/e/61102d18eeb389649d4a9e9b__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=2c1a6e1d-bf4d-41e9-8a2f-fa1b994104ba&group=277923ac-b847-4b3e-9b4c-8e6af355b2c8&genderType=Male"
     },
     "KARPATY SIEPRAW": {
       "slug": "karpaty-siepraw",
@@ -304,8 +304,8 @@
       "short_name": "Pasternik",
       "city": "Ochojno",
       "crest": "assets/crests/pasternik-ochojno.png",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/d/d/9/689f1da4a893e47ddc14b9dd__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/c/5/9/64d89c08a893e47ddc06a95c__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Pcimianka II Pcim": {
       "slug": "pcimianka-ii-pcim",
@@ -361,7 +361,7 @@
       "city": "Borzęta",
       "crest": "assets/crests/sokol-borzeta.jpg",
       "crest_remote_url": "https://static.futbolowo.pl/assets/130/f/f/fd7446cc400a12ec034ea52af389063914c13c.jpg",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=02117303-7b42-4b50-892a-1c40d983624d&group=49e14d83-8901-415d-a054-0e5889376493&genderType=Male"
     },
     "Sparta Kazimierza Wielka": {
       "slug": "sparta-kazimierza-wielka",
@@ -409,7 +409,7 @@
       "city": "Rzeszotary",
       "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/2/b/7/652ac410a893e47ddc06e7b2__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Topór Tenczyn": {
       "slug": "topor-tenczyn",
@@ -417,7 +417,7 @@
       "city": "Tenczyn",
       "crest": "assets/crests/topor-tenczyn.jpg",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/7/3/d/6613f0cea893e47ddc072d37__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Wicher Stróża": {
       "slug": "wicher-stroza",
@@ -470,51 +470,51 @@
     "Beskid Tokarnia": {
       "slug": "beskid-tokarnia",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/5/1/3/68766c30a893e47ddc14b315__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=2c1a6e1d-bf4d-41e9-8a2f-fa1b994104ba&group=277923ac-b847-4b3e-9b4c-8e6af355b2c8&genderType=Male"
     },
     "Clavia Świątniki Górne": {
       "slug": "clavia-swiatniki-gorne",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/4/1/6/632444aa92382fb95583a614__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Dalin II Myślenice": {
       "slug": "dalin-ii-myslenice",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/9/2/7/6aab9090a893e47ddc151729__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=29d748c8-3e54-4a3d-8f94-368614f481a4&group=117c3104-3b8d-4d6d-b770-bf4ad1cb2789&genderType=Male"
     },
     "Dziecanovia Dziekanowice": {
       "slug": "dziecanovia-dziekanowice",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/5/3/e/630e0ad792382fb955839e35__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/8/3/e/630e0c2f92382fb955839e38__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=2c1a6e1d-bf4d-41e9-8a2f-fa1b994104ba&group=277923ac-b847-4b3e-9b4c-8e6af355b2c8&genderType=Male"
     },
     "Gościbia Sułkowice": {
       "slug": "goscibia-sulkowice",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/a/e/630e677392382fb955839ea6__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=02117303-7b42-4b50-892a-1c40d983624d&group=49e14d83-8901-415d-a054-0e5889376493&genderType=Male"
     },
     "Iskra Głogoczów": {
       "slug": "iskra-glogoczow",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=7cad69c6-c7a9-4a9d-9641-0e7ef9ce6b75&group=06884f67-96cf-4fac-aefa-35e0c190dbd4&genderType=Male"
     },
     "LKS Rudnik": {
       "slug": "lks-rudnik",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/1/3/f/6446d0dda893e47ddc068f31__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=b89891e4-a5eb-428a-abd5-a9528d097fa3&group=8c5c8ed5-a99f-4745-8a13-469c37374792&genderType=Male"
     },
     "LKS Trzebunia": {
       "slug": "lks-trzebunia",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/9/f/61b2534794a3b9d06f427f96__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=2c1a6e1d-bf4d-41e9-8a2f-fa1b994104ba&group=277923ac-b847-4b3e-9b4c-8e6af355b2c8&genderType=Male"
     },
     "Orzeł Nowa Wieś": {
       "slug": "orzel-nowa-wies",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/2/5/1/62c53a5a92382fb955839152__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Skalnik Trzemeśnia": {
       "slug": "skalnik-trzemesnia",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/b/7/3/61491bbf94a3b9d06f42737b__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Gościbia II Sułkowice": {
       "slug": "goscibia-ii-sulkowice",
@@ -591,8 +591,8 @@
     "2020/21": 3752,
     "2021/22": 5712,
     "2022/23": 21818,
-    "2023/24": 3283,
-    "2024/25": 3501,
+    "2023/24": 23437,
+    "2024/25": 23805,
     "2025/26": 25114,
     "2026/27": 7507
   },
@@ -768,18 +768,32 @@
       "count": 9818
     },
     {
-      "path": "2023-24.json",
+      "path": "2023-24-01.json",
       "season": "2023/24",
       "part": 1,
-      "parts": 1,
-      "count": 3283
+      "parts": 2,
+      "count": 12000
     },
     {
-      "path": "2024-25.json",
+      "path": "2023-24-02.json",
+      "season": "2023/24",
+      "part": 2,
+      "parts": 2,
+      "count": 11437
+    },
+    {
+      "path": "2024-25-01.json",
       "season": "2024/25",
       "part": 1,
-      "parts": 1,
-      "count": 3501
+      "parts": 2,
+      "count": 12000
+    },
+    {
+      "path": "2024-25-02.json",
+      "season": "2024/25",
+      "part": 2,
+      "parts": 2,
+      "count": 11805
     },
     {
       "path": "2025-26-01.json",

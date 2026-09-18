@@ -70,18 +70,20 @@ def _mark_completed_seasons(conn) -> list[str]:
 
 
 def _filter_conservative_historical_questions(conn, questions):
-    """Keep 2022/23 player questions strictly tied to positive official evidence.
+    """Keep historical player questions tied to direct official evidence.
 
-    ŁNP has official match protocols for the played fixtures in this season, so
-    positive facts such as club, appearance, scorer, card, lineup role or an
-    explicit substitution minute are usable.  We intentionally suppress question
-    families that infer facts from absence or turn substitution timestamps into
-    approximate played-minute totals.
+    For 2022/23 through 2024/25 ŁNP exposes official match protocols for played
+    fixtures. Positive facts such as club, appearance, scorer, card, lineup role
+    or an explicit substitution minute are usable. We suppress question families
+    that infer facts from absence, estimate played minutes, or reuse a player's
+    currently observed age as a historical age.
     """
-    row = conn.execute("SELECT id FROM seasons WHERE label='2022/23'").fetchone()
-    if not row:
+    rows = conn.execute(
+        "SELECT id, label FROM seasons WHERE label IN ('2022/23','2023/24','2024/25')"
+    ).fetchall()
+    conservative_ids = {int(row[0]) for row in rows}
+    if not conservative_ids:
         return list(questions)
-    season_id = int(row[0])
     blocked = {
         "match_squad_absent",
         "unused_substitute",
@@ -95,7 +97,7 @@ def _filter_conservative_historical_questions(conn, questions):
     }
     return [
         q for q in questions
-        if q.season_id != season_id or q.question_type not in blocked
+        if q.season_id not in conservative_ids or q.question_type not in blocked
     ]
 
 
@@ -105,12 +107,14 @@ def merge_exports(existing_path: Path, lnp_path: Path, output_path: Path) -> tup
     incoming_questions = list(incoming.get("questions") or [])
 
     # Player-age prompts include the observation date. A later official sync may
-    # legitimately move that date (or the age itself), so old versions must not
-    # accumulate beside the current one. Replace this generated type as a unit.
+    # legitimately move that date (or the age itself), so stale versions should
+    # be replaced only for seasons present in this incoming build. This avoids a
+    # one-season historical build deleting age questions from unrelated seasons.
     refresh_types = {"lnp_player_age"}
+    refresh_seasons = {q.get("season") for q in incoming_questions if q.get("season")}
     questions = [
         q for q in (existing.get("questions") or [])
-        if q.get("type") not in refresh_types
+        if not (q.get("type") in refresh_types and q.get("season") in refresh_seasons)
     ]
     index = {_key(q): i for i, q in enumerate(questions)}
     added = upgraded = 0
