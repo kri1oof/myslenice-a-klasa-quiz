@@ -648,7 +648,7 @@ assert.match(runtime, /data-academy-prospect/);
 assert.match(runtime, /Nie włączam wychowanka tego lata/);
 assert.match(runtime, /UMOWA KARIERY/);
 assert.match(runtime, /umowa kariery 2 sez/);
-assert.match(runtime, /umowa kariery 3 sez/);
+assert.match(runtime, /contractRemaining \|\| 3/);
 assert.match(runtime, /nie są używani jako fakty ani pytania quizowe/);
 assert.match(runtime, /president-career-academy/);
 assert.match(runtime, /RUCH WYCHODZĄCY/);
