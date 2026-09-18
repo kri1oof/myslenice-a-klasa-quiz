@@ -301,6 +301,76 @@ function presidentInvestmentsHtml(profile, career) {
     </details>`;
 }
 
+function choosePresidentBoardMandate(mandateId) {
+  const career = careerState();
+  const chosen = presidentModeCore.chooseBoardMandate(
+    state.presidentMode,
+    mandateId,
+    { competitionLevel:Number(career?.competitionLevel ?? 1) },
+  );
+  if (!chosen.ok) return false;
+  state.presidentMode = chosen.profile;
+  return renderPresidentStrategySelection();
+}
+
+function presidentBoardMandateHtml(profile, career, selectable = true) {
+  const mandate = profile?.boardMandate;
+  if (!mandate || mandate.status !== 'active') {
+    if (!selectable) return '';
+    const previous = [...(profile?.boardMandateHistory || [])].at(-1);
+    return `
+      <section class="president-mandate-select">
+        <div class="president-mandate-select-head">
+          <span><small>🧭 WIELOSEZONOWY MANDAT ZARZĄDU</small><strong>Wybierz kierunek na najbliższe lata</strong></span>
+          <em>2–3 sezony</em>
+        </div>
+        ${previous ? `<div class="president-mandate-previous ${previous.status}">
+          <span>Poprzedni mandat: <strong>${presidentEscape(previous.label)}</strong></span>
+          <b>${previous.status === 'achieved' ? '✓ wykonany' : '⚠ niewykonany'}</b>
+        </div>` : ''}
+        <p>Mandat jest nadrzędnym celem prezesa. Możesz realizować go różnymi strategiami sezonowymi, ale zarząd rozliczy efekt przed upływem terminu.</p>
+        <div class="president-mandate-options">
+          ${presidentModeCore.BOARD_MANDATES.map(item => `
+            <button type="button" data-board-mandate="${item.id}">
+              <span>${item.icon}</span>
+              <strong>${presidentEscape(item.label)}</strong>
+              <p>${presidentEscape(item.copy)}</p>
+              <small>Termin: ${Number(item.duration || 2)} sezony</small>
+            </button>`).join('')}
+        </div>
+      </section>`;
+  }
+
+  const progress = presidentModeCore.boardMandateProgress(profile, {
+    competitionLevel:Number(career?.competitionLevel ?? 1),
+    position:career ? seasonCareerCore.position(career.table, career.club) : null,
+  });
+  if (!progress) return '';
+  return `
+    <section class="president-mandate-active">
+      <div class="president-mandate-active-head">
+        <span><small>🧭 MANDAT ZARZĄDU · ROK ${Number(profile.careerYear || 1) - Number(progress.startedCareerYear || 1) + 1}/${progress.duration}</small><strong>${progress.icon} ${presidentEscape(progress.label)}</strong></span>
+        <em>${progress.percent}%</em>
+      </div>
+      <div class="president-mandate-progress"><i style="width:${progress.percent}%"></i></div>
+      <div class="president-mandate-detail"><span>${presidentEscape(progress.detail)}</span><b>${progress.yearsLeft} ${progress.yearsLeft === 1 ? 'sezon' : 'sezony'} do terminu</b></div>
+    </section>`;
+}
+
+function presidentBoardMandateSummaryHtml(profile, career) {
+  const mandate = profile?.boardMandate;
+  if (!mandate) return '';
+  if (mandate.status === 'active') return presidentBoardMandateHtml(profile, career, false);
+  return `
+    <section class="president-mandate-active resolved ${mandate.status}">
+      <div class="president-mandate-active-head">
+        <span><small>🧭 OSTATNI MANDAT ZARZĄDU</small><strong>${mandate.icon || '🧭'} ${presidentEscape(mandate.label)}</strong></span>
+        <em>${mandate.status === 'achieved' ? '✓ wykonany' : '⚠ niewykonany'}</em>
+      </div>
+      <div class="president-mandate-detail"><span>${presidentEscape(mandate.lastDetail || '')}</span><b>${Number(mandate.lastProgress || 0)}%</b></div>
+    </section>`;
+}
+
 function renderPresidentStrategySelection() {
   const profile = initializePresidentMode();
   const career = careerState();
@@ -312,7 +382,9 @@ function renderPresidentStrategySelection() {
       <div class="president-report-kicker">👔 SEZON ${Number(profile.careerYear || 1)} · POSIEDZENIE ZARZĄDU</div>
       <h2>${presidentEscape(career.club)} · ${presidentEscape(career.season)}</h2>
       <div class="president-competition-chip">${presidentEscape(career.competitionLabel || presidentModeCore.competitionByLevel(career.competitionLevel ?? 1).label)}${career.presidentSimulatedSeason ? ' · SYMULACJA KARIERY' : ' · baza ŁNP'}</div>
-      <p class="president-strategy-intro">Wybierz kierunek na ten sezon. Stan klubu z poprzednich lat pozostaje, a nowy plan zmienia oczekiwania zarządu i bieżące priorytety.</p>
+      ${presidentBoardMandateHtml(profile, career, true)}
+      ${profile.boardMandate?.status === 'active' ? `
+      <p class="president-strategy-intro">Mandat wieloletni jest ustalony. Teraz wybierz kierunek na ten sezon — strategia ma pomóc w jego realizacji, ale nie musi być co roku taka sama.</p>
       <div class="president-strategy-grid">
         ${presidentModeCore.STRATEGIES.map(strategy => {
           const effect = strategy.effect || {};
@@ -324,11 +396,14 @@ function renderPresidentStrategySelection() {
             <small>Budżet ${budget >= 0 ? '+' : ''}${presidentModeCore.money(budget)} · stały bilans ${Number(effect.recurring || 0) >= 0 ? '+' : ''}${presidentModeCore.money(effect.recurring || 0)}/kolejkę</small>
           </button>`;
         }).join('')}
-      </div>
+      </div>` : '<p class="president-strategy-intro mandate-first">Najpierw wybierz wielosezonowy mandat zarządu. Strategię na pierwszy sezon ustalisz w następnym kroku.</p>'}
       ${presidentSquadHtml(career)}
       <small class="president-disclaimer">Strategia, budżet i wymagania zarządu są elementem symulacji. Dane kadrowe ŁNP pozostają danymi źródłowymi.</small>
     </div>`;
   panel.classList.remove('hidden');
+  panel.querySelectorAll('[data-board-mandate]').forEach(button => {
+    button.addEventListener('click', () => choosePresidentBoardMandate(button.dataset.boardMandate));
+  });
   panel.querySelectorAll('.president-strategy-option').forEach(button => {
     button.addEventListener('click', () => {
       const applied = presidentModeCore.chooseStrategy(state.presidentMode, button.dataset.strategy);
@@ -337,7 +412,11 @@ function renderPresidentStrategySelection() {
       showPresidentRound();
     });
   });
-  if (el('status')) el('status').textContent = `Kariera prezesa · sezon ${Number(profile.careerYear || 1)} · wybierz strategię zarządu`;
+  if (el('status')) {
+    el('status').textContent = profile.boardMandate?.status === 'active'
+      ? `Kariera prezesa · sezon ${Number(profile.careerYear || 1)} · wybierz strategię sezonową`
+      : `Kariera prezesa · sezon ${Number(profile.careerYear || 1)} · wybierz mandat zarządu`;
+  }
   window.scrollTo({ top:0, behavior:'smooth' });
   return true;
 }
@@ -491,7 +570,7 @@ function presidentManagementHubHtml(profile, career) {
         ${tabs.map(([id,icon,label]) => `<button type="button" class="${active === id ? 'active' : ''}" data-president-tab="${id}"><span>${icon}</span><strong>${label}</strong></button>`).join('')}
       </nav>
       <div class="president-hub-content">
-        ${pane('overview', presidentDashboardHtml(profile, career) + presidentEmploymentHtml(profile, career) + presidentWarningsHtml(profile, career))}
+        ${pane('overview', presidentDashboardHtml(profile, career) + presidentBoardMandateSummaryHtml(profile, career) + presidentEmploymentHtml(profile, career) + presidentWarningsHtml(profile, career))}
         ${pane('squad', presidentSquadHtml(career).replace('<details class="president-squad-details">', '<details class="president-squad-details" open>'))}
         ${pane('finance', presidentFinanceTabHtml(profile))}
         ${pane('club', presidentClubTabHtml(profile, career))}
@@ -1939,6 +2018,8 @@ function renderPresidentSeasonFinal(lastRound = null) {
         <div><small>STATUS LIGOWY</small><strong>${presidentEscape(movementLabel)}</strong><p>Zasada kariery: mistrz awansuje, dwa ostatnie miejsca spadają. To mechanika gry, nie odwzorowanie historycznego regulaminu sezonu.</p></div>
       </div>
 
+      ${presidentBoardMandateSummaryHtml(profile, career)}
+
       <section class="president-final-primary" aria-label="Najważniejsze wyniki sezonu">
         <div><small>MIEJSCE</small><strong>${position}.</strong><span>cel TOP ${board.target}</span></div>
         <div><small>PUNKTY</small><strong>${Number(row.points || 0)}</strong><span>${Number(row.played || 0)} meczów</span></div>
@@ -1978,7 +2059,7 @@ function renderPresidentSeasonFinal(lastRound = null) {
 
       <section class="president-next-season-box">
         <span><small>KARIERA TRWA DALEJ</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextSeason)} · ${presidentEscape(movement.toLabel)}</strong></span>
-        <p>Budżet, inwestycje, stałe umowy i reputacja zostają w klubie. Zanim zacznie się kolejny rok, przejdziesz przez osobne lato prezesa.</p>
+        <p>Budżet, inwestycje, stałe umowy, reputacja i aktywny mandat zarządu zostają w klubie. Zanim zacznie się kolejny rok, przejdziesz przez osobne lato prezesa.</p>
         <button type="button" class="president-continue-career">Przejdź do lata →</button>
         <button type="button" class="president-end-career">Zakończ karierę</button>
       </section>
