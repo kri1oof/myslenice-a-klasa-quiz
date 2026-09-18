@@ -1743,6 +1743,68 @@
   line-height: 1.35;
 }
 
+
+.president-resume-card {
+  margin-top: 12px;
+  padding: 13px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid #86efac;
+  border-radius: 14px;
+  background: #f0fdf4;
+}
+.president-resume-card.hidden { display: none; }
+.president-resume-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.president-resume-copy small {
+  color: #166534;
+  font-size: .64rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.president-resume-copy strong {
+  color: #14532d;
+  font-size: .9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.president-resume-copy span {
+  color: #4b5563;
+  font-size: .7rem;
+  line-height: 1.35;
+}
+.president-resume-actions {
+  display: flex;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+.president-resume-actions button {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.president-resume-button {
+  border: 0;
+  background: #166534;
+  color: #fff;
+}
+.president-resume-button:hover { background: #14532d; }
+.president-delete-save {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #64748b;
+}
+.president-delete-save:hover { background: #f8fafc; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1769,6 +1831,9 @@
 }
 
 @media (max-width: 700px) {
+  .president-resume-card { align-items:stretch; flex-direction:column; }
+  .president-resume-actions { width:100%; }
+  .president-resume-actions button { flex:1; }
   .president-case-trigger { align-items:flex-start; flex-direction:column; gap:3px; }
   .president-hub-tabs {
     grid-template-columns: repeat(5,minmax(64px,1fr));
