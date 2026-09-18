@@ -157,10 +157,15 @@ function presidentSquadHtml(career) {
     const rating = Number(player?.ratings?.game_rating || 0);
     return `<div class="president-squad-player"><span><strong>${presidentEscape(player.player)}</strong><small>${presidentEscape(player.archetype || 'Zawodnik')} · ${Number(stats.appearances || 0)} mecz. · ${Number(stats.goals || 0)} goli</small></span><b>${rating || '—'}</b></div>`;
   }).join('');
+  const careerSignings = (state.presidentMode?.transferRoster || []).map(item => `
+    <div class="president-squad-player president-career-signing">
+      <span><strong>${presidentEscape(item.player)}</strong><small>Wzmocnienie kariery · z ${presidentEscape(item.sourceClub || 'innego klubu')} · profil ŁNP ${presidentEscape(item.sourceSeason || '')}</small></span>
+      <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
+    </div>`).join('');
   const sourceCopy = career?.presidentSimulatedSeason && career?.sourceSeason
     ? `Ostatnia dostępna baza ŁNP: ${presidentEscape(career.sourceSeason)}. W kolejnych latach służy jako punkt odniesienia kariery.`
     : 'Nazwiska i statystyki pochodzą z protokołów ŁNP; ocena gry jest wskaźnikiem mechaniki, nie oficjalną oceną zawodnika.';
-  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>${players.length} zawodników · najwyższe profile gry</small></span><em>Pokaż</em></summary><div class="president-squad-list">${leaders}</div><small class="president-data-note">${sourceCopy}</small></details>`;
+  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>${players.length} profili źródłowych${careerSignings ? ' · wzmocnienia kariery poniżej' : ''}</small></span><em>Pokaż</em></summary><div class="president-squad-list">${careerSignings}${leaders}</div><small class="president-data-note">${sourceCopy}${careerSignings ? ' Transfery wykonane przez gracza są alternatywną historią tej kariery.' : ''}</small></details>`;
 }
 
 function presidentWarningsHtml(profile, career) {
