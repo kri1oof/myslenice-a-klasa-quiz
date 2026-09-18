@@ -1455,6 +1455,98 @@
     return { ...profile, recurring, trust, contracts:active, contractHistory:history };
   }
 
+  function averageHomeAttendance(profile, limit = 8) {
+    const homes = (profile?.attendanceHistory || [])
+      .filter(item => item?.home && Number(item.attendance || 0) > 0)
+      .slice(-Math.max(1, Number(limit || 8)));
+    if (!homes.length) {
+      return Number(estimateAttendance(profile, {
+        venue:'DOM',
+        competitionLevel:Number(profile?.offseason?.competitionReadinessLevel ?? latestSeasonRecord(profile)?.movement?.toLevel ?? latestSeasonRecord(profile)?.competitionLevel ?? 1),
+      }).attendance || 0);
+    }
+    return Math.round(homes.reduce((sum, item) => sum + Number(item.attendance || 0), 0) / homes.length);
+  }
+
+  function commercialValue(profile) {
+    const trust = normalizedTrust(profile?.trust);
+    const latest = latestSeasonRecord(profile);
+    const level = competitionByLevel(
+      profile?.offseason?.competitionReadinessLevel ??
+      latest?.movement?.toLevel ??
+      latest?.competitionLevel ??
+      1
+    ).level;
+    const supporterBase = supporterBaseValue(profile);
+    const attendance = averageHomeAttendance(profile);
+    const supporterScore = clamp((supporterBase - 80) / 9, 0, 100);
+    const attendanceScore = clamp(attendance / 8, 0, 100);
+    const sponsorScore = Number(trust.sponsors || 50);
+    const reputation = reputationScore(profile);
+    const levelScore = clamp(20 + level * 16, 20, 84);
+    const score = Math.round(clamp(
+      supporterScore * .24 +
+      attendanceScore * .20 +
+      sponsorScore * .24 +
+      reputation * .20 +
+      levelScore * .12,
+      0,
+      100,
+    ));
+    const multiplier = Math.round(clamp(.75 + score * .0075, .75, 1.5) * 100) / 100;
+    const label = score >= 80
+      ? 'bardzo atrakcyjny partner'
+      : score >= 65
+        ? 'mocna pozycja komercyjna'
+        : score >= 50
+          ? 'rosnąca wartość'
+          : score >= 35
+            ? 'lokalny zasięg'
+            : 'mały zasięg';
+    return {
+      score,
+      label,
+      multiplier,
+      supporterBase,
+      attendance,
+      sponsorTrust:sponsorScore,
+      reputation,
+      competitionLevel:level,
+    };
+  }
+
+  function sponsorOfferTerms(profile, templateOrId) {
+    const template = typeof templateOrId === 'string'
+      ? contractTemplateById(templateOrId)
+      : templateOrId;
+    if (!template) return null;
+    const commercial = commercialValue(profile);
+    const signingBonus = Math.max(
+      250,
+      Math.round(Number(template.signingBonus || 0) * commercial.multiplier / 50) * 50,
+    );
+    const recurring = Math.max(
+      20,
+      Math.round(Number(template.recurring || 0) * commercial.multiplier / 5) * 5,
+    );
+    return {
+      ...template,
+      signingBonus,
+      recurring,
+      baseSigningBonus:Number(template.signingBonus || 0),
+      baseRecurring:Number(template.recurring || 0),
+      commercialScore:commercial.score,
+      commercialLabel:commercial.label,
+      commercialMultiplier:commercial.multiplier,
+    };
+  }
+
+  function availableContractOffers(profile) {
+    return availableContractTemplates(profile)
+      .map(template => sponsorOfferTerms(profile, template))
+      .filter(Boolean);
+  }
+
   function availableContractTemplates(profile) {
     const activeIds = new Set((profile?.contracts || []).map(item => item.templateId));
     return CONTRACT_TEMPLATES.filter(template => !activeIds.has(template.id));
@@ -1474,7 +1566,8 @@
 
   function acceptSponsorContract(profile, templateId) {
     const template = contractTemplateById(templateId);
-    if (!template || !canAcceptContract(profile, templateId)) return { ok:false, reason:'unavailable' };
+    const offer = sponsorOfferTerms(profile, template);
+    if (!template || !offer || !canAcceptContract(profile, templateId)) return { ok:false, reason:'unavailable' };
     const contract = {
       id:'sponsor:' + template.id + ':' + Number(profile.careerYear || 1),
       templateId:template.id,
@@ -1484,8 +1577,10 @@
       startedCareerYear:Number(profile.careerYear || 1),
       duration:Number(template.duration || 1),
       remainingSeasons:Number(template.duration || 1),
-      signingBonus:Number(template.signingBonus || 0),
-      recurring:Number(template.recurring || 0),
+      signingBonus:Number(offer.signingBonus || 0),
+      recurring:Number(offer.recurring || 0),
+      commercialScore:Number(offer.commercialScore || 0),
+      commercialMultiplier:Number(offer.commercialMultiplier || 1),
       condition:template.condition ? { ...template.condition } : null,
     };
     return {
@@ -2595,7 +2690,8 @@
     competitionRequirements, competitionReadiness, resolveCompetitionReadiness,
     jobOfferTerms, acceptJobOffer, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
-    contractTemplateById, contractConditionMet, processSeasonContracts, availableContractTemplates,
+    contractTemplateById, contractConditionMet, processSeasonContracts,
+    averageHomeAttendance, commercialValue, sponsorOfferTerms, availableContractTemplates, availableContractOffers,
     canAcceptContract, acceptSponsorContract, skipSponsorContract,
     createAcademyProspects, academyProspectById, canPromoteAcademyProspect, promoteAcademyProspect, skipAcademyIntake,
     careerContractDefaults, normalizeCareerPlayerContract, careerContractTerms, processCareerPlayerContracts,
