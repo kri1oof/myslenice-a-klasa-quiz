@@ -22,6 +22,7 @@ jobs:
       - name: Frontend JavaScript syntax
         run: |
           node --check web/question-sanity-core.js
+          node --check web/smart-question-engine-core.js
           node --check web/app.js
           node --check web/quality.js
           node --check web/rounds.js
@@ -71,6 +72,8 @@ jobs:
           node --check web/rpg-setup-ux.js
           node --check web/rpg-clarity.js
           node --check web/dev-tools.js
+      - name: Smart question engine smoke test
+        run: node tests/smart-question-engine-smoke.mjs
       - name: Match situations smoke test
         run: node tests/match-scenarios-smoke.mjs
       - name: Match continuity smoke test
