@@ -908,6 +908,167 @@
 }
 .president-start-next-season:hover { background: #14532d; }
 
+
+.president-transfer-market {
+  border: 1px solid #dbe3ec;
+  border-radius: 15px;
+  overflow: hidden;
+  background: #fff;
+}
+.president-transfer-market.closed { background: #f8fafc; }
+.president-transfer-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 13px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.president-transfer-head span { display: flex; flex-direction: column; gap: 2px; }
+.president-transfer-head small {
+  color: #64748b;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.president-transfer-head em {
+  color: #166534;
+  font-size: .74rem;
+  font-style: normal;
+  font-weight: 900;
+}
+.president-transfer-note {
+  margin: 0;
+  padding: 11px 13px 0;
+  color: #475569;
+  font-size: .74rem;
+  line-height: 1.45;
+}
+.president-transfer-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 10px;
+  padding: 12px;
+}
+.president-transfer-card {
+  display: grid;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+}
+.president-transfer-card.signed {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+.president-transfer-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+.president-transfer-card-head span { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.president-transfer-card-head strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #111827;
+  font-size: .92rem;
+}
+.president-transfer-card-head small { color: #64748b; font-size: .7rem; }
+.president-transfer-card-head b {
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  border-radius: 8px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: .72rem;
+}
+.president-transfer-stats {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 5px;
+}
+.president-transfer-stats > span {
+  min-width: 0;
+  padding: 7px;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+.president-transfer-stats small,
+.president-transfer-stats strong { display: block; }
+.president-transfer-stats small { color: #64748b; font-size: .6rem; }
+.president-transfer-stats strong {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #111827;
+  font-size: .72rem;
+}
+.president-transfer-terms {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #475569;
+  font-size: .68rem;
+}
+.president-transfer-terms strong { color: #111827; }
+.president-transfer-card button,
+.president-close-transfer-window {
+  min-height: 40px;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.president-transfer-card button {
+  width: 100%;
+  border: 1px solid #166534;
+  background: #fff;
+  color: #166534;
+}
+.president-transfer-card button:hover:not(:disabled) { background: #f0fdf4; }
+.president-transfer-card button:disabled {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+.president-close-transfer-window {
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
+  border: 0;
+  background: #166534;
+  color: #fff;
+}
+.president-close-transfer-window:hover { background: #14532d; }
+.president-transfer-empty {
+  margin: 0;
+  padding: 12px 13px;
+  color: #64748b;
+  font-size: .76rem;
+}
+.president-transfer-signed-list {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+.president-transfer-signed-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+.president-transfer-signed-list span { display: flex; flex-direction: column; gap: 2px; }
+.president-transfer-signed-list small { color: #64748b; font-size: .68rem; }
+.president-transfer-signed-list b { color: #166534; font-size: .75rem; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -921,6 +1082,7 @@
   .president-offseason-finance .total { grid-column: 1 / -1; }
   .president-offseason-review { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-offseason-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .president-transfer-grid { grid-template-columns: 1fr; }
   .president-board-summary { grid-template-columns: 1fr; }
   .president-strategy-grid { grid-template-columns: 1fr; }
   .president-upgrade-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -962,6 +1124,8 @@
   .president-offseason-review,
   .president-offseason-options { grid-template-columns: 1fr; }
   .president-offseason-finance .total { grid-column: auto; }
+  .president-transfer-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .president-transfer-terms { flex-direction: column; }
   .president-area-row,
   .president-trust-row { grid-template-columns: minmax(90px,auto) 1fr 28px; font-size: .72rem; }
 }
