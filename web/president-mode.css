@@ -460,6 +460,229 @@
 .president-warnings strong { color: #9a3412; }
 .president-warnings span { color: #7c2d12; font-size: .76rem; line-height: 1.35; }
 
+
+/* President career finale: strong hierarchy, readable summary first, details second. */
+.president-season-final {
+  display: grid;
+  gap: 14px;
+}
+.president-season-hero {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 20px;
+  border: 2px solid #bbf7d0;
+  border-radius: 20px;
+  background: #f0fdf4;
+}
+.president-season-hero.warning { border-color: #fde68a; background: #fffbeb; }
+.president-season-hero.danger { border-color: #fecaca; background: #fef2f2; }
+.president-season-hero.champion { border-color: #facc15; background: #fffbeb; }
+.president-season-hero-icon {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: #fff;
+  font-size: 2.4rem;
+  box-shadow: 0 4px 14px rgba(15,23,42,.08);
+}
+.president-season-hero small {
+  color: #475569;
+  font-size: .74rem;
+  font-weight: 900;
+  letter-spacing: .07em;
+}
+.president-season-hero h2 {
+  margin: 3px 0 5px;
+  color: #111827;
+  font-size: clamp(1.45rem, 3vw, 2.05rem);
+  line-height: 1.08;
+}
+.president-season-hero p {
+  margin: 0;
+  color: #334155;
+  font-size: .94rem;
+  line-height: 1.5;
+}
+.president-last-match.compact {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.president-last-match.compact strong { font-size: .94rem; text-align: right; }
+
+.president-final-primary {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 9px;
+}
+.president-final-primary > div {
+  padding: 14px;
+  border: 1px solid #dbe3ec;
+  border-radius: 14px;
+  background: #fff;
+}
+.president-final-primary small,
+.president-final-primary strong,
+.president-final-primary span { display: block; }
+.president-final-primary small {
+  color: #64748b;
+  font-size: .69rem;
+  font-weight: 900;
+  letter-spacing: .07em;
+}
+.president-final-primary strong {
+  margin: 4px 0 2px;
+  color: #0f172a;
+  font-size: 1.5rem;
+  line-height: 1.05;
+}
+.president-final-primary span { color: #64748b; font-size: .74rem; }
+
+.president-board-summary {
+  display: grid;
+  grid-template-columns: minmax(145px, .55fr) 1.45fr;
+  gap: 12px;
+  align-items: stretch;
+}
+.president-board-score,
+.president-board-copy {
+  padding: 15px;
+  border: 1px solid #dbe3ec;
+  border-radius: 15px;
+  background: #f8fafc;
+}
+.president-board-score small,
+.president-board-score strong,
+.president-board-score span,
+.president-board-copy strong,
+.president-board-copy span,
+.president-board-copy small { display: block; }
+.president-board-score small {
+  color: #64748b;
+  font-size: .69rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.president-board-score strong {
+  margin: 4px 0;
+  color: #166534;
+  font-size: 1.55rem;
+}
+.president-board-score span { color: #334155; font-size: .78rem; font-weight: 800; }
+.president-board-copy strong { color: #111827; font-size: .98rem; }
+.president-board-copy span { margin-top: 5px; color: #334155; font-size: .8rem; line-height: 1.45; }
+.president-board-copy small { margin-top: 6px; color: #64748b; font-size: .7rem; line-height: 1.4; }
+
+.president-career-history {
+  border: 1px solid #dbe3ec;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.president-career-history > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 13px;
+  cursor: pointer;
+  list-style: none;
+}
+.president-career-history > summary::-webkit-details-marker { display: none; }
+.president-career-history > summary span { display: flex; flex-direction: column; gap: 2px; }
+.president-career-history > summary small { color: #64748b; font-size: .72rem; }
+.president-career-history > summary em { color: #166534; font-size: .72rem; font-style: normal; font-weight: 800; }
+.president-career-history[open] > summary { border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.president-career-history-list { display: grid; gap: 7px; padding: 11px; }
+.president-career-history-row {
+  display: grid;
+  grid-template-columns: 1.3fr .65fr .85fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 11px;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  background: #fff;
+}
+.president-career-history-row > span { display: flex; flex-direction: column; gap: 2px; }
+.president-career-history-row small { color: #64748b; font-size: .69rem; }
+.president-career-history-row b { color: #111827; }
+.president-history-verdict {
+  justify-self: end;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: .7rem;
+  font-weight: 900;
+}
+.president-history-verdict.champion { background: #fef3c7; color: #92400e; }
+.president-history-verdict.success { background: #dcfce7; color: #166534; }
+.president-history-verdict.warning { background: #fef3c7; color: #92400e; }
+.president-history-verdict.danger { background: #fee2e2; color: #991b1b; }
+
+.president-final-details {
+  display: grid;
+  gap: 0;
+}
+.president-final-details .president-club-details,
+.president-final-details .president-squad-details,
+.president-final-details .president-table-details { margin: 0 0 8px; }
+
+.president-next-season-box {
+  margin-top: 2px;
+  padding: 17px;
+  border: 2px solid #86efac;
+  border-radius: 17px;
+  background: #f0fdf4;
+}
+.president-next-season-box > span { display: flex; flex-direction: column; gap: 2px; }
+.president-next-season-box small {
+  color: #166534;
+  font-size: .7rem;
+  font-weight: 900;
+  letter-spacing: .07em;
+}
+.president-next-season-box strong {
+  color: #14532d;
+  font-size: 1.12rem;
+}
+.president-next-season-box p {
+  margin: 7px 0 12px;
+  color: #334155;
+  font-size: .82rem;
+  line-height: 1.45;
+}
+.president-continue-career,
+.president-end-career {
+  min-height: 44px;
+  padding: 11px 15px;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.president-continue-career {
+  width: 100%;
+  border: 0;
+  background: #166534;
+  color: #fff;
+}
+.president-continue-career:hover { background: #14532d; }
+.president-end-career {
+  width: 100%;
+  margin-top: 7px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+}
+.president-end-career:hover { background: #f8fafc; color: #111827; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -468,6 +691,8 @@
 
 @media (max-width: 900px) {
   .president-dashboard { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .president-final-primary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .president-board-summary { grid-template-columns: 1fr; }
   .president-strategy-grid { grid-template-columns: 1fr; }
   .president-upgrade-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-options,
@@ -487,12 +712,19 @@
   .president-trust-grid,
   .president-report-trust { grid-template-columns: 1fr; }
   .president-case { grid-template-columns: 48px 1fr; padding: 14px; }
+  .president-season-hero { grid-template-columns: 52px 1fr; padding: 15px; }
+  .president-season-hero-icon { width: 52px; height: 52px; border-radius: 14px; font-size: 1.8rem; }
+  .president-career-history-row { grid-template-columns: 1fr; }
+  .president-history-verdict { justify-self: start; }
+  .president-last-match.compact { align-items: flex-start; flex-direction: column; }
+  .president-last-match.compact strong { text-align: left; }
   .president-case-icon { width: 48px; height: 48px; border-radius: 13px; font-size: 1.5rem; }
 }
 
 @media (max-width: 440px) {
   .president-dashboard,
-  .president-upgrade-grid { grid-template-columns: 1fr; }
+  .president-upgrade-grid,
+  .president-final-primary { grid-template-columns: 1fr; }
   .president-area-row,
   .president-trust-row { grid-template-columns: minmax(90px,auto) 1fr 28px; font-size: .72rem; }
 }
