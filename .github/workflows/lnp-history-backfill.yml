@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 concurrency:
@@ -28,6 +28,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Restore verified ŁNP caches
         run: |
@@ -167,6 +170,73 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
-      - name: Build historical questions from completed snapshot
+      - name: Install project
         if: success()
-        run: gh workflow run 'LNP history build' --ref "$GITHUB_REF_NAME"
+        run: |
+          python -m pip install -U pip
+          pip install -e '.[dev]'
+
+      - name: Generate historical questions
+        if: success()
+        run: |
+          cp lnp_myslenice_history.json lnp_myslenice_all.json
+          python scripts/build_lnp_questions.py \
+            --raw lnp_myslenice_all.json \
+            --db lnp_history_build.db \
+            --lnp-export lnp_history_questions.json \
+            --player-export web/data/player-characters.json \
+            --existing web/data/questions.json \
+            --output web/data/questions.json | tee lnp_history_build_summary.txt
+          cp web/data/questions.json docs/data/questions.json
+          cp web/data/player-characters.json docs/data/player-characters.json
+
+      - name: Validate 2022/23 evidence-only questions
+        if: success()
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          payload = json.loads(Path('lnp_history_questions.json').read_text(encoding='utf-8'))
+          questions = payload.get('questions') or []
+          season = [q for q in questions if q.get('season') == '2022/23']
+          assert season, 'No questions generated for 2022/23'
+
+          blocked = {
+              'match_squad_absent',
+              'unused_substitute',
+              'player_not_in_club',
+              'player_season_for_club',
+              'player_season_minutes_over',
+              'compare_player_minutes',
+              'match_player_minutes',
+              'match_compare_player_minutes',
+          }
+          bad = [q for q in season if q.get('type') in blocked]
+          assert not bad, [(q.get('type'), q.get('question')) for q in bad[:10]]
+
+          player_positive = [
+              q for q in season
+              if any(token in str(q.get('type') or '') for token in ('player', 'scorer', 'captain', 'substitution', 'starting_xi', 'came_off_bench', 'shirt_number', 'card'))
+          ]
+          assert player_positive, 'No positive player questions for 2022/23'
+
+          types = Counter(q.get('type') for q in season)
+          print('SEASON_2022_23_QUESTIONS', len(season))
+          print('SEASON_2022_23_TYPES', json.dumps(dict(types), ensure_ascii=False, sort_keys=True))
+          print('SEASON_2022_23_PLAYER_POSITIVE', len(player_positive))
+          PY
+
+      - name: Commit enriched historical database
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web/data/questions.json docs/data/questions.json web/data/player-characters.json docs/data/player-characters.json
+          if git diff --cached --quiet; then
+            echo 'No historical database changes to commit.'
+          else
+            git commit -m 'Add verified ŁNP historical seasons to quiz'
+            git push origin HEAD:"$GITHUB_REF_NAME"
+          fi
