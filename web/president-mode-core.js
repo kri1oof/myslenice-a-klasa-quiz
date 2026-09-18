@@ -298,6 +298,7 @@
       transferHistory:[],
       departedPlayerKeys:[],
       departureHistory:[],
+      jobSecurity:{ status:'secure', lowRounds:0, ultimatumRoundsLeft:0, fired:false, reason:null, history:[] },
       strategy:null,
       upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
       lastUpgradeRound:-99,
@@ -410,6 +411,76 @@
     if (score >= 30) return 'narastająca presja';
     return 'kryzys zaufania';
   }
+  function normalizedJobSecurity(job = {}) {
+    return {
+      status:['secure','warning','ultimatum','fired'].includes(job.status) ? job.status : 'secure',
+      lowRounds:Math.max(0, Number(job.lowRounds || 0)),
+      ultimatumRoundsLeft:Math.max(0, Number(job.ultimatumRoundsLeft || 0)),
+      fired:Boolean(job.fired),
+      reason:job.reason || null,
+      history:Array.isArray(job.history) ? [...job.history] : [],
+    };
+  }
+
+  function employmentLabel(profile) {
+    const job = normalizedJobSecurity(profile?.jobSecurity);
+    if (job.fired || job.status === 'fired') return 'zwolniony';
+    if (job.status === 'ultimatum') return 'ultimatum zarządu';
+    if (job.status === 'warning') return 'ostrzeżenie zarządu';
+    return 'stanowisko bezpieczne';
+  }
+
+  function reviewEmployment(profile, context = {}) {
+    if (!profile) return null;
+    const current = normalizedJobSecurity(profile.jobSecurity);
+    if (current.fired) return profile;
+    const confidence = boardConfidence(profile, context);
+    const budget = Number(profile.budget || 0);
+    const round = Number(context.round || profile.roundsCompleted || 0);
+    const healthy = confidence >= 45 && budget >= 0;
+    const underPressure = confidence < 30 || budget < 0;
+    let next = { ...current };
+    let event = null;
+
+    if (current.status === 'ultimatum') {
+      if (healthy) {
+        next = { ...current, status:'secure', lowRounds:0, ultimatumRoundsLeft:0, reason:null };
+        event = { round, type:'recovered', confidence, label:'Zarząd wycofał ultimatum' };
+      } else {
+        const remaining = Math.max(0, current.ultimatumRoundsLeft - 1);
+        if (remaining === 0) {
+          next = {
+            ...current,
+            status:'fired',
+            fired:true,
+            ultimatumRoundsLeft:0,
+            reason:budget < 0 ? 'finanse' : 'wyniki i poparcie zarządu',
+          };
+          event = { round, type:'fired', confidence, label:'Zarząd zakończył współpracę' };
+        } else {
+          next = { ...current, ultimatumRoundsLeft:remaining };
+        }
+      }
+    } else if (underPressure) {
+      const lowRounds = current.lowRounds + 1;
+      if (lowRounds >= 2) {
+        next = { ...current, status:'ultimatum', lowRounds, ultimatumRoundsLeft:3, reason:null };
+        event = { round, type:'ultimatum', confidence, label:'Ultimatum zarządu: 3 kolejki na poprawę' };
+      } else {
+        next = { ...current, status:'warning', lowRounds };
+        if (current.status !== 'warning') {
+          event = { round, type:'warning', confidence, label:'Zarząd wystosował ostrzeżenie' };
+        }
+      }
+    } else if (current.status === 'warning' || current.lowRounds) {
+      next = { ...current, status:'secure', lowRounds:0, reason:null };
+      event = { round, type:'stabilized', confidence, label:'Sytuacja na stanowisku uspokojona' };
+    }
+
+    if (event) next.history = [...current.history, event];
+    return { ...profile, jobSecurity:next };
+  }
+
   function managementWarnings(profile, context = {}) {
     const warnings = [];
     const trust = normalizedTrust(profile?.trust);
@@ -910,7 +981,7 @@
   const api = {
     TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, COMPETITIONS, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
-    boardTargetPosition, boardConfidence, boardLabel, managementWarnings,
+    boardTargetPosition, boardConfidence, boardLabel, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
     departureGameTerms, canResolveDeparture, resolveDeparture,
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
