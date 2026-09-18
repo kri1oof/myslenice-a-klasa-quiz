@@ -1972,6 +1972,161 @@
 .president-academy-selected small { color:#4b5563; font-size:.68rem; }
 .president-academy-selected b { color:#166534; font-size:.72rem; }
 
+
+.president-readiness {
+  border: 1px solid #dbe3ec;
+  border-radius: 15px;
+  overflow: hidden;
+  background: #fff;
+}
+.president-readiness-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 13px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.president-readiness-head span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.president-readiness-head small {
+  color: #64748b;
+  font-size: .65rem;
+  font-weight: 900;
+  letter-spacing: .055em;
+}
+.president-readiness-head strong {
+  color: #111827;
+}
+.president-readiness-head em {
+  flex: 0 0 auto;
+  color: #166534;
+  font-size: .68rem;
+  font-style: normal;
+  font-weight: 900;
+}
+.president-readiness.warning {
+  border-color: #facc15;
+  background: #fffdf2;
+}
+.president-readiness.warning .president-readiness-head {
+  border-bottom-color: #fde68a;
+  background: #fffbeb;
+}
+.president-readiness.warning .president-readiness-head small,
+.president-readiness.warning .president-readiness-head em {
+  color: #92400e;
+}
+.president-readiness.ready {
+  border-color: #86efac;
+}
+.president-readiness.ready .president-readiness-head {
+  border-bottom-color: #bbf7d0;
+  background: #f0fdf4;
+}
+.president-readiness.temporary {
+  border-color: #fdba74;
+}
+.president-readiness.temporary .president-readiness-head {
+  border-bottom-color: #fed7aa;
+  background: #fff7ed;
+}
+.president-readiness > p,
+.president-readiness-note {
+  margin: 0;
+  padding: 11px 13px;
+  color: #475569;
+  font-size: .73rem;
+  line-height: 1.45;
+}
+.president-readiness-note strong {
+  color: #92400e;
+}
+.president-readiness-metrics {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.president-readiness-metrics > span {
+  padding: 10px;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fff;
+}
+.president-readiness-metrics small,
+.president-readiness-metrics strong,
+.president-readiness-metrics em {
+  display: block;
+}
+.president-readiness-metrics small {
+  color: #92400e;
+  font-size: .58rem;
+  font-weight: 900;
+  letter-spacing: .05em;
+}
+.president-readiness-metrics strong {
+  margin-top: 2px;
+  color: #111827;
+}
+.president-readiness-metrics em {
+  margin-top: 2px;
+  color: #b45309;
+  font-size: .64rem;
+  font-style: normal;
+}
+.president-readiness-options {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 9px;
+  padding: 0 12px 12px;
+}
+.president-readiness-options button {
+  min-height: 112px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+  text-align: left;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+.president-readiness-options button:hover:not(:disabled) {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+.president-readiness-options button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.president-readiness-options button strong {
+  color: #111827;
+}
+.president-readiness-options button span {
+  color: #64748b;
+  font-size: .7rem;
+  line-height: 1.4;
+}
+.president-readiness-options button small {
+  margin-top: auto;
+  color: #166534;
+  font-size: .68rem;
+  font-weight: 900;
+}
+.president-readiness-options button em {
+  color: #991b1b;
+  font-size: .64rem;
+  font-style: normal;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1990,6 +2145,7 @@
   .president-reputation-market { grid-template-columns:1fr; }
   .president-sponsor-offers { grid-template-columns:1fr; }
   .president-academy-grid { grid-template-columns:1fr; }
+  .president-readiness-options { grid-template-columns:1fr; }
   .president-transfer-grid { grid-template-columns: 1fr; }
   .president-departure-player { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .president-board-summary { grid-template-columns: 1fr; }
@@ -2044,6 +2200,8 @@
   .president-contract-row,
   .president-contract-summary-head { align-items:flex-start; flex-direction:column; }
   .president-academy-selected { align-items:flex-start; flex-direction:column; }
+  .president-readiness-head { align-items:flex-start; flex-direction:column; }
+  .president-readiness-metrics { grid-template-columns:1fr; }
   .president-dashboard,
   .president-upgrade-grid,
   .president-final-primary,
