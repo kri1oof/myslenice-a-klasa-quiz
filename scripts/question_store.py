@@ -112,6 +112,7 @@ def load_question_store(path: str | Path) -> dict[str, Any]:
         "version": int(payload.get("version") or 1),
         "count": len(questions),
         "clubs": dict(payload.get("clubs") or {}),
+        "lnp_seasons": list(payload.get("lnp_seasons") or []),
         "questions": questions,
     }
 
@@ -190,12 +191,22 @@ def write_question_store(
             )
 
     types = sorted({str(q.get("type")) for q in questions if q.get("type")})
+    available_seasons = set(seasons)
+    lnp_seasons = sorted(
+        {
+            str(season)
+            for season in (payload.get("lnp_seasons") or [])
+            if season and str(season) in available_seasons
+        },
+        key=_season_sort_key,
+    )
     index = {
         "schema_version": 1,
         "version": int(payload.get("version") or 1),
         "count": len(questions),
         "clubs": clean_clubs,
         "seasons": seasons,
+        "lnp_seasons": lnp_seasons,
         "season_counts": season_counts,
         "types": types,
         "files": entries,
