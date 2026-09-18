@@ -145,7 +145,8 @@ jobs:
           merged = load_question_store('web/data/questions')
           counts = Counter(q.get('season') for q in merged['questions'])
           print('MERGED_COUNT', merged['count'])
-          print('MERGED_SEASONS', json.dumps(dict(counts), ensure_ascii=False, sort_keys=True))
+          printable_counts = {str(key): value for key, value in counts.items()}
+          print('MERGED_SEASONS', json.dumps(printable_counts, ensure_ascii=False, sort_keys=True))
           assert merged['count'] == len(merged['questions'])
           assert counts['2023/24'] > 10000, counts['2023/24']
           assert counts['2024/25'] > 10000, counts['2024/25']
