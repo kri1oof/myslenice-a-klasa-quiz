@@ -30,6 +30,8 @@ assert.equal(initial.strategy, null);
 assert.equal(initial.careerYear, 1);
 assert.equal(initial.seasonsCompleted, 0);
 assert.deepEqual(initial.seasonHistory, []);
+assert.equal(initial.offseason, null);
+assert.deepEqual(initial.offseasonHistory, []);
 assert.deepEqual(initial.upgradeLevels, { squad:0, staff:0, academy:0, facilities:0, organization:0, community:0 });
 assert.equal(initial.lastUpgradeRound, -99);
 assert.equal('currentMatchEffect' in initial, false, 'president mode must not keep an in-match president modifier');
@@ -122,13 +124,35 @@ assert.equal(completed.seasonHistory.length, 1);
 assert.equal(completed.seasonHistory[0].verdict, 'champion');
 assert.equal(core.seasonVerdict({ position:1, target:3 }).label, 'Mistrz ligi');
 
-const nextSeason = core.prepareNextSeason(completed, 26, () => 0.25);
+const offseasonStarted = core.beginOffseason(completed);
+assert.equal(offseasonStarted.ok, true);
+assert.ok(offseasonStarted.offseason.settlement.performanceBonus > 0);
+assert.ok(offseasonStarted.offseason.settlement.maintenanceCost > 0);
+assert.equal(
+  offseasonStarted.profile.budget,
+  completed.budget + offseasonStarted.offseason.settlement.net,
+  'annual settlement should affect the summer budget exactly once',
+);
+const offseasonRepeated = core.beginOffseason(offseasonStarted.profile);
+assert.equal(offseasonRepeated.reused, true);
+assert.equal(offseasonRepeated.profile.budget, offseasonStarted.profile.budget, 're-rendering offseason must not settle twice');
+assert.equal(core.OFFSEASON_PLANS.length, 4);
+assert.equal(core.canChooseOffseasonPlan(offseasonStarted.profile, core.offseasonPlanById('reserve')), true);
+const summer = core.applyOffseasonPlan(offseasonStarted.profile, 'reserve');
+assert.equal(summer.ok, true);
+assert.equal(summer.profile.offseason.planId, 'reserve');
+assert.equal(summer.profile.offseasonHistory.length, 1);
+assert.equal(core.applyOffseasonPlan(summer.profile, 'community').reason, 'already');
+
+const nextSeason = core.prepareNextSeason(summer.profile, 26, () => 0.25);
 assert.equal(nextSeason.careerYear, 2);
 assert.equal(nextSeason.strategy, null);
-assert.equal(nextSeason.budget, completed.budget, 'budget must carry across seasons');
-assert.equal(nextSeason.recurring, completed.recurring, 'contracts must carry across seasons');
-assert.deepEqual(nextSeason.upgradeLevels, completed.upgradeLevels, 'investments must carry across seasons');
-assert.deepEqual(nextSeason.seasonHistory, completed.seasonHistory, 'career history must carry across seasons');
+assert.equal(nextSeason.budget, summer.profile.budget, 'post-settlement summer budget must carry across seasons');
+assert.equal(nextSeason.recurring, summer.profile.recurring, 'contracts must carry across seasons');
+assert.deepEqual(nextSeason.upgradeLevels, summer.profile.upgradeLevels, 'investments must carry across seasons');
+assert.deepEqual(nextSeason.seasonHistory, summer.profile.seasonHistory, 'career history must carry across seasons');
+assert.equal(nextSeason.offseason, null, 'the finished offseason should close when the next season starts');
+assert.equal(nextSeason.offseasonHistory.length, 1, 'summer decisions should remain in career history');
 assert.equal(nextSeason.lastUpgradeRound, -99, 'offseason should clear investment cooldown');
 assert.equal(nextSeason.usedIds.length, 0, 'seasonal decision pool should reset');
 
@@ -144,7 +168,11 @@ assert.match(runtime, /POPARCIE ZARZĄDU/);
 assert.match(runtime, /startNextPresidentSeason/);
 assert.match(runtime, /prepareNextSeason/);
 assert.match(runtime, /presidentCareerHistoryHtml/);
-assert.match(runtime, /Kontynuuj karierę/);
+assert.match(runtime, /Przejdź do lata/);
+assert.match(runtime, /renderPresidentOffseason/);
+assert.match(runtime, /Lato prezesa/);
+assert.match(runtime, /DECYZJA LETNIA/);
+assert.match(runtime, /Przejdź do planowania sezonu/);
 assert.match(runtime, /SYMULACJA KARIERY/);
 assert.doesNotMatch(runtime, /scenarioOdds\s*=/, 'president mode must not alter individual RPG action odds');
 assert.doesNotMatch(runtime, /renderActionPanel\s*=/, 'president mode must not inject president decisions into pitch actions');
