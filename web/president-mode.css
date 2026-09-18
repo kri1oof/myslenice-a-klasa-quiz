@@ -1180,6 +1180,64 @@
 .president-transfer-signed-list small { color: #64748b; font-size: .68rem; }
 .president-transfer-signed-list b { color: #166534; font-size: .75rem; }
 
+
+.president-competition-chip {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0 0 10px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: .72rem;
+  font-weight: 900;
+}
+.president-league-movement {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+.president-league-movement > span {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 1.45rem;
+}
+.president-league-movement small,
+.president-league-movement strong,
+.president-league-movement p { display: block; }
+.president-league-movement small {
+  color: #64748b;
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.president-league-movement strong { margin-top: 2px; color: #111827; }
+.president-league-movement p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: .7rem;
+  line-height: 1.4;
+}
+.president-league-movement.promotion {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+.president-league-movement.promotion strong { color: #166534; }
+.president-league-movement.relegation {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.president-league-movement.relegation strong { color: #991b1b; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */

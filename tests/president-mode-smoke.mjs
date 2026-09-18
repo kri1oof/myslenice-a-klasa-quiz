@@ -116,14 +116,31 @@ assert.match(core.money(12000), /12.*000.*zł/);
 assert.ok(core.boardConfidence(healthy, { position:2, teamCount:14 }) > core.boardConfidence(struggling, { position:12, teamCount:14 }));
 assert.equal(core.boardLabel(85), 'pełne poparcie');
 assert.ok(core.managementWarnings({ ...struggling, budget:500 }, { position:14, teamCount:14 }).length >= 2);
+assert.equal(core.competitionByLevel(1).label, 'A klasa Myślenice');
+const promotion = core.competitionMovement({ level:1, position:1, teamCount:14 });
+assert.equal(promotion.code, 'promotion');
+assert.equal(promotion.toLevel, 2);
+assert.equal(promotion.toLabel, 'Liga okręgowa');
+assert.match(core.competitionMovementLabel(promotion), /Awans/);
+const relegation = core.competitionMovement({ level:1, position:14, teamCount:14 });
+assert.equal(relegation.code, 'relegation');
+assert.equal(relegation.toLevel, 0);
+assert.equal(relegation.toLabel, 'B klasa');
+const survival = core.competitionMovement({ level:1, position:8, teamCount:14 });
+assert.equal(survival.code, 'stay');
+assert.equal(survival.toLevel, 1);
 
 const completed = core.completeSeason(strategy.profile, {
   season:'2025/26', club:'Clavia', position:1, points:61,
   wins:19, draws:4, losses:3, gf:70, ga:28, target:3, boardConfidence:92,
+  competitionLevel:1, competitionLabel:'A klasa Myślenice', teamCount:14,
 });
 assert.equal(completed.seasonsCompleted, 1);
 assert.equal(completed.seasonHistory.length, 1);
 assert.equal(completed.seasonHistory[0].verdict, 'champion');
+assert.equal(completed.seasonHistory[0].competitionLevel, 1);
+assert.equal(completed.seasonHistory[0].movement.code, 'promotion');
+assert.equal(completed.seasonHistory[0].movement.toLevel, 2);
 assert.equal(core.seasonVerdict({ position:1, target:3 }).label, 'Mistrz ligi');
 
 const offseasonStarted = core.beginOffseason(completed);
@@ -234,6 +251,11 @@ assert.match(runtime, /POPARCIE ZARZĄDU/);
 assert.match(runtime, /startNextPresidentSeason/);
 assert.match(runtime, /prepareNextSeason/);
 assert.match(runtime, /presidentCareerHistoryHtml/);
+assert.match(runtime, /presidentCompetitionMovement/);
+assert.match(runtime, /presidentSimulatedCompetitionPlan/);
+assert.match(runtime, /STATUS LIGOWY/);
+assert.match(runtime, /AWANS/);
+assert.match(runtime, /SPADEK/);
 assert.match(runtime, /Przejdź do lata/);
 assert.match(runtime, /renderPresidentOffseason/);
 assert.match(runtime, /Lato prezesa/);
