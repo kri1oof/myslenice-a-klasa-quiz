@@ -1831,6 +1831,147 @@
 }
 .president-delete-save:hover { background: #f8fafc; }
 
+
+.president-squad-player.president-career-academy {
+  border-color:#bbf7d0;
+  background:#f0fdf4;
+}
+.president-squad-player.president-career-academy b { color:#166534; }
+
+.president-academy-intake {
+  border:1px solid #bbf7d0;
+  border-radius:15px;
+  overflow:hidden;
+  background:#fff;
+}
+.president-academy-head {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  padding:12px 13px;
+  border-bottom:1px solid #dcfce7;
+  background:#f0fdf4;
+}
+.president-academy-head span { display:flex; flex-direction:column; gap:2px; }
+.president-academy-head small {
+  color:#166534;
+  font-size:.66rem;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.president-academy-head strong { color:#14532d; }
+.president-academy-head em {
+  color:#166534;
+  font-size:.7rem;
+  font-style:normal;
+  font-weight:900;
+}
+.president-academy-note {
+  margin:0;
+  padding:11px 13px 0;
+  color:#475569;
+  font-size:.73rem;
+  line-height:1.45;
+}
+.president-academy-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  padding:12px;
+}
+.president-academy-card {
+  padding:12px;
+  display:grid;
+  gap:9px;
+  border:1px solid #cbd5e1;
+  border-radius:13px;
+  background:#fff;
+}
+.president-academy-player {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+.president-academy-player > span { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.president-academy-player small {
+  color:#16a34a;
+  font-size:.57rem;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.president-academy-player strong {
+  color:#111827;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.president-academy-player em {
+  color:#64748b;
+  font-size:.66rem;
+  font-style:normal;
+}
+.president-academy-player > b {
+  flex:0 0 auto;
+  min-width:38px;
+  padding:7px 6px;
+  border-radius:9px;
+  background:#dcfce7;
+  color:#166534;
+  text-align:center;
+}
+.president-academy-stats {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px;
+}
+.president-academy-stats > span {
+  padding:7px;
+  border-radius:8px;
+  background:#f8fafc;
+}
+.president-academy-stats small,
+.president-academy-stats strong { display:block; }
+.president-academy-stats small { color:#94a3b8; font-size:.55rem; }
+.president-academy-stats strong { margin-top:2px; color:#334155; font-size:.66rem; }
+.president-academy-card button,
+.president-skip-academy-intake {
+  min-height:39px;
+  border-radius:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.president-academy-card button {
+  border:0;
+  background:#166534;
+  color:#fff;
+}
+.president-academy-card button:hover:not(:disabled) { background:#14532d; }
+.president-academy-card button:disabled { opacity:.45; cursor:not-allowed; }
+.president-skip-academy-intake {
+  width:calc(100% - 24px);
+  margin:0 12px 12px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  color:#475569;
+}
+.president-academy-selected {
+  margin:12px;
+  padding:11px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  border:1px solid #bbf7d0;
+  border-radius:11px;
+  background:#f0fdf4;
+}
+.president-academy-selected span { display:flex; flex-direction:column; gap:2px; }
+.president-academy-selected strong { color:#14532d; }
+.president-academy-selected small { color:#4b5563; font-size:.68rem; }
+.president-academy-selected b { color:#166534; font-size:.72rem; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1848,6 +1989,7 @@
   .president-job-offers { grid-template-columns: 1fr; }
   .president-reputation-market { grid-template-columns:1fr; }
   .president-sponsor-offers { grid-template-columns:1fr; }
+  .president-academy-grid { grid-template-columns:1fr; }
   .president-transfer-grid { grid-template-columns: 1fr; }
   .president-departure-player { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .president-board-summary { grid-template-columns: 1fr; }
@@ -1901,6 +2043,7 @@
   .president-finance-categories { grid-template-columns:1fr; }
   .president-contract-row,
   .president-contract-summary-head { align-items:flex-start; flex-direction:column; }
+  .president-academy-selected { align-items:flex-start; flex-direction:column; }
   .president-dashboard,
   .president-upgrade-grid,
   .president-final-primary,

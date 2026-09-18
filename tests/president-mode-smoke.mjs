@@ -42,6 +42,8 @@ assert.equal(initial.offseason, null);
 assert.deepEqual(initial.offseasonHistory, []);
 assert.deepEqual(initial.transferRoster, []);
 assert.deepEqual(initial.transferHistory, []);
+assert.deepEqual(initial.academyRoster, []);
+assert.deepEqual(initial.academyHistory, []);
 assert.deepEqual(initial.upgradeLevels, { squad:0, staff:0, academy:0, facilities:0, organization:0, community:0 });
 assert.equal(initial.lastUpgradeRound, -99);
 assert.equal('currentMatchEffect' in initial, false, 'president mode must not keep an in-match president modifier');
@@ -262,6 +264,9 @@ const offseasonStarted = core.beginOffseason(completed);
 assert.equal(offseasonStarted.ok, true);
 assert.ok(offseasonStarted.offseason.settlement.performanceBonus > 0);
 assert.ok(offseasonStarted.offseason.settlement.maintenanceCost > 0);
+assert.ok(Array.isArray(offseasonStarted.offseason.academyProspects));
+assert.ok(offseasonStarted.offseason.academyProspects.length >= 1);
+assert.equal(offseasonStarted.offseason.academyDecisionResolved, false);
 assert.equal(
   offseasonStarted.profile.budget,
   completed.budget + offseasonStarted.offseason.settlement.net,
@@ -306,6 +311,29 @@ assert.equal(
 );
 assert.equal(contractFailed.contractHistory.at(-1).endReason, 'condition');
 
+const prospects = sponsorContract.profile.offseason.academyProspects;
+assert.ok(prospects.length >= 1);
+const firstProspect = prospects[0];
+assert.equal(firstProspect.fictional, true);
+assert.equal(firstProspect.source, 'career_academy');
+assert.ok(firstProspect.ratings.game_rating >= 48);
+assert.ok(firstProspect.ratings.potential >= firstProspect.ratings.game_rating);
+assert.equal(core.canPromoteAcademyProspect(sponsorContract.profile, firstProspect.id), true);
+const promotedAcademy = core.promoteAcademyProspect(sponsorContract.profile, firstProspect.id);
+assert.equal(promotedAcademy.ok, true);
+assert.equal(promotedAcademy.profile.offseason.academyDecisionResolved, true);
+assert.equal(promotedAcademy.profile.academyRoster.length, 1);
+assert.equal(promotedAcademy.profile.academyHistory.at(-1).type, 'promoted');
+assert.equal(promotedAcademy.profile.academyRoster[0].fictional, true);
+assert.equal(
+  promotedAcademy.profile.budget,
+  sponsorContract.profile.budget - firstProspect.developmentCost,
+);
+assert.equal(
+  promotedAcademy.profile.recurring,
+  sponsorContract.profile.recurring - firstProspect.recurring,
+);
+
 const departureCandidate = {
   id:'2025/26|Clavia|lnp:test-departure',
   playerKey:'lnp:test-departure',
@@ -322,18 +350,19 @@ const departureCandidate = {
 const departureTerms = core.departureGameTerms(departureCandidate);
 assert.ok(departureTerms.retentionCost > 0);
 assert.ok(departureTerms.compensation > 0);
-assert.equal(core.canResolveDeparture(sponsorContract.profile, departureCandidate, 'retain'), true);
-assert.equal(core.canSignTransfer(sponsorContract.profile, {
+assert.equal(core.canResolveDeparture(sponsorContract.profile, departureCandidate, 'retain'), false, 'academy intake must be resolved before outgoing case');
+assert.equal(core.canResolveDeparture(promotedAcademy.profile, departureCandidate, 'retain'), true);
+assert.equal(core.canSignTransfer(promotedAcademy.profile, {
   id:'blocked-before-departure',
   playerKey:'lnp:blocked',
 }), false, 'incoming market should stay closed until outgoing case is resolved');
-const retained = core.resolveDeparture(sponsorContract.profile, departureCandidate, 'retain');
+const retained = core.resolveDeparture(promotedAcademy.profile, departureCandidate, 'retain');
 assert.equal(retained.ok, true);
 assert.equal(retained.profile.offseason.departureResolved, true);
 assert.equal(retained.profile.departureHistory.length, 1);
 assert.equal(retained.profile.departureHistory[0].outcome, 'retain');
-assert.equal(retained.profile.budget, sponsorContract.profile.budget - departureTerms.retentionCost);
-assert.equal(retained.profile.recurring, sponsorContract.profile.recurring - departureTerms.retentionRecurring);
+assert.equal(retained.profile.budget, promotedAcademy.profile.budget - departureTerms.retentionCost);
+assert.equal(retained.profile.recurring, promotedAcademy.profile.recurring - departureTerms.retentionRecurring);
 assert.ok(retained.profile.areas.squad > summer.profile.areas.squad);
 
 const marketCandidate = {
@@ -375,6 +404,7 @@ assert.equal(nextSeason.budget, closedWindow.profile.budget, 'post-transfer summ
 assert.equal(nextSeason.recurring, closedWindow.profile.recurring, 'contracts and transfer costs must carry across seasons');
 assert.deepEqual(nextSeason.upgradeLevels, closedWindow.profile.upgradeLevels, 'investments must carry across seasons');
 assert.deepEqual(nextSeason.transferRoster, closedWindow.profile.transferRoster, 'career signings must carry across seasons');
+assert.deepEqual(nextSeason.academyRoster, closedWindow.profile.academyRoster, 'academy graduates must carry across seasons');
 assert.deepEqual(nextSeason.seasonHistory, closedWindow.profile.seasonHistory, 'career history must carry across seasons');
 assert.equal(nextSeason.offseason, null, 'the finished offseason should close when the next season starts');
 assert.equal(nextSeason.offseasonHistory.length, 1, 'summer decisions should remain in career history');
@@ -434,6 +464,12 @@ assert.match(runtime, /UMOWY WIELOSEZONOWE/);
 assert.match(runtime, /data-sponsor-contract/);
 assert.match(runtime, /Pakiety są fikcyjne/);
 assert.match(runtime, /Aktywne umowy wielosezonowe/);
+assert.match(runtime, /NABÓR Z AKADEMII/);
+assert.match(runtime, /FIKCYJNY WYCHOWANEK/);
+assert.match(runtime, /data-academy-prospect/);
+assert.match(runtime, /Nie włączam wychowanka tego lata/);
+assert.match(runtime, /nie są używani jako fakty ani pytania quizowe/);
+assert.match(runtime, /president-career-academy/);
 assert.match(runtime, /RUCH WYCHODZĄCY/);
 assert.match(runtime, /FAKT ŁNP \+ DECYZJA GRY/);
 assert.match(runtime, /data-departure-outcome/);
