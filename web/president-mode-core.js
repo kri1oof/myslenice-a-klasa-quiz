@@ -286,6 +286,8 @@
       seasonHistory:[],
       offseason:null,
       offseasonHistory:[],
+      transferRoster:[],
+      transferHistory:[],
       strategy:null,
       upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
       lastUpgradeRound:-99,
@@ -555,6 +557,8 @@
       planId:null,
       planLabel:null,
       planResult:null,
+      transferWindowClosed:false,
+      marketIds:[],
     };
     return {
       ok:true,
@@ -607,6 +611,70 @@
         areas:applyMap(profile.areas, effect.areas, AREA_KEYS, normalizedAreas),
         offseason,
         offseasonHistory:[...(profile.offseasonHistory || []), entry],
+      },
+    };
+  }
+
+  function transferGameTerms(candidate = {}) {
+    const rating = clamp(Number(candidate?.ratings?.game_rating || 60), 35, 95);
+    const appearances = Math.max(0, Number(candidate?.stats?.appearances || 0));
+    const goals = Math.max(0, Number(candidate?.stats?.goals || 0));
+    const rawFee = 350 + Math.max(0, rating - 50) * 38 + Math.min(24, appearances) * 16 + Math.min(15, goals) * 28;
+    const fee = Math.max(350, Math.round(rawFee / 50) * 50);
+    const recurring = Math.max(20, Math.round((rating - 35) * 1.45 / 5) * 5);
+    const squadGain = rating >= 84 ? 5 : rating >= 76 ? 4 : rating >= 68 ? 3 : 2;
+    return { fee, recurring, squadGain };
+  }
+
+  function canSignTransfer(profile, candidate) {
+    if (!profile?.offseason || profile.offseason.transferWindowClosed || !candidate?.id) return false;
+    const signingsThisWindow = (profile.transferHistory || []).filter(
+      item => Number(item.careerYear) === Number(profile.offseason.careerYear)
+    ).length;
+    if (signingsThisWindow >= 2) return false;
+    if ((profile.transferRoster || []).some(item => item.id === candidate.id)) return false;
+    const terms = transferGameTerms(candidate);
+    return Number(profile.budget || 0) >= terms.fee;
+  }
+
+  function signTransfer(profile, candidate) {
+    if (!canSignTransfer(profile, candidate)) return { ok:false, reason:'unavailable' };
+    const terms = transferGameTerms(candidate);
+    const entry = {
+      id:candidate.id,
+      player:candidate.player || 'Zawodnik',
+      sourceClub:candidate.club || null,
+      sourceSeason:candidate.season || null,
+      archetype:candidate.archetype || null,
+      stats:{ ...(candidate.stats || {}) },
+      ratings:{ ...(candidate.ratings || {}) },
+      careerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+      fee:terms.fee,
+      recurring:terms.recurring,
+      squadGain:terms.squadGain,
+    };
+    return {
+      ok:true,
+      terms,
+      profile:{
+        ...profile,
+        budget:Number(profile.budget || 0) - terms.fee,
+        recurring:Number(profile.recurring || 0) - terms.recurring,
+        areas:applyMap(profile.areas, { squad:terms.squadGain }, AREA_KEYS, normalizedAreas),
+        trust:applyMap(profile.trust, { coach:2, supporters:1 }, TRUST_KEYS, normalizedTrust),
+        transferRoster:[...(profile.transferRoster || []), entry],
+        transferHistory:[...(profile.transferHistory || []), entry],
+      },
+    };
+  }
+
+  function closeTransferWindow(profile) {
+    if (!profile?.offseason) return { ok:false, reason:'invalid' };
+    return {
+      ok:true,
+      profile:{
+        ...profile,
+        offseason:{ ...profile.offseason, transferWindowClosed:true },
       },
     };
   }
@@ -709,6 +777,7 @@
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardTargetPosition, boardConfidence, boardLabel, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
+    transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
     seasonVerdict, completeSeason, prepareNextSeason,
     decisionById, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
