@@ -1,5 +1,6 @@
 const smartQuestionEngine = globalThis.SmartQuestionEngineCore || null;
 const adaptiveDifficultyCore = globalThis.AdaptiveDifficultyCore || null;
+const factCardCore = globalThis.FactCardCore || null;
 const SMART_QUESTION_HISTORY_KEY = 'myslenice-smart-question-history-v1';
 const ADAPTIVE_DIFFICULTY_PROFILE_KEY = 'myslenice-adaptive-difficulty-v1';
 
@@ -842,6 +843,94 @@ function showQuestion() {
   });
 }
 
+function appendFactCardChip(container, item, className = '') {
+  if (!item?.label) return;
+  const chip = document.createElement('span');
+  chip.className = ['fact-card-chip', className, item.kind ? 'fact-card-chip-' + item.kind : '']
+    .filter(Boolean)
+    .join(' ');
+  chip.textContent = item.label;
+  container.appendChild(chip);
+}
+
+function renderFactCard(question, correct) {
+  if (!factCardCore) {
+    const fallback = document.createElement('div');
+    fallback.className = 'fact-card-fallback';
+    fallback.textContent = question?.explanation || `Poprawna odpowiedź: ${question?.answer || '—'}`;
+    return fallback;
+  }
+
+  const model = factCardCore.buildFactCard(question, {
+    correct,
+    typeLabel:labelType(question?.type),
+  });
+  const card = document.createElement('article');
+  card.className = `fact-card fact-card-${model.status}`;
+
+  const head = document.createElement('div');
+  head.className = 'fact-card-head';
+  const status = document.createElement('span');
+  status.className = 'fact-card-status';
+  status.textContent = `${model.statusIcon} ${model.statusLabel}`;
+  const answer = document.createElement('strong');
+  answer.className = 'fact-card-answer';
+  answer.textContent = model.answer || '—';
+  head.append(status, answer);
+  card.appendChild(head);
+
+  const explanation = document.createElement('p');
+  explanation.className = 'fact-card-explanation';
+  explanation.textContent = model.explanation;
+  card.appendChild(explanation);
+
+  if (model.highlights.length) {
+    const highlights = document.createElement('div');
+    highlights.className = 'fact-card-highlights';
+    model.highlights.forEach(label => appendFactCardChip(highlights, { label }, 'fact-card-chip-highlight'));
+    card.appendChild(highlights);
+  }
+
+  if (model.metadata.length) {
+    const meta = document.createElement('div');
+    meta.className = 'fact-card-meta';
+    model.metadata.forEach(item => appendFactCardChip(meta, item));
+    card.appendChild(meta);
+  }
+
+  return card;
+}
+
+function renderSourceBox(question) {
+  const box = el('source-box');
+  if (!box) return;
+  box.innerHTML = '';
+  const sources = factCardCore
+    ? factCardCore.buildFactCard(question, { typeLabel:labelType(question?.type) }).sources
+    : (Array.isArray(question?.sources) ? question.sources.map(url => ({ url, label:url })) : []);
+
+  const title = document.createElement('strong');
+  title.textContent = sources.length === 1 ? 'Źródło faktu' : 'Źródła faktu';
+  box.appendChild(title);
+
+  const list = document.createElement('div');
+  list.className = 'fact-source-list';
+  sources.forEach(source => {
+    const link = document.createElement('a');
+    link.href = source.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = 'fact-source-link';
+    const label = document.createElement('span');
+    label.textContent = source.label;
+    const url = document.createElement('small');
+    url.textContent = source.url;
+    link.append(label, url);
+    list.appendChild(link);
+  });
+  box.appendChild(list);
+}
+
 function answer(button, option) {
   const q = state.current;
   const isCorrect = option === q.answer;
@@ -863,9 +952,7 @@ function answer(button, option) {
   updateScore();
   const feedback = el('feedback');
   feedback.innerHTML = '';
-  const factual = document.createElement('div');
-  factual.textContent = q.explanation || `Poprawna odpowiedź: ${q.answer}`;
-  feedback.appendChild(factual);
+  feedback.appendChild(renderFactCard(q, isCorrect));
   const adaptiveText = adaptiveDifficultyFeedbackText();
   if (adaptiveText) {
     const adaptiveLine = document.createElement('div');
@@ -891,7 +978,11 @@ function answer(button, option) {
     ? 'Końcowy gwizdek — pokaż wynik'
     : (gameStyle() === 'classic' ? 'Następne pytanie' : randomFrom(nextLabels));
   el('next').classList.remove('hidden');
-  if (q.sources?.length) el('sources').classList.remove('hidden');
+  if (q.sources?.length) {
+    el('sources').textContent = q.sources.length === 1 ? 'Źródło faktu' : `Źródła faktu (${q.sources.length})`;
+    renderSourceBox(q);
+    el('sources').classList.remove('hidden');
+  }
 }
 
 function finishGame() {
@@ -915,8 +1006,8 @@ el('next').addEventListener('click', () => {
 
 el('sources').addEventListener('click', () => {
   const box = el('source-box');
-  box.innerHTML = '<strong>Źródła:</strong><br>' + state.current.sources
-    .map(url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`).join('<br>');
+  if (!box || !state.current) return;
+  if (!box.children.length) renderSourceBox(state.current);
   box.classList.toggle('hidden');
 });
 
