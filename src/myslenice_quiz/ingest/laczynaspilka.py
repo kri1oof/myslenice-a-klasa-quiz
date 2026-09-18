@@ -62,7 +62,7 @@ def _external_key(player_id: str | None) -> str | None:
 
 def _status(raw: str | None) -> str:
     value = (raw or "").casefold()
-    if "walkower" in value:
+    if "walkower" in value or "walkover" in value:
         return "walkover"
     if "rozegran" in value:
         return "played"
