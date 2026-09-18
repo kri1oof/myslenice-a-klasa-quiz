@@ -30,17 +30,22 @@ jobs:
 
       - name: Split current databases
         run: |
-          test -f web/data/questions.json
-          test -f docs/data/questions.json
-          python scripts/split_question_database.py \
-            --input web/data/questions.json \
-            --output web/data/questions \
-            --chunk-size 12000
-          python scripts/split_question_database.py \
-            --input docs/data/questions.json \
-            --output docs/data/questions \
-            --chunk-size 12000
-          rm web/data/questions.json docs/data/questions.json
+          if [ -f web/data/questions.json ]; then
+            test -f docs/data/questions.json
+            python scripts/split_question_database.py \
+              --input web/data/questions.json \
+              --output web/data/questions \
+              --chunk-size 12000
+            python scripts/split_question_database.py \
+              --input docs/data/questions.json \
+              --output docs/data/questions \
+              --chunk-size 12000
+            rm web/data/questions.json docs/data/questions.json
+          else
+            echo 'Question database is already sharded.'
+            test -f web/data/questions/index.json
+            test -f docs/data/questions/index.json
+          fi
 
       - name: Validate sharded stores
         run: |
@@ -68,11 +73,21 @@ jobs:
           print('QUESTION_COUNT', web['count'])
           PY
 
+      - name: Check browser loaders
+        run: |
+          node --check web/app.js
+          node --check web/front-controller.js
+          node --check docs/app.js
+
       - name: Commit sharded database
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A web/data docs/data
-          git commit -m 'Split question database into season shards'
-          git pull --rebase origin "$GITHUB_REF_NAME"
-          git push origin HEAD:"$GITHUB_REF_NAME"
+          if git diff --cached --quiet; then
+            echo 'No migration data changes to commit.'
+          else
+            git commit -m 'Split question database into season shards'
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin HEAD:"$GITHUB_REF_NAME"
+          fi
