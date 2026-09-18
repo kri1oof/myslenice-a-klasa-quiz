@@ -371,6 +371,8 @@
       offseasonHistory:[],
       transferRoster:[],
       transferHistory:[],
+      academyRoster:[],
+      academyHistory:[],
       departedPlayerKeys:[],
       departureHistory:[],
       employmentHistory:[],
@@ -596,6 +598,7 @@
         upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
         lastUpgradeRound:-99,
         transferRoster:[],
+        academyRoster:[],
         contracts:[],
         departedPlayerKeys:[],
         jobMarket:null,
@@ -1037,6 +1040,133 @@
     };
   }
 
+  const ACADEMY_FIRST_NAMES = Object.freeze(['Jakub','Kacper','Oskar','Michał','Antoni','Filip','Szymon','Bartosz','Mateusz','Jan']);
+  const ACADEMY_LAST_NAMES = Object.freeze(['Nowak','Kowal','Wójcik','Mazur','Król','Lis','Kurek','Duda','Pawlik','Zając']);
+  const ACADEMY_ROLES = Object.freeze([
+    { role:'Bramkarz', archetype:'Refleks' },
+    { role:'Obrońca', archetype:'Walczak' },
+    { role:'Pomocnik', archetype:'Rozgrywający' },
+    { role:'Skrzydłowy', archetype:'Szybkość' },
+    { role:'Napastnik', archetype:'Egzekutor' },
+  ]);
+
+  function academyHash(text) {
+    let hash = 2166136261;
+    for (const char of String(text || '')) {
+      hash ^= char.charCodeAt(0);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function academyRoll(seed, salt = 0) {
+    const value = academyHash(String(seed) + '|' + String(salt));
+    return (value % 10000) / 10000;
+  }
+
+  function createAcademyProspects(profile, season = {}) {
+    const academy = Number(profile?.areas?.academy ?? 45);
+    const careerYear = Number(season?.careerYear || profile?.careerYear || 1);
+    const club = String(season?.club || 'club');
+    const seasonLabel = String(season?.season || '');
+    const count = academy >= 75 ? 3 : academy >= 55 ? 2 : 1;
+    const seed = club + '|' + seasonLabel + '|' + careerYear + '|' + Math.round(academy);
+    const prospects = [];
+
+    for (let index = 0; index < count; index += 1) {
+      const first = ACADEMY_FIRST_NAMES[Math.floor(academyRoll(seed, index * 7 + 1) * ACADEMY_FIRST_NAMES.length)];
+      const last = ACADEMY_LAST_NAMES[Math.floor(academyRoll(seed, index * 7 + 2) * ACADEMY_LAST_NAMES.length)];
+      const role = ACADEMY_ROLES[Math.floor(academyRoll(seed, index * 7 + 3) * ACADEMY_ROLES.length)];
+      const age = 16 + Math.floor(academyRoll(seed, index * 7 + 4) * 3);
+      const rating = Math.round(clamp(48 + academy * .20 + (academyRoll(seed, index * 7 + 5) - .5) * 10, 48, 82));
+      const potential = Math.round(clamp(rating + 7 + academyRoll(seed, index * 7 + 6) * 12, rating + 4, 92));
+      const developmentCost = Math.max(250, Math.round((180 + rating * 5.5) / 50) * 50);
+      const recurring = Math.max(10, Math.round((rating - 40) * .65 / 5) * 5);
+      const squadGain = rating >= 72 ? 4 : rating >= 64 ? 3 : 2;
+      prospects.push({
+        id:'academy:' + careerYear + ':' + index + ':' + academyHash(seed + '|' + index),
+        player:first + ' ' + last,
+        age,
+        role:role.role,
+        archetype:role.archetype,
+        ratings:{ game_rating:rating, potential },
+        developmentCost,
+        recurring,
+        squadGain,
+        fictional:true,
+        source:'career_academy',
+        sourceSeason:seasonLabel,
+        sourceClub:club,
+      });
+    }
+    return prospects;
+  }
+
+  function academyProspectById(profile, prospectId) {
+    return (profile?.offseason?.academyProspects || []).find(item => item.id === prospectId) || null;
+  }
+
+  function canPromoteAcademyProspect(profile, prospectId) {
+    if (!profile?.offseason || profile.offseason.academyDecisionResolved) return false;
+    const prospect = academyProspectById(profile, prospectId);
+    if (!prospect) return false;
+    return Number(profile.budget || 0) >= Number(prospect.developmentCost || 0);
+  }
+
+  function promoteAcademyProspect(profile, prospectId) {
+    if (!canPromoteAcademyProspect(profile, prospectId)) return { ok:false, reason:'unavailable' };
+    const prospect = academyProspectById(profile, prospectId);
+    const entry = {
+      ...prospect,
+      promotedCareerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+    };
+    return {
+      ok:true,
+      prospect:entry,
+      profile:{
+        ...profile,
+        budget:Number(profile.budget || 0) - Number(entry.developmentCost || 0),
+        recurring:Number(profile.recurring || 0) - Number(entry.recurring || 0),
+        areas:applyMap(profile.areas, { squad:Number(entry.squadGain || 0), academy:1 }, AREA_KEYS, normalizedAreas),
+        trust:applyMap(profile.trust, { players:1, supporters:3 }, TRUST_KEYS, normalizedTrust),
+        academyRoster:[...(profile.academyRoster || []), entry],
+        academyHistory:[...(profile.academyHistory || []), {
+          careerYear:entry.promotedCareerYear,
+          type:'promoted',
+          prospect:{ ...entry },
+        }],
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(profile, 'squad', 'Wdrożenie wychowanka: ' + entry.player, -Number(entry.developmentCost || 0), null),
+        ]),
+        offseason:{
+          ...profile.offseason,
+          academyDecisionResolved:true,
+          academySelectedId:entry.id,
+        },
+      },
+    };
+  }
+
+  function skipAcademyIntake(profile) {
+    if (!profile?.offseason || profile.offseason.academyDecisionResolved) return { ok:false, reason:'unavailable' };
+    return {
+      ok:true,
+      profile:{
+        ...profile,
+        academyHistory:[...(profile.academyHistory || []), {
+          careerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+          type:'skipped',
+          prospects:(profile.offseason.academyProspects || []).map(item => ({ ...item })),
+        }],
+        offseason:{
+          ...profile.offseason,
+          academyDecisionResolved:true,
+          academySelectedId:null,
+        },
+      },
+    };
+  }
+
   function latestSeasonRecord(profile) {
     const history = profile?.seasonHistory || [];
     return history.length ? history[history.length - 1] : null;
@@ -1084,6 +1214,7 @@
     const processed = processSeasonContracts(profile, season);
     const settlement = offseasonSettlement(processed);
     if (!settlement) return { ok:false, reason:'settlement' };
+    const academyProspects = createAcademyProspects(processed, season);
     const offseason = {
       careerYear:Number(season.careerYear || processed.careerYear || 1),
       season:season.season,
@@ -1093,6 +1224,9 @@
       planResult:null,
       sponsorDecisionResolved:(processed.contracts || []).length >= 2 || availableContractTemplates(processed).length === 0,
       selectedContractId:null,
+      academyProspects,
+      academyDecisionResolved:academyProspects.length === 0,
+      academySelectedId:null,
       transferWindowClosed:false,
       marketIds:[],
       departureResolved:false,
@@ -1482,6 +1616,7 @@
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
     contractTemplateById, contractConditionMet, processSeasonContracts, availableContractTemplates,
     canAcceptContract, acceptSponsorContract, skipSponsorContract,
+    createAcademyProspects, academyProspectById, canPromoteAcademyProspect, promoteAcademyProspect, skipAcademyIntake,
     departureGameTerms, canResolveDeparture, resolveDeparture,
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
     competitionByLevel, competitionMovement, competitionMovementLabel,
