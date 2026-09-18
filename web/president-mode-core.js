@@ -373,6 +373,7 @@
       transferHistory:[],
       academyRoster:[],
       academyHistory:[],
+      readinessHistory:[],
       departedPlayerKeys:[],
       departureHistory:[],
       employmentHistory:[],
@@ -558,15 +559,128 @@
     };
   }
 
+  const COMPETITION_REQUIREMENTS = Object.freeze({
+    0:{ facilities:35, organization:35 },
+    1:{ facilities:45, organization:45 },
+    2:{ facilities:55, organization:55 },
+    3:{ facilities:65, organization:62 },
+    4:{ facilities:75, organization:70 },
+  });
+
+  function competitionRequirements(level = 1) {
+    const normalized = competitionByLevel(level).level;
+    return { ...(COMPETITION_REQUIREMENTS[normalized] || COMPETITION_REQUIREMENTS[1]) };
+  }
+
+  function competitionReadiness(profile, level = 1) {
+    const competition = competitionByLevel(level);
+    const requirements = competitionRequirements(competition.level);
+    const areas = normalizedAreas(profile?.areas);
+    const facilityGap = Math.max(0, requirements.facilities - Number(areas.facilities || 0));
+    const organizationGap = Math.max(0, requirements.organization - Number(areas.organization || 0));
+    const ready = facilityGap === 0 && organizationGap === 0;
+    const upgradeCost = ready ? 0 : Math.max(
+      400,
+      Math.round((350 + facilityGap * 80 + organizationGap * 65) / 50) * 50,
+    );
+    const temporaryCost = ready ? 0 : Math.max(
+      250,
+      Math.round((200 + facilityGap * 28 + organizationGap * 22) / 50) * 50,
+    );
+    return {
+      level:competition.level,
+      competitionLabel:competition.label,
+      requirements,
+      current:{ facilities:areas.facilities, organization:areas.organization },
+      gaps:{ facilities:facilityGap, organization:organizationGap },
+      ready,
+      upgradeCost,
+      temporaryCost,
+    };
+  }
+
+  function resolveCompetitionReadiness(profile, method) {
+    if (!profile?.offseason || profile.offseason.competitionReadinessResolved) {
+      return { ok:false, reason:'unavailable' };
+    }
+    const readiness = competitionReadiness(profile, profile.offseason.competitionReadinessLevel ?? 1);
+    if (readiness.ready) {
+      return {
+        ok:true,
+        method:'already_ready',
+        profile:{
+          ...profile,
+          offseason:{
+            ...profile.offseason,
+            competitionReadinessResolved:true,
+            competitionReadinessMethod:'already_ready',
+            competitionReadiness:readiness,
+          },
+        },
+      };
+    }
+
+    if (!['upgrade','temporary'].includes(method)) return { ok:false, reason:'invalid' };
+    const cost = method === 'upgrade' ? readiness.upgradeCost : readiness.temporaryCost;
+    if (Number(profile.budget || 0) < cost) return { ok:false, reason:'budget' };
+
+    const areaDelta = method === 'upgrade'
+      ? {
+          facilities:readiness.gaps.facilities,
+          organization:readiness.gaps.organization,
+        }
+      : {};
+    const resultLabel = method === 'upgrade'
+      ? 'Trwałe przygotowanie klubu do poziomu ' + readiness.competitionLabel
+      : 'Tymczasowy plan organizacyjny na poziom ' + readiness.competitionLabel;
+    const entry = {
+      careerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+      level:readiness.level,
+      competitionLabel:readiness.competitionLabel,
+      method,
+      cost,
+      requirements:{ ...readiness.requirements },
+      before:{ ...readiness.current },
+      areaDelta:{ ...areaDelta },
+    };
+    return {
+      ok:true,
+      method,
+      cost,
+      profile:{
+        ...profile,
+        budget:Number(profile.budget || 0) - cost,
+        areas:applyMap(profile.areas, areaDelta, AREA_KEYS, normalizedAreas),
+        trust:applyMap(
+          profile.trust,
+          method === 'upgrade' ? { sponsors:2, supporters:1 } : { sponsors:-1 },
+          TRUST_KEYS,
+          normalizedTrust,
+        ),
+        readinessHistory:[...(profile.readinessHistory || []), entry],
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(profile, 'investment', resultLabel, -cost, null),
+        ]),
+        offseason:{
+          ...profile.offseason,
+          competitionReadinessResolved:true,
+          competitionReadinessMethod:method,
+          competitionReadiness:readiness,
+        },
+      },
+    };
+  }
+
   function jobOfferTerms(offer = {}) {
     const level = competitionByLevel(offer.competitionLevel ?? 1).level;
     const budget = Math.round((9000 + level * 1800 + Number(offer.budgetBonus || 0)) / 500) * 500;
+    const requirements = competitionRequirements(level);
     const areas = {
       squad:clamp(50 + level * 3, 45, 70),
       staff:clamp(50 + level * 2, 45, 68),
       academy:48,
-      facilities:clamp(45 + level * 2, 40, 65),
-      organization:52,
+      facilities:Math.max(requirements.facilities, clamp(45 + level * 2, 40, 75)),
+      organization:Math.max(requirements.organization, 52),
       community:50,
     };
     return { budget, areas };
@@ -988,7 +1102,12 @@
   }
 
   function canAcceptContract(profile, templateId) {
-    if (!profile?.offseason || profile.offseason.sponsorDecisionResolved) return false;
+    if (
+      !profile?.offseason ||
+      !profile.offseason.competitionReadinessResolved ||
+      !profile.offseason.planId ||
+      profile.offseason.sponsorDecisionResolved
+    ) return false;
     if ((profile.contracts || []).length >= 2) return false;
     return Boolean(contractTemplateById(templateId)) &&
       !(profile.contracts || []).some(item => item.templateId === templateId);
@@ -1209,16 +1328,35 @@
     const season = latestSeasonRecord(profile);
     if (!season) return { ok:false, reason:'season' };
     if (profile.offseason && Number(profile.offseason.careerYear) === Number(season.careerYear)) {
+      if (profile.offseason.competitionReadinessResolved === undefined) {
+        const targetLevel = Number(season?.movement?.toLevel ?? season?.competitionLevel ?? 1);
+        const readiness = competitionReadiness(profile, targetLevel);
+        const migratedOffseason = {
+          ...profile.offseason,
+          competitionReadinessLevel:targetLevel,
+          competitionReadiness:readiness,
+          competitionReadinessResolved:readiness.ready,
+          competitionReadinessMethod:readiness.ready ? 'already_ready' : null,
+        };
+        const migrated = { ...profile, offseason:migratedOffseason };
+        return { ok:true, profile:migrated, offseason:migratedOffseason, reused:true };
+      }
       return { ok:true, profile, offseason:profile.offseason, reused:true };
     }
     const processed = processSeasonContracts(profile, season);
     const settlement = offseasonSettlement(processed);
     if (!settlement) return { ok:false, reason:'settlement' };
     const academyProspects = createAcademyProspects(processed, season);
+    const readinessLevel = Number(season?.movement?.toLevel ?? season?.competitionLevel ?? 1);
+    const readiness = competitionReadiness(processed, readinessLevel);
     const offseason = {
       careerYear:Number(season.careerYear || processed.careerYear || 1),
       season:season.season,
       settlement,
+      competitionReadinessLevel:readinessLevel,
+      competitionReadiness:readiness,
+      competitionReadinessResolved:readiness.ready,
+      competitionReadinessMethod:readiness.ready ? 'already_ready' : null,
       planId:null,
       planLabel:null,
       planResult:null,
@@ -1251,6 +1389,7 @@
   function canChooseOffseasonPlan(profile, plan) {
     return Boolean(
       profile?.offseason &&
+      profile.offseason.competitionReadinessResolved &&
       !profile.offseason.planId &&
       plan &&
       Number(profile.budget || 0) + Number(plan.effect?.budget || 0) >= 0
@@ -1613,10 +1752,11 @@
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, CONTRACT_TEMPLATES, COMPETITIONS, FINANCE_CATEGORIES, DECISIONS,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, CONTRACT_TEMPLATES, COMPETITIONS, COMPETITION_REQUIREMENTS, FINANCE_CATEGORIES, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardTargetPosition, boardConfidence, boardLabel,
     reputationScore, reputationLabel, seasonReputationDelta, jobMarketLevels, jobMarketSummary,
+    competitionRequirements, competitionReadiness, resolveCompetitionReadiness,
     jobOfferTerms, acceptJobOffer, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
     contractTemplateById, contractConditionMet, processSeasonContracts, availableContractTemplates,

@@ -267,6 +267,15 @@ assert.ok(offseasonStarted.offseason.settlement.maintenanceCost > 0);
 assert.ok(Array.isArray(offseasonStarted.offseason.academyProspects));
 assert.ok(offseasonStarted.offseason.academyProspects.length >= 1);
 assert.equal(offseasonStarted.offseason.academyDecisionResolved, false);
+assert.equal(offseasonStarted.offseason.competitionReadinessLevel, 2);
+assert.equal(offseasonStarted.offseason.competitionReadinessResolved, false);
+assert.equal(core.competitionRequirements(2).facilities, 55);
+assert.equal(core.competitionRequirements(2).organization, 55);
+const readinessBefore = core.competitionReadiness(offseasonStarted.profile, 2);
+assert.equal(readinessBefore.ready, false);
+assert.equal(readinessBefore.gaps.facilities, 10);
+assert.equal(readinessBefore.gaps.organization, 0);
+assert.ok(readinessBefore.upgradeCost > readinessBefore.temporaryCost);
 assert.equal(
   offseasonStarted.profile.budget,
   completed.budget + offseasonStarted.offseason.settlement.net,
@@ -276,8 +285,33 @@ const offseasonRepeated = core.beginOffseason(offseasonStarted.profile);
 assert.equal(offseasonRepeated.reused, true);
 assert.equal(offseasonRepeated.profile.budget, offseasonStarted.profile.budget, 're-rendering offseason must not settle twice');
 assert.equal(core.OFFSEASON_PLANS.length, 4);
-assert.equal(core.canChooseOffseasonPlan(offseasonStarted.profile, core.offseasonPlanById('reserve')), true);
-const summer = core.applyOffseasonPlan(offseasonStarted.profile, 'reserve');
+assert.equal(core.canChooseOffseasonPlan(offseasonStarted.profile, core.offseasonPlanById('reserve')), false, 'summer planning must wait for competition readiness');
+
+const temporaryReadiness = core.resolveCompetitionReadiness(offseasonStarted.profile, 'temporary');
+assert.equal(temporaryReadiness.ok, true);
+assert.equal(temporaryReadiness.profile.offseason.competitionReadinessResolved, true);
+assert.equal(temporaryReadiness.profile.offseason.competitionReadinessMethod, 'temporary');
+assert.equal(temporaryReadiness.profile.areas.facilities, offseasonStarted.profile.areas.facilities);
+assert.equal(temporaryReadiness.profile.areas.organization, offseasonStarted.profile.areas.organization);
+assert.equal(
+  temporaryReadiness.profile.budget,
+  offseasonStarted.profile.budget - readinessBefore.temporaryCost,
+);
+
+const readinessUpgrade = core.resolveCompetitionReadiness(offseasonStarted.profile, 'upgrade');
+assert.equal(readinessUpgrade.ok, true);
+assert.equal(readinessUpgrade.profile.offseason.competitionReadinessResolved, true);
+assert.equal(readinessUpgrade.profile.offseason.competitionReadinessMethod, 'upgrade');
+assert.ok(readinessUpgrade.profile.areas.facilities >= 55);
+assert.ok(readinessUpgrade.profile.areas.organization >= 55);
+assert.equal(readinessUpgrade.profile.readinessHistory.length, 1);
+assert.equal(readinessUpgrade.profile.readinessHistory[0].method, 'upgrade');
+assert.equal(
+  readinessUpgrade.profile.budget,
+  offseasonStarted.profile.budget - readinessBefore.upgradeCost,
+);
+assert.equal(core.canChooseOffseasonPlan(readinessUpgrade.profile, core.offseasonPlanById('reserve')), true);
+const summer = core.applyOffseasonPlan(readinessUpgrade.profile, 'reserve');
 assert.equal(summer.ok, true);
 assert.equal(summer.profile.offseason.planId, 'reserve');
 assert.equal(summer.profile.offseasonHistory.length, 1);
@@ -460,6 +494,12 @@ assert.match(runtime, /Przejdź do lata/);
 assert.match(runtime, /renderPresidentOffseason/);
 assert.match(runtime, /Lato prezesa/);
 assert.match(runtime, /DECYZJA LETNIA/);
+assert.match(runtime, /GOTOWOŚĆ NA POZIOM LIGI/);
+assert.match(runtime, /fikcyjne progi kariery/);
+assert.match(runtime, /nie regulamin licencyjny PZPN/);
+assert.match(runtime, /data-readiness-method/);
+assert.match(runtime, /Trwałe przygotowanie/);
+assert.match(runtime, /Rozwiązanie tymczasowe/);
 assert.match(runtime, /UMOWY WIELOSEZONOWE/);
 assert.match(runtime, /data-sponsor-contract/);
 assert.match(runtime, /Pakiety są fikcyjne/);
