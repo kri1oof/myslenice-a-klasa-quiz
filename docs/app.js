@@ -330,18 +330,29 @@ el('scope-mode').addEventListener('change', updateScopeControls);
 el('new-game').addEventListener('click', startGame);
 el('play-again').addEventListener('click', startGame);
 
-fetch('data/questions.json')
-  .then(r => {
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  })
-  .then(data => {
+async function loadQuestionDatabase() {
+  const indexResponse = await fetch('data/questions/index.json');
+  if (indexResponse.ok) {
+    const index = await indexResponse.json();
+    const shards = await Promise.all((index.files || []).map(async entry => {
+      const response = await fetch(`data/questions/${entry.path}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status} dla ${entry.path}`);
+      return response.json();
+    }));
+    state.all = shards.flatMap(shard => shard.questions || []);
+    state.clubMeta = index.clubs || {};
+  } else {
+    const legacyResponse = await fetch('data/questions.json');
+    if (!legacyResponse.ok) throw new Error(`HTTP ${legacyResponse.status}`);
+    const data = await legacyResponse.json();
     state.all = data.questions || [];
     state.clubMeta = data.clubs || {};
-    refreshTypeOptions();
-    refreshClubOptions();
-    startGame();
-  })
-  .catch(err => {
-    el('status').textContent = `Nie udało się wczytać bazy pytań: ${err.message}`;
-  });
+  }
+  refreshTypeOptions();
+  refreshClubOptions();
+  startGame();
+}
+
+loadQuestionDatabase().catch(err => {
+  el('status').textContent = `Nie udało się wczytać bazy pytań: ${err.message}`;
+});
