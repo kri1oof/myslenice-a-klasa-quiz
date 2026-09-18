@@ -137,8 +137,9 @@ function presidentStrategy(profile) {
 }
 
 function presidentSquadProfiles(career) {
+  const sourceSeason = career?.sourceSeason || career?.season;
   return (state.playerCharacters || [])
-    .filter(player => player?.club === career?.club && player?.season === career?.season)
+    .filter(player => player?.club === career?.club && player?.season === sourceSeason)
     .sort((a, b) =>
       Number(b?.ratings?.game_rating || 0) - Number(a?.ratings?.game_rating || 0) ||
       Number(b?.stats?.appearances || 0) - Number(a?.stats?.appearances || 0) ||
@@ -156,7 +157,10 @@ function presidentSquadHtml(career) {
     const rating = Number(player?.ratings?.game_rating || 0);
     return `<div class="president-squad-player"><span><strong>${presidentEscape(player.player)}</strong><small>${presidentEscape(player.archetype || 'Zawodnik')} · ${Number(stats.appearances || 0)} mecz. · ${Number(stats.goals || 0)} goli</small></span><b>${rating || '—'}</b></div>`;
   }).join('');
-  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>${players.length} zawodników · najwyższe profile gry</small></span><em>Pokaż</em></summary><div class="president-squad-list">${leaders}</div><small class="president-data-note">Nazwiska i statystyki pochodzą z protokołów ŁNP; ocena gry jest wskaźnikiem mechaniki, nie oficjalną oceną zawodnika.</small></details>`;
+  const sourceCopy = career?.presidentSimulatedSeason && career?.sourceSeason
+    ? `Ostatnia dostępna baza ŁNP: ${presidentEscape(career.sourceSeason)}. W kolejnych latach służy jako punkt odniesienia kariery.`
+    : 'Nazwiska i statystyki pochodzą z protokołów ŁNP; ocena gry jest wskaźnikiem mechaniki, nie oficjalną oceną zawodnika.';
+  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>${players.length} zawodników · najwyższe profile gry</small></span><em>Pokaż</em></summary><div class="president-squad-list">${leaders}</div><small class="president-data-note">${sourceCopy}</small></details>`;
 }
 
 function presidentWarningsHtml(profile, career) {
