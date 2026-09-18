@@ -34,6 +34,14 @@
   const UPGRADE_COSTS = Object.freeze([700, 1300, 2200]);
   const UPGRADE_GAINS = Object.freeze([4, 5, 6]);
 
+  const COMPETITIONS = Object.freeze({
+    0:{ level:0, label:'B klasa', short:'B klasa', simulated:true, strengthOffset:-5 },
+    1:{ level:1, label:'A klasa Myślenice', short:'A klasa', simulated:false, strengthOffset:0 },
+    2:{ level:2, label:'Liga okręgowa', short:'Okręgówka', simulated:true, strengthOffset:5 },
+    3:{ level:3, label:'V liga', short:'V liga', simulated:true, strengthOffset:9 },
+    4:{ level:4, label:'IV liga', short:'IV liga', simulated:true, strengthOffset:13 },
+  });
+
   const OFFSEASON_PLANS = Object.freeze([
     {
       id:'preseason',
@@ -763,6 +771,42 @@
     };
   }
 
+  function competitionByLevel(level = 1) {
+    const value = clamp(Math.round(Number(level ?? 1)), 0, 4);
+    return COMPETITIONS[value] || COMPETITIONS[1];
+  }
+
+  function competitionMovement({ level = 1, position = 1, teamCount = 14 } = {}) {
+    const current = competitionByLevel(level);
+    const teams = Math.max(2, Number(teamCount || 14));
+    const pos = clamp(Math.round(Number(position || teams)), 1, teams);
+    let nextLevel = current.level;
+    let code = 'stay';
+    if (pos === 1 && current.level < 4) {
+      nextLevel += 1;
+      code = 'promotion';
+    } else if (pos >= Math.max(2, teams - 1) && current.level > 0) {
+      nextLevel -= 1;
+      code = 'relegation';
+    }
+    const next = competitionByLevel(nextLevel);
+    return {
+      code,
+      fromLevel:current.level,
+      toLevel:next.level,
+      fromLabel:current.label,
+      toLabel:next.label,
+      position:pos,
+      teamCount:teams,
+    };
+  }
+
+  function competitionMovementLabel(movement) {
+    if (movement?.code === 'promotion') return 'Awans do: ' + movement.toLabel;
+    if (movement?.code === 'relegation') return 'Spadek do: ' + movement.toLabel;
+    return 'Pozostanie w: ' + (movement?.toLabel || competitionByLevel(1).label);
+  }
+
   function seasonVerdict(summary = {}) {
     const position = Math.max(1, Number(summary.position || 999));
     const target = Math.max(1, Number(summary.target || 999));
@@ -793,6 +837,13 @@
       averageTrust:averageTrust(profile),
       averageAreas:averageAreas(profile),
       strategy:profile.strategy || null,
+      competitionLevel:Number(summary.competitionLevel ?? 1),
+      competitionLabel:String(summary.competitionLabel || competitionByLevel(summary.competitionLevel ?? 1).label),
+      movement:competitionMovement({
+        level:Number(summary.competitionLevel ?? 1),
+        position:Number(summary.position || 0),
+        teamCount:Number(summary.teamCount || 14),
+      }),
       verdict:seasonVerdict(summary).code,
     };
     return {
@@ -857,12 +908,13 @@
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, DECISIONS,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, COMPETITIONS, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardTargetPosition, boardConfidence, boardLabel, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
     departureGameTerms, canResolveDeparture, resolveDeparture,
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
+    competitionByLevel, competitionMovement, competitionMovementLabel,
     seasonVerdict, completeSeason, prepareNextSeason,
     decisionById, pickDecision, canChoose, applyChoice,
     normalizedTrust, normalizedAreas, managementStrengthModifier, adjustedClubStrength,
