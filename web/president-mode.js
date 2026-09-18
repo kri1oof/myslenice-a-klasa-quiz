@@ -349,6 +349,25 @@ function presidentDashboardHtml(profile, career) {
 }
 
 
+
+function presidentContractsSummaryHtml(profile) {
+  const contracts = profile?.contracts || [];
+  const recentEnded = [...(profile?.contractHistory || [])]
+    .filter(item => item.endReason)
+    .slice(-3)
+    .reverse();
+  return `
+    <div class="president-contract-summary">
+      <div class="president-contract-summary-head"><strong>📄 Aktywne umowy wielosezonowe</strong><span>${contracts.length}/2 miejsc</span></div>
+      ${contracts.length ? contracts.map(contract => `
+        <div class="president-contract-row">
+          <span><strong>${contract.icon || '🤝'} ${presidentEscape(contract.label)}</strong><small>jeszcze ${Number(contract.remainingSeasons || 0)} sez. · ${contract.condition?.label ? 'warunek: ' + presidentEscape(contract.condition.label) : 'bez warunku sportowego'}</small></span>
+          <b>+${presidentModeCore.money(contract.recurring || 0)}/kolejkę</b>
+        </div>`).join('') : '<small class="president-contract-empty">Brak aktywnych umów wielosezonowych.</small>'}
+      ${recentEnded.length ? `<details class="president-contract-ended"><summary>Ostatnio zakończone</summary>${recentEnded.map(item => `<div><span>${presidentEscape(item.label)}</span><small>${item.endReason === 'condition' ? 'warunek niespełniony' : 'koniec okresu umowy'}</small></div>`).join('')}</details>` : ''}
+    </div>`;
+}
+
 function presidentFinanceTabHtml(profile) {
   const recurring = Number(profile?.recurring || 0);
   const lastFinance = Number(profile?.lastFinance || 0);
@@ -372,6 +391,7 @@ function presidentFinanceTabHtml(profile) {
         <div><small>OSTATNIA KOLEJKA</small><strong>${lastFinance >= 0 ? '+' : ''}${presidentModeCore.money(lastFinance)}</strong><span>mecz + umowy + partnerzy</span></div>
       </div>
       <div class="president-finance-categories">${categoryRows}</div>
+      ${presidentContractsSummaryHtml(profile)}
       <div class="president-tab-list president-ledger-list">
         <strong>Ostatnie operacje</strong>
         ${ledger.length ? ledger.map(entry => `<div><span><small>${entry.round ? 'kolejka ' + entry.round : 'poza kolejką'} · ${presidentEscape(presidentModeCore.FINANCE_CATEGORIES?.[entry.category] || 'Pozostałe')}</small>${presidentEscape(entry.label)}</span><b class="${Number(entry.amount || 0) < 0 ? 'negative' : 'positive'}">${Number(entry.amount || 0) >= 0 ? '+' : ''}${presidentModeCore.money(entry.amount || 0)}</b></div>`).join('') : '<small>Brak zarejestrowanych przepływów w tym sezonie.</small>'}
@@ -1001,6 +1021,63 @@ function presidentStablePlayerKey(profile) {
 }
 
 
+
+function acceptPresidentSponsorContract(templateId) {
+  const accepted = presidentModeCore.acceptSponsorContract(state.presidentMode, templateId);
+  if (!accepted.ok) return false;
+  state.presidentMode = accepted.profile;
+  return renderPresidentOffseason();
+}
+
+function skipPresidentSponsorContract() {
+  const skipped = presidentModeCore.skipSponsorContract(state.presidentMode);
+  if (!skipped.ok) return false;
+  state.presidentMode = skipped.profile;
+  return renderPresidentOffseason();
+}
+
+function presidentSponsorContractsHtml(profile) {
+  if (!profile?.offseason?.planId) return '';
+  const resolved = Boolean(profile.offseason.sponsorDecisionResolved);
+  const active = profile.contracts || [];
+  const available = presidentModeCore.availableContractTemplates(profile);
+
+  if (resolved) {
+    return `
+      <section class="president-sponsor-window resolved">
+        <div class="president-sponsor-window-head">
+          <span><small>UMOWY WIELOSEZONOWE</small><strong>Partnerzy na kolejny sezon</strong></span><em>✓ rozstrzygnięte</em>
+        </div>
+        ${presidentContractsSummaryHtml(profile)}
+      </section>`;
+  }
+
+  return `
+    <section class="president-sponsor-window">
+      <div class="president-sponsor-window-head">
+        <span><small>UMOWY WIELOSEZONOWE · MECHANIKA GRY</small><strong>Wybierz jednego partnera albo pozostaw wolne miejsce</strong></span>
+        <em>${active.length}/2 aktywne</em>
+      </div>
+      <p class="president-sponsor-note">Pakiety są fikcyjne i nie opisują żadnych realnych firm ani sponsorów. Warunki są oceniane po każdym sezonie.</p>
+      ${active.length ? presidentContractsSummaryHtml(profile) : ''}
+      <div class="president-sponsor-offers">
+        ${available.map(template => `
+          <article class="president-sponsor-offer">
+            <span class="president-sponsor-icon">${template.icon}</span>
+            <div><strong>${presidentEscape(template.label)}</strong><p>${presidentEscape(template.copy)}</p></div>
+            <div class="president-sponsor-terms">
+              <span><small>PREMIA</small><b>+${presidentModeCore.money(template.signingBonus)}</b></span>
+              <span><small>CO KOLEJKĘ</small><b>+${presidentModeCore.money(template.recurring)}</b></span>
+              <span><small>CZAS</small><b>${template.duration} sez.</b></span>
+              <span><small>WARUNEK</small><b>${template.condition?.label ? presidentEscape(template.condition.label) : 'brak'}</b></span>
+            </div>
+            <button type="button" data-sponsor-contract="${template.id}">Podpisz umowę</button>
+          </article>`).join('')}
+      </div>
+      <button type="button" class="president-skip-sponsor-contract">Nie podpisuję nowej umowy tego lata</button>
+    </section>`;
+}
+
 function presidentDepartureCandidate(profile, career) {
   if (!profile?.offseason || !career) return null;
   const stored = profile.offseason.departureCase;
@@ -1087,7 +1164,7 @@ function presidentDepartureCandidate(profile, career) {
 }
 
 function presidentDepartureHtml(profile, career) {
-  if (!profile?.offseason?.planId) return '';
+  if (!profile?.offseason?.planId || !profile.offseason.sponsorDecisionResolved) return '';
   const year = Number(profile.offseason.careerYear || profile.careerYear || 1);
   const resolved = (profile.departureHistory || []).find(item => Number(item.careerYear) === year);
   if (profile.offseason.departureResolved) {
@@ -1380,11 +1457,13 @@ function renderPresidentOffseason() {
         `}
       </section>
 
-      ${chosen ? presidentDepartureHtml(profile, career) : ''}
+      ${chosen ? presidentSponsorContractsHtml(profile) : ''}
+
+      ${chosen && profile.offseason?.sponsorDecisionResolved ? presidentDepartureHtml(profile, career) : ''}
 
       ${chosen && profile.offseason?.departureResolved ? presidentTransferMarketHtml(profile, career) : ''}
 
-      ${chosen && profile.offseason?.transferWindowClosed ? `
+      ${chosen && profile.offseason?.sponsorDecisionResolved && profile.offseason?.transferWindowClosed ? `
         <section class="president-offseason-continue">
           <span><small>NASTĘPNY KROK</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextPlan.season)} · ${presidentEscape(nextPlan.competitionLabel)}</strong></span>
           <p>Stan klubu, decyzja letnia i ruchy kadrowe przechodzą dalej. Teraz zarząd ustali cel oraz strategię na nowy rok.</p>
@@ -1404,6 +1483,10 @@ function renderPresidentOffseason() {
   panel.querySelectorAll('[data-offseason-plan]').forEach(button => {
     button.addEventListener('click', () => applyPresidentOffseasonPlan(button.dataset.offseasonPlan));
   });
+  panel.querySelectorAll('[data-sponsor-contract]').forEach(button => {
+    button.addEventListener('click', () => acceptPresidentSponsorContract(button.dataset.sponsorContract));
+  });
+  panel.querySelector('.president-skip-sponsor-contract')?.addEventListener('click', skipPresidentSponsorContract);
   panel.querySelectorAll('[data-departure-outcome]').forEach(button => {
     button.addEventListener('click', () => resolvePresidentDeparture(button.dataset.departureOutcome));
   });
@@ -1431,6 +1514,7 @@ function startNextPresidentSeason() {
   state.presidentMode = begun.profile;
   if (
     !state.presidentMode.offseason?.planId ||
+    !state.presidentMode.offseason?.sponsorDecisionResolved ||
     !state.presidentMode.offseason?.departureResolved ||
     !state.presidentMode.offseason?.transferWindowClosed
   ) {
