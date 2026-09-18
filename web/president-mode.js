@@ -543,6 +543,166 @@ function renderPresidentRoundOutcome(context = {}) {
 }
 
 
+
+function presidentBuildJobOffers(profile, career, reason = 'career') {
+  if (!profile || !career) return [];
+  const key = `${profile.careerYear}|${career.club}|${career.season}|${reason}`;
+  if (profile.jobMarket?.key === key && Array.isArray(profile.jobMarket.offers)) {
+    return profile.jobMarket.offers;
+  }
+
+  const nextSeason = presidentNextSeasonLabel(career.season);
+  const currentLevel = Number(career.competitionLevel ?? 1);
+  const offers = [];
+  const addOffer = (club, level, simulated, sourceSeason = null, kind = 'same') => {
+    if (!club || club === career.club || offers.some(item => item.club === club)) return;
+    const competition = presidentModeCore.competitionByLevel(level);
+    const offer = {
+      id:`${reason}|${nextSeason}|${level}|${club}`,
+      club,
+      fromClub:career.club,
+      season:nextSeason,
+      competitionLevel:competition.level,
+      competitionLabel:competition.label,
+      simulated:Boolean(simulated),
+      sourceSeason,
+      reason,
+      kind,
+    };
+    offer.terms = presidentModeCore.jobOfferTerms(offer);
+    offers.push(offer);
+  };
+
+  if (currentLevel === 1 && Array.isArray(state.seasons) && state.seasons.includes(nextSeason)) {
+    const officialClubs = seasonCareerCore.clubsForSeason(
+      state.playerCharacters || [],
+      state.all || [],
+      nextSeason,
+    ).filter(club =>
+      club !== career.club &&
+      (state.playerCharacters || []).some(player => player?.season === nextSeason && player?.club === club)
+    );
+    const random = seasonCareerCore.seededRandom(`${key}|official-offers`);
+    officialClubs
+      .map(club => ({ club, sort:random() }))
+      .sort((a,b) => a.sort - b.sort)
+      .slice(0, reason === 'dismissal' ? 3 : 2)
+      .forEach(row => addOffer(row.club, 1, false, nextSeason, 'same'));
+  } else {
+    (career.clubs || [])
+      .filter(club => club !== career.club)
+      .slice(0, 2)
+      .forEach(club => addOffer(club, currentLevel, true, career.sourceSeason || null, 'same'));
+  }
+
+  if (reason === 'career' && Number(profile.seasonsCompleted || 0) >= 2 && currentLevel < 4) {
+    const higher = presidentModeCore.competitionByLevel(currentLevel + 1);
+    addOffer(`Nowy klub · ${higher.short}`, higher.level, true, career.sourceSeason || null, 'higher');
+  }
+  if (reason === 'dismissal' && offers.length < 3 && currentLevel > 0) {
+    const lower = presidentModeCore.competitionByLevel(currentLevel - 1);
+    addOffer(`Nowy klub · ${lower.short}`, lower.level, true, career.sourceSeason || null, 'lower');
+  }
+  while (offers.length < 3) {
+    const competition = presidentModeCore.competitionByLevel(currentLevel);
+    addOffer(`Nowy klub · ${competition.short} ${offers.length + 1}`, currentLevel, true, career.sourceSeason || null, 'same');
+  }
+
+  profile.jobMarket = { key, reason, season:nextSeason, offers, declined:false };
+  return offers;
+}
+
+function presidentPlanForJobOffer(previousCareer, offer) {
+  const nextSeason = offer.season || presidentNextSeasonLabel(previousCareer.season);
+  if (!offer.simulated && Number(offer.competitionLevel) === 1) {
+    const clubs = seasonCareerCore.clubsForSeason(
+      state.playerCharacters || [],
+      state.all || [],
+      nextSeason,
+    );
+    if (clubs.includes(offer.club)) {
+      return {
+        season:nextSeason,
+        club:offer.club,
+        clubs,
+        strengths:seasonCareerCore.strengthMap(state.playerCharacters || [], clubs, nextSeason),
+        simulated:false,
+        sourceSeason:nextSeason,
+        competitionLevel:1,
+        competitionLabel:presidentModeCore.competitionByLevel(1).label,
+        movement:null,
+      };
+    }
+  }
+  return presidentSimulatedCompetitionPlan(
+    {
+      ...previousCareer,
+      club:offer.club,
+      competitionLevel:Number(offer.competitionLevel ?? previousCareer.competitionLevel ?? 1),
+      competitionLabel:offer.competitionLabel,
+    },
+    nextSeason,
+    Number(offer.competitionLevel ?? previousCareer.competitionLevel ?? 1),
+  );
+}
+
+function acceptPresidentJobOffer(offerId) {
+  const profile = state.presidentMode;
+  const previousCareer = careerState();
+  const offer = profile?.jobMarket?.offers?.find(item => item.id === offerId);
+  if (!profile || !previousCareer || !offer) return false;
+
+  const accepted = presidentModeCore.acceptJobOffer(profile, offer);
+  if (!accepted.ok) return false;
+  const plan = presidentPlanForJobOffer(previousCareer, offer);
+  const nextCareer = presidentCareerFromPlan(plan);
+  state.presidentMode = presidentModeCore.prepareNextSeason(accepted.profile, nextCareer.rounds.length);
+  state.seasonCareer = nextCareer;
+
+  const from = el('season-from');
+  const to = el('season-to');
+  if (!plan.simulated && from?.querySelector(`option[value="${plan.season}"]`)) {
+    from.value = plan.season;
+    if (to) to.value = plan.season;
+  }
+
+  if (el('status')) {
+    el('status').textContent = `Kariera prezesa · nowy klub: ${offer.club} · ${offer.competitionLabel}`;
+  }
+  return renderPresidentStrategySelection();
+}
+
+function declinePresidentJobOffers() {
+  if (!state.presidentMode?.jobMarket) return false;
+  state.presidentMode.jobMarket.declined = true;
+  return renderPresidentOffseason();
+}
+
+
+function presidentJobOffersHtml(profile, career, reason = 'career') {
+  const offers = presidentBuildJobOffers(profile, career, reason);
+  if (!offers.length) return '';
+  return `
+    <section class="president-job-market ${reason}">
+      <div class="president-job-market-head">
+        <span><small>${reason === 'dismissal' ? 'RYNEK PRACY · PO ZWOLNIENIU' : 'OFERTY DLA PREZESA'}</small><strong>${reason === 'dismissal' ? 'Kariera może trwać w innym klubie' : 'Możesz zmienić klub przed kolejnym sezonem'}</strong></span>
+        <em>${offers.length} oferty</em>
+      </div>
+      <p class="president-job-market-note">${reason === 'dismissal'
+        ? 'Nowy klub oznacza nowy budżet, zaufanie i infrastrukturę. Historia Twojej kariery pozostaje.'
+        : 'Zmiana klubu jest dobrowolna. Majątek obecnego klubu nie przechodzi razem z prezesem.'}</p>
+      <div class="president-job-offers">
+        ${offers.map(offer => `
+          <article class="president-job-offer ${offer.simulated ? 'simulated' : 'official'}">
+            <div><small>${offer.simulated ? 'SYMULACJA KARIERY' : 'KLUB Z BAZY ŁNP'}</small><strong>${presidentEscape(offer.club)}</strong><span>${presidentEscape(offer.competitionLabel)} · ${presidentEscape(offer.season)}</span></div>
+            <div class="president-job-offer-terms"><span>Budżet startowy</span><strong>${presidentModeCore.money(offer.terms?.budget || 0)}</strong></div>
+            <button type="button" data-president-job-offer="${presidentEscape(offer.id)}">Przyjmij ofertę</button>
+          </article>`).join('')}
+      </div>
+      ${reason === 'career' ? '<button type="button" class="president-decline-job-offers">Zostaję w obecnym klubie</button>' : ''}
+    </section>`;
+}
+
 function renderPresidentDismissal(lastRound = null) {
   const profile = state.presidentMode;
   const career = careerState();
@@ -567,13 +727,17 @@ function renderPresidentDismissal(lastRound = null) {
         <div><small>POPARCIE</small><strong>${board.confidence}/100</strong><span>${presidentEscape(job.reason || 'wyniki i kondycja klubu')}</span></div>
       </section>
       ${presidentCareerHistoryHtml(profile)}
+      ${presidentJobOffersHtml(profile, career, 'dismissal')}
       <div class="president-dismissal-actions">
-        <p>W kolejnym etapie kariery będzie można szukać pracy w innym klubie. Na razie możesz zakończyć tę karierę.</p>
+        <p>Możesz przyjąć ofertę i rozpocząć kolejny sezon w innym klubie albo zakończyć karierę.</p>
         <button type="button" class="president-end-career">Zakończ karierę</button>
       </div>
       <small class="president-disclaimer">Zwolnienie i kryteria oceny są mechaniką gry, nie informacją o realnych władzach ani sytuacji klubu.</small>
     </div>`;
   panel.classList.remove('hidden');
+  panel.querySelectorAll('[data-president-job-offer]').forEach(button => {
+    button.addEventListener('click', () => acceptPresidentJobOffer(button.dataset.presidentJobOffer));
+  });
   panel.querySelector('.president-end-career')?.addEventListener('click', finishPresidentCareer);
   if (el('status')) el('status').textContent = `Kariera prezesa · zwolnienie po kolejce ${career.roundIndex}`;
   window.scrollTo({ top:0, behavior:'smooth' });
@@ -699,7 +863,7 @@ function presidentCareerHistoryHtml(profile) {
         ${seasons.map(item => {
           const verdict = presidentModeCore.seasonVerdict({ position:item.position, target:item.target });
           return `<div class="president-career-history-row">
-            <span><strong>Sezon ${item.careerYear} · ${presidentEscape(item.season)}</strong><small>${presidentEscape(item.competitionLabel || 'A klasa Myślenice')} · ${item.simulated ? 'symulacja kariery' : 'baza ŁNP'}${item.movement?.code && item.movement.code !== 'stay' ? ' · ' + presidentEscape(presidentModeCore.competitionMovementLabel(item.movement)) : ''}</small></span>
+            <span><strong>Sezon ${item.careerYear} · ${presidentEscape(item.season)} · ${presidentEscape(item.club || '')}</strong><small>${presidentEscape(item.competitionLabel || 'A klasa Myślenice')} · ${item.simulated ? 'symulacja kariery' : 'baza ŁNP'}${item.movement?.code && item.movement.code !== 'stay' ? ' · ' + presidentEscape(presidentModeCore.competitionMovementLabel(item.movement)) : ''}</small></span>
             <span><b>${item.position}.</b><small>${item.points} pkt · ${item.wins}-${item.draws}-${item.losses}</small></span>
             <span class="president-history-verdict ${verdict.tone}">${verdict.icon} ${presidentEscape(verdict.label)}</span>
           </div>`;
@@ -1063,6 +1227,8 @@ function renderPresidentOffseason() {
   const nextPlan = presidentNextSeasonPlan(career);
   const needs = presidentOffseasonNeeds(profile, career);
   const chosen = presidentModeCore.offseasonPlanById(offseason?.planId);
+  const careerOffersEligible = Number(profile.seasonsCompleted || 0) >= 2;
+  const careerOffersDeclined = Boolean(profile.jobMarket?.declined);
   const nextSource = nextPlan.simulated
     ? `Kolejny sezon: ${nextPlan.competitionLabel}. Liga będzie symulacją kariery; nie przypisujemy fikcyjnych rywali do danych ŁNP.`
     : `Kolejny sezon ${nextPlan.season}: ${nextPlan.competitionLabel} z bazą ŁNP dla ${nextPlan.club}.`;
@@ -1109,12 +1275,14 @@ function renderPresidentOffseason() {
         </div>
       </section>
 
+      ${careerOffersEligible && !careerOffersDeclined && !chosen ? presidentJobOffersHtml(profile, career, 'career') : ''}
+
       <div class="president-offseason-next-source ${nextPlan.simulated ? 'simulated' : 'official'}">
         <strong>${nextPlan.movement?.code === 'promotion' ? '⬆️ AWANS' : nextPlan.movement?.code === 'relegation' ? '⬇️ SPADEK' : nextPlan.simulated ? '🧪 Dalsza symulacja kariery' : '✅ Kolejny sezon z bazą ŁNP'}</strong>
         <span>${presidentEscape(nextSource)}</span>
       </div>
 
-      <section class="president-offseason-choice">
+      <section class="president-offseason-choice ${careerOffersEligible && !careerOffersDeclined && !chosen ? 'hidden' : ''}">
         <div class="president-offseason-choice-head">
           <span><small>DECYZJA LETNIA</small><strong>${chosen ? presidentEscape(chosen.label) : 'Wybierz priorytet na lato'}</strong></span>
           ${chosen ? '<em>✓ zatwierdzone</em>' : '<em>1 decyzja</em>'}
@@ -1158,6 +1326,10 @@ function renderPresidentOffseason() {
     </div>`;
 
   panel.classList.remove('hidden');
+  panel.querySelectorAll('[data-president-job-offer]').forEach(button => {
+    button.addEventListener('click', () => acceptPresidentJobOffer(button.dataset.presidentJobOffer));
+  });
+  panel.querySelector('.president-decline-job-offers')?.addEventListener('click', declinePresidentJobOffers);
   panel.querySelectorAll('[data-offseason-plan]').forEach(button => {
     button.addEventListener('click', () => applyPresidentOffseasonPlan(button.dataset.offseasonPlan));
   });
