@@ -39,6 +39,19 @@ _CLUB_VARIANTS = {
     "jordan zakliczyn": "Jordan Sum Zakliczyn",
     "lks jordan zakliczyn": "Jordan Sum Zakliczyn",
     "jordan sum zakliczyn": "Jordan Sum Zakliczyn",
+    "beskid tokarnia": "Beskid Tokarnia",
+    "dalin ii myslenice": "Dalin II Myślenice",
+    "dziecanovia dziekanowice": "Dziecanovia Dziekanowice",
+    "goscibia sulkowice": "Gościbia Sułkowice",
+    "grodzisko raciechowice": "Grodzisko Raciechowice",
+    "iskra brzaczowice": "Iskra Brzączowice",
+    "iskra glogoczow": "Iskra Głogoczów",
+    "karpaty siepraw": "Karpaty Siepraw",
+    "lks rudnik": "LKS Rudnik",
+    "lks trzebunia": "LKS Trzebunia",
+    "lubomir wisniowa": "Lubomir Wiśniowa",
+    "orzel nowa wies": "Orzeł Nowa Wieś",
+    "skalnik trzemesnia": "Skalnik Trzemeśnia",
 }
 
 

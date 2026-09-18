@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import unicodedata
 from typing import Any
 
 INDEX_NAME = "index.json"
@@ -13,6 +14,43 @@ DEFAULT_CHUNK_SIZE = 12000
 
 def _valid_club_name(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip()) and any(ch.isalpha() for ch in value)
+
+
+def _club_identity(value: str) -> str:
+    text = unicodedata.normalize("NFKD", value.strip().casefold())
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.replace("ł", "l")
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _preferred_club_name(names: list[str]) -> str:
+    def score(name: str) -> tuple[int, int, str]:
+        has_diacritics = any(ord(ch) > 127 for ch in name)
+        return (1 if name.isupper() else 0, 0 if has_diacritics else 1, name.casefold())
+    return min(names, key=score)
+
+
+def _canonicalize_clubs(raw_clubs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    grouped: dict[str, list[tuple[str, Any]]] = defaultdict(list)
+    for name, meta in raw_clubs.items():
+        if _valid_club_name(name):
+            grouped[_club_identity(name)].append((name, meta))
+
+    clubs: dict[str, Any] = {}
+    aliases: dict[str, str] = {}
+    for identity, variants in grouped.items():
+        preferred = _preferred_club_name([name for name, _ in variants])
+        merged: dict[str, Any] = {}
+        ordered = sorted(variants, key=lambda item: item[0] != preferred)
+        for name, meta in ordered:
+            aliases[identity] = preferred
+            if isinstance(meta, dict):
+                for key, value in meta.items():
+                    if value and not merged.get(key):
+                        merged[key] = value
+        clubs[preferred] = merged
+    return clubs, aliases
 
 
 def _season_sort_key(label: str | None) -> tuple[int, str]:
@@ -95,21 +133,21 @@ def write_question_store(
     for stale in out_dir.glob("*.json"):
         stale.unlink()
 
+    clean_clubs, club_aliases = _canonicalize_clubs(dict(payload.get("clubs") or {}))
+
     questions: list[dict[str, Any]] = []
     for raw_question in payload.get("questions") or []:
         question = dict(raw_question)
         if isinstance(question.get("clubs"), list):
-            question["clubs"] = [
-                name for name in question["clubs"]
-                if _valid_club_name(name)
-            ]
+            canonical: list[str] = []
+            for name in question["clubs"]:
+                if not _valid_club_name(name):
+                    continue
+                preferred = club_aliases.get(_club_identity(name), name)
+                if preferred not in canonical:
+                    canonical.append(preferred)
+            question["clubs"] = canonical
         questions.append(question)
-
-    clean_clubs = {
-        name: meta
-        for name, meta in dict(payload.get("clubs") or {}).items()
-        if _valid_club_name(name)
-    }
 
     groups: dict[str | None, list[dict[str, Any]]] = defaultdict(list)
     for question in questions:

@@ -82,3 +82,38 @@ def test_question_store_removes_numeric_club_metadata(tmp_path):
     meta = json.loads(index.read_text(encoding="utf-8"))
     assert "12" not in meta["clubs"]
     assert "4" not in meta["clubs"]
+
+
+def test_question_store_merges_case_only_club_duplicates(tmp_path):
+    payload = {
+        "version": 1,
+        "count": 1,
+        "clubs": {
+            "CLAVIA ŚWIĄTNIKI GÓRNE": {
+                "crest": None,
+                "crest_remote_url": "https://example.test/clavia.png",
+            },
+            "Clavia Świątniki Górne": {
+                "crest": "assets/crests/clavia.png",
+                "crest_remote_url": None,
+            },
+        },
+        "questions": [
+            {
+                "id": "q1",
+                "season": "2025/26",
+                "type": "match_score",
+                "question": "Test",
+                "clubs": ["CLAVIA ŚWIĄTNIKI GÓRNE", "Clavia Świątniki Górne"],
+            }
+        ],
+    }
+
+    index = write_question_store(payload, tmp_path / "questions")
+    loaded = load_question_store(index)
+
+    assert set(loaded["clubs"]) == {"Clavia Świątniki Górne"}
+    meta = loaded["clubs"]["Clavia Świątniki Górne"]
+    assert meta["crest"] == "assets/crests/clavia.png"
+    assert meta["crest_remote_url"] == "https://example.test/clavia.png"
+    assert loaded["questions"][0]["clubs"] == ["Clavia Świątniki Górne"]
