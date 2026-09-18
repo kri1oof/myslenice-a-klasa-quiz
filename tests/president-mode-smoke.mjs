@@ -543,7 +543,7 @@ assert.match(runtime, /OKNO KADROWE/);
 assert.match(runtime, /data-transfer-player/);
 assert.match(runtime, /fikcyjną mechaniką tej kariery/);
 assert.match(runtime, /Wzmocnienie kariery/);
-assert.match(runtime, /alternatywną historię tej kariery/);
+assert.match(runtime, /alternatywnej warstwy kariery/);
 assert.match(runtime, /Zamknij okno transferowe/);
 assert.match(runtime, /Przejdź do planowania sezonu/);
 assert.match(lifecycle, /myslenice-president-career-v1/);
