@@ -1,5 +1,7 @@
 const smartQuestionEngine = globalThis.SmartQuestionEngineCore || null;
+const adaptiveDifficultyCore = globalThis.AdaptiveDifficultyCore || null;
 const SMART_QUESTION_HISTORY_KEY = 'myslenice-smart-question-history-v1';
+const ADAPTIVE_DIFFICULTY_PROFILE_KEY = 'myslenice-adaptive-difficulty-v1';
 
 const state = {
   all: [],
@@ -17,6 +19,11 @@ const state = {
   loadedQuestionFiles: new Set(),
   loadingQuestionFiles: new Map(),
   smartQuestionHistory: [],
+  adaptiveEnabled:false,
+  adaptiveDifficulty:null,
+  adaptiveCandidates:[],
+  adaptiveUsedIds:new Set(),
+  adaptiveProfileRating:null,
 };
 
 const el = (id) => document.getElementById(id);
@@ -53,6 +60,162 @@ function rememberSmartQuestion(question) {
 }
 
 state.smartQuestionHistory = loadSmartQuestionHistory();
+
+function loadAdaptiveDifficultyProfile() {
+  if (!adaptiveDifficultyCore) return null;
+  try {
+    const raw = window.localStorage?.getItem(ADAPTIVE_DIFFICULTY_PROFILE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const rating = Number(parsed?.rating);
+    return Number.isFinite(rating)
+      ? adaptiveDifficultyCore.normalizedDifficulty(rating)
+      : adaptiveDifficultyCore.DEFAULT_RATING;
+  } catch (_error) {
+    return adaptiveDifficultyCore.DEFAULT_RATING;
+  }
+}
+
+function saveAdaptiveDifficultyProfile() {
+  if (!adaptiveDifficultyCore || !state.adaptiveDifficulty) return;
+  try {
+    window.localStorage?.setItem(
+      ADAPTIVE_DIFFICULTY_PROFILE_KEY,
+      JSON.stringify({ rating:Number(state.adaptiveDifficulty.rating || adaptiveDifficultyCore.DEFAULT_RATING) }),
+    );
+  } catch (_error) {
+    // Storage is optional; adaptive difficulty still works for the current game.
+  }
+}
+
+state.adaptiveProfileRating = loadAdaptiveDifficultyProfile();
+
+function automaticDifficultySelected() {
+  return el('difficulty')?.value === 'all';
+}
+
+function resetAdaptiveDifficulty(enabled = automaticDifficultySelected()) {
+  state.adaptiveEnabled = Boolean(enabled && adaptiveDifficultyCore);
+  state.adaptiveDifficulty = state.adaptiveEnabled
+    ? adaptiveDifficultyCore.initialState({ rating:state.adaptiveProfileRating })
+    : null;
+  state.adaptiveCandidates = [];
+  state.adaptiveUsedIds = new Set();
+}
+
+function adaptiveProgress(index = state.index, total = state.pool?.length || 0) {
+  if (total <= 1) return 0;
+  return Math.max(0, Math.min(1, Number(index || 0) / Math.max(1, total - 1)));
+}
+
+function adaptiveTarget(index = state.index, total = state.pool?.length || 0) {
+  if (!state.adaptiveEnabled || !adaptiveDifficultyCore) return null;
+  return adaptiveDifficultyCore.recommendedDifficulty(state.adaptiveDifficulty, {
+    progress:adaptiveProgress(index, total),
+  });
+}
+
+function smartPick(values, count, options = {}) {
+  const candidates = (Array.isArray(values) ? values : []).filter(Boolean);
+  if (!count || !candidates.length) return [];
+  if (!smartQuestionEngine) return shuffle(candidates).slice(0, count);
+  return smartQuestionEngine.buildQuestionPool(candidates, count, {
+    history:state.smartQuestionHistory,
+    random:Math.random,
+    difficultyTarget:Number.isFinite(Number(options.difficultyTarget))
+      ? Number(options.difficultyTarget)
+      : undefined,
+  });
+}
+
+function configureAdaptiveDynamicPool(values, count) {
+  resetAdaptiveDifficulty(true);
+  state.adaptiveCandidates = (Array.isArray(values) ? values : []).filter(Boolean);
+  state.adaptiveUsedIds = new Set();
+  state.pool = Array(Math.max(0, Math.min(Number(count || 0), state.adaptiveCandidates.length))).fill(null);
+}
+
+function configureAdaptiveStaticPool(pool, enabled = automaticDifficultySelected()) {
+  resetAdaptiveDifficulty(enabled);
+  state.pool = Array.isArray(pool) ? pool : [];
+}
+
+function adaptiveQuestionGroup(question) {
+  if (question?.special?.kind) return 'special:' + question.special.kind;
+  if (question?.gameMeta?.phase) return 'phase:' + question.gameMeta.phase;
+  return 'general';
+}
+
+function swapAdaptiveQuestionSlots(index, selectedIndex) {
+  if (index === selectedIndex) return;
+  const current = state.pool[index];
+  const selected = state.pool[selectedIndex];
+  if (current?.gameMeta && selected?.gameMeta) {
+    const currentMeta = current.gameMeta;
+    const selectedMeta = selected.gameMeta;
+    state.pool[index] = { ...selected, gameMeta:currentMeta };
+    state.pool[selectedIndex] = { ...current, gameMeta:selectedMeta };
+    return;
+  }
+  [state.pool[index], state.pool[selectedIndex]] = [state.pool[selectedIndex], state.pool[index]];
+}
+
+function ensureAdaptiveQuestion(index) {
+  if (!state.adaptiveEnabled || !adaptiveDifficultyCore) return state.pool[index] || null;
+  const target = adaptiveTarget(index, state.pool.length);
+
+  if (state.adaptiveCandidates.length && !state.pool[index]) {
+    const remaining = state.adaptiveCandidates.filter(q =>
+      q && !state.adaptiveUsedIds.has(String(q.id || ''))
+    );
+    const picked = smartPick(remaining, 1, { difficultyTarget:target })[0] || null;
+    if (!picked) return null;
+    state.adaptiveUsedIds.add(String(picked.id || ''));
+    state.pool[index] = picked;
+    return picked;
+  }
+
+  const current = state.pool[index];
+  if (!current || current?.special?.kind) return current || null;
+  const group = adaptiveQuestionGroup(current);
+  const candidates = state.pool
+    .slice(index)
+    .map((question, offset) => ({ question, absoluteIndex:index + offset }))
+    .filter(item =>
+      item.question &&
+      !item.question?.special?.kind &&
+      adaptiveQuestionGroup(item.question) === group
+    );
+  if (candidates.length <= 1) return current;
+
+  const picked = smartPick(candidates.map(item => item.question), 1, { difficultyTarget:target })[0];
+  const selected = candidates.find(item => item.question === picked);
+  if (selected && selected.absoluteIndex !== index) {
+    swapAdaptiveQuestionSlots(index, selected.absoluteIndex);
+  }
+  return state.pool[index] || null;
+}
+
+function recordAdaptiveAnswer(question, correct) {
+  if (!state.adaptiveEnabled || !adaptiveDifficultyCore || !question) return;
+  state.adaptiveDifficulty = adaptiveDifficultyCore.recordAnswer(state.adaptiveDifficulty, {
+    correct,
+    difficulty:Number(question.difficulty || 3),
+    progress:adaptiveProgress(state.index, state.pool.length),
+  });
+  state.adaptiveProfileRating = Number(state.adaptiveDifficulty.rating || adaptiveDifficultyCore.DEFAULT_RATING);
+  saveAdaptiveDifficultyProfile();
+}
+
+function adaptiveDifficultyFeedbackText() {
+  if (!state.adaptiveEnabled || !adaptiveDifficultyCore || !state.adaptiveDifficulty) return '';
+  const target = adaptiveDifficultyCore.recommendedLevel(state.adaptiveDifficulty, {
+    progress:adaptiveProgress(state.index + 1, state.pool.length),
+  });
+  const rating = Number(state.adaptiveDifficulty.rating || 0).toFixed(1);
+  const trend = adaptiveDifficultyCore.trend(state.adaptiveDifficulty);
+  const arrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
+  return `🎯 Auto: forma ${rating}/5 ${arrow} · następny cel: poziom ${target}/5`;
+}
 
 function shuffle(values) {
   const copy = [...values];
@@ -604,12 +767,12 @@ function startGame() {
   );
   state.availableCount = matching.length;
   const requestedCount = getRequestedQuestionCount(matching.length);
-  state.pool = smartQuestionEngine
-    ? smartQuestionEngine.buildQuestionPool(matching, requestedCount, {
-        history:state.smartQuestionHistory,
-        random:Math.random,
-      })
-    : shuffle(matching).slice(0, requestedCount);
+  if (difficulty === 'all' && adaptiveDifficultyCore) {
+    configureAdaptiveDynamicPool(matching, requestedCount);
+  } else {
+    resetAdaptiveDifficulty(false);
+    state.pool = smartPick(matching, requestedCount);
+  }
   state.index = 0;
   state.correct = 0;
   state.answered = 0;
@@ -645,14 +808,22 @@ function showQuestion() {
     finishGame();
     return;
   }
-  const q = state.pool[state.index];
+  let q = state.pool[state.index];
+  if (state.adaptiveEnabled) q = ensureAdaptiveQuestion(state.index);
+  if (!q) {
+    state.pool = state.pool.slice(0, state.index);
+    finishGame();
+    return;
+  }
   state.current = q;
   rememberSmartQuestion(q);
   renderQuestionClubs(q);
   const [styleName] = styleForQuestion(q);
   el('question-number').textContent = `Pytanie ${state.index + 1} z ${state.pool.length}`;
   el('season').textContent = q.season || 'bez sezonu';
-  el('difficulty-label').textContent = `Poziom ${q.difficulty}/5`;
+  el('difficulty-label').textContent = state.adaptiveEnabled
+    ? `Auto · pytanie ${q.difficulty}/5`
+    : `Poziom ${q.difficulty}/5`;
   el('question-style').textContent = styleName;
   el('question-type-label').textContent = labelType(q.type);
   el('question').textContent = styledQuestionText(q);
@@ -688,12 +859,20 @@ function answer(button, option) {
     state.streak = 0;
     button.classList.add('wrong');
   }
+  recordAdaptiveAnswer(q, isCorrect);
   updateScore();
   const feedback = el('feedback');
   feedback.innerHTML = '';
   const factual = document.createElement('div');
   factual.textContent = q.explanation || `Poprawna odpowiedź: ${q.answer}`;
   feedback.appendChild(factual);
+  const adaptiveText = adaptiveDifficultyFeedbackText();
+  if (adaptiveText) {
+    const adaptiveLine = document.createElement('div');
+    adaptiveLine.className = 'adaptive-difficulty-line';
+    adaptiveLine.textContent = adaptiveText;
+    feedback.appendChild(adaptiveLine);
+  }
   if (humorEnabled()) {
     const joke = document.createElement('div');
     joke.className = 'humor-line';

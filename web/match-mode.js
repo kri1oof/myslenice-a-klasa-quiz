@@ -36,7 +36,11 @@ function unusedQuestions(values, used) {
 }
 
 function takeBalanced(values, count, used, predicate = () => true) {
-  const candidates = shuffle(unusedQuestions(values, used).filter(predicate));
+  const raw = unusedQuestions(values, used).filter(predicate);
+  const sampleSize = Math.min(raw.length, Math.max(count * 8, 24));
+  const candidates = smartPick(raw, sampleSize, {
+    difficultyTarget:state.adaptiveEnabled ? adaptiveTarget(state.index || 0, 11) : undefined,
+  });
   const chosen = [];
   const seenCategories = new Set();
 
@@ -326,9 +330,10 @@ startGame = function matchStartGame() {
 
   const selectedClub = el('scope-mode').value === 'club' ? el('club').value : null;
   const base = baseFilteredQuestions();
+  resetAdaptiveDifficulty(true);
   const pool = buildMatch90(base);
   state.availableCount = base.length;
-  state.pool = pool;
+  configureAdaptiveStaticPool(pool, true);
   state.index = 0;
   state.correct = 0;
   state.answered = 0;

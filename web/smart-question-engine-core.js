@@ -125,6 +125,7 @@
       category:categoryForType(question?.type),
       type:String(question?.type || ''),
       season:String(question?.season || ''),
+      difficulty:Number(question?.difficulty || 3),
       subjects:subjectKeys(question),
     };
   }
@@ -139,6 +140,7 @@
         category:String(item.category || ''),
         type:String(item.type || ''),
         season:String(item.season || ''),
+        difficulty:Number(item.difficulty || 3),
         subjects:Array.isArray(item.subjects) ? item.subjects.map(String) : [],
       }));
   }
@@ -174,6 +176,14 @@
 
     const currentCategoryCount = Number(context.categoryCounts.get(entry.category) || 0);
     score += Math.max(0, context.minCategoryCount + 1 - currentCategoryCount) * 13;
+
+    if (Number.isFinite(Number(context.difficultyTarget))) {
+      const target = Number(context.difficultyTarget);
+      const distance = Math.abs(Number(entry.difficulty || 3) - target);
+      score += 42 - distance * 30;
+      if (distance <= .35) score += 10;
+      else if (distance > 1.5) score -= 22;
+    }
 
     return score;
   }
@@ -216,6 +226,9 @@
           recentCategories,
           categoryCounts,
           minCategoryCount,
+          difficultyTarget:Number.isFinite(Number(options.difficultyTarget))
+            ? Number(options.difficultyTarget)
+            : null,
         });
         if (score > bestScore) {
           bestScore = score;

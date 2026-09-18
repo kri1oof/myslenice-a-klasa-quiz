@@ -64,3 +64,15 @@ button:hover { transform: translateY(-1px); }
 .humor-line { margin-top: 9px; padding-top: 9px; border-top: 1px dashed #d1d5db; font-style: italic; color: #4b5563; }
 .streak-line { margin-top: 10px; font-weight: 800; }
 .result-humor { margin: -6px 0 18px; padding: 12px 14px; border-radius: 12px; background: #f9fafb; font-weight: 700; }
+
+
+.adaptive-difficulty-line {
+  margin-top: 8px;
+  padding: 7px 9px;
+  border: 1px solid #c7d2fe;
+  border-radius: 9px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: .72rem;
+  font-weight: 800;
+}
