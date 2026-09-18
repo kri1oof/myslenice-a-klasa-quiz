@@ -230,11 +230,20 @@ function ensureMenuButton() {
   kickoff.parentNode.insertBefore(button, kickoff);
 }
 
-startGame = function frontGatedStartGame() {
-  // app.js calls startGame() automatically after loading questions. Until a
-  // player deliberately chooses a mode, that call only reveals the title page.
+startGame = async function frontGatedStartGame() {
+  // app.js calls startGame() automatically after loading the small question index.
+  // Until a player deliberately chooses a mode, no large question shard is fetched.
   if (!frontModeChosen) {
     showLanding();
+    return;
+  }
+  try {
+    await ensureQuestionsLoadedForSelection();
+  } catch (error) {
+    if (el('status')) {
+      el('status').textContent = `Nie udało się wczytać pytań dla wybranego zakresu: ${error.message}`;
+      el('status').classList.remove('hidden');
+    }
     return;
   }
   frontGameStarted = true;
