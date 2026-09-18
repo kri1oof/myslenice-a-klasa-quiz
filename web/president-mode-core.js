@@ -628,11 +628,12 @@
 
   function canSignTransfer(profile, candidate) {
     if (!profile?.offseason || profile.offseason.transferWindowClosed || !candidate?.id) return false;
+    const candidateKey = candidate.playerKey || candidate.id;
     const signingsThisWindow = (profile.transferHistory || []).filter(
       item => Number(item.careerYear) === Number(profile.offseason.careerYear)
     ).length;
     if (signingsThisWindow >= 2) return false;
-    if ((profile.transferRoster || []).some(item => item.id === candidate.id)) return false;
+    if ((profile.transferRoster || []).some(item => (item.playerKey || item.id) === candidateKey)) return false;
     const terms = transferGameTerms(candidate);
     return Number(profile.budget || 0) >= terms.fee;
   }
@@ -642,6 +643,7 @@
     const terms = transferGameTerms(candidate);
     const entry = {
       id:candidate.id,
+      playerKey:candidate.playerKey || candidate.id,
       player:candidate.player || 'Zawodnik',
       sourceClub:candidate.club || null,
       sourceSeason:candidate.season || null,
