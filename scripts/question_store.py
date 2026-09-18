@@ -11,6 +11,10 @@ INDEX_NAME = "index.json"
 DEFAULT_CHUNK_SIZE = 12000
 
 
+def _valid_club_name(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and any(ch.isalpha() for ch in value)
+
+
 def _season_sort_key(label: str | None) -> tuple[int, str]:
     if not label:
         return (999999, "")
@@ -69,7 +73,7 @@ def load_question_store(path: str | Path) -> dict[str, Any]:
     return {
         "version": int(payload.get("version") or 1),
         "count": len(questions),
-        "clubs": dict(payload.get("clubs") or {}),
+        "clubs": clean_clubs,
         "questions": questions,
     }
 
@@ -91,7 +95,22 @@ def write_question_store(
     for stale in out_dir.glob("*.json"):
         stale.unlink()
 
-    questions = list(payload.get("questions") or [])
+    questions: list[dict[str, Any]] = []
+    for raw_question in payload.get("questions") or []:
+        question = dict(raw_question)
+        if isinstance(question.get("clubs"), list):
+            question["clubs"] = [
+                name for name in question["clubs"]
+                if _valid_club_name(name)
+            ]
+        questions.append(question)
+
+    clean_clubs = {
+        name: meta
+        for name, meta in dict(payload.get("clubs") or {}).items()
+        if _valid_club_name(name)
+    }
+
     groups: dict[str | None, list[dict[str, Any]]] = defaultdict(list)
     for question in questions:
         groups[question.get("season")].append(question)
