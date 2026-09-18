@@ -68,6 +68,35 @@ def _mark_completed_seasons(conn) -> list[str]:
     return completed
 
 
+def _filter_conservative_historical_questions(conn, questions):
+    """Keep 2022/23 player questions strictly tied to positive official evidence.
+
+    ŁNP has official match protocols for the played fixtures in this season, so
+    positive facts such as club, appearance, scorer, card, lineup role or an
+    explicit substitution minute are usable.  We intentionally suppress question
+    families that infer facts from absence or turn substitution timestamps into
+    approximate played-minute totals.
+    """
+    row = conn.execute("SELECT id FROM seasons WHERE label='2022/23'").fetchone()
+    if not row:
+        return list(questions)
+    season_id = int(row[0])
+    blocked = {
+        "match_squad_absent",
+        "unused_substitute",
+        "player_not_in_club",
+        "player_season_for_club",
+        "player_season_minutes_over",
+        "compare_player_minutes",
+        "match_player_minutes",
+        "match_compare_player_minutes",
+    }
+    return [
+        q for q in questions
+        if q.season_id != season_id or q.question_type not in blocked
+    ]
+
+
 def merge_exports(existing_path: Path, lnp_path: Path, output_path: Path) -> tuple[int, int, int]:
     existing = json.loads(existing_path.read_text(encoding="utf-8"))
     incoming = json.loads(lnp_path.read_text(encoding="utf-8"))
@@ -138,7 +167,7 @@ def main() -> None:
         stats = import_file(conn, args.raw)
         completed_seasons = _mark_completed_seasons(conn)
         player_count = export_player_characters(conn, args.player_export, 0.80)
-        questions = generate_all(conn, 0.80)
+        questions = _filter_conservative_historical_questions(conn, generate_all(conn, 0.80))
         conn.execute("UPDATE question_bank SET enabled=0")
         saved = save_questions(conn, questions)
         exported = export_questions(conn, args.lnp_export, 0.80)
