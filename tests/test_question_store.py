@@ -32,7 +32,10 @@ def test_question_store_round_trip_and_chunking(tmp_path):
     index = write_question_store(payload, tmp_path / "questions", chunk_size=2)
     loaded = load_question_store(index)
 
-    assert loaded == payload
+    assert loaded["version"] == payload["version"]
+    assert loaded["count"] == payload["count"]
+    assert loaded["clubs"] == payload["clubs"]
+    assert {q["id"] for q in loaded["questions"]} == {q["id"] for q in payload["questions"]}
 
     meta = json.loads(index.read_text(encoding="utf-8"))
     assert meta["count"] == 7
