@@ -1082,7 +1082,7 @@ function skipPresidentSponsorContract() {
 }
 
 function presidentSponsorContractsHtml(profile) {
-  if (!profile?.offseason?.planId) return '';
+  if (!profile?.offseason?.planId || !profile.offseason.competitionReadinessResolved) return '';
   const resolved = Boolean(profile.offseason.sponsorDecisionResolved);
   const active = profile.contracts || [];
   const available = presidentModeCore.availableContractTemplates(profile);
@@ -1469,6 +1469,67 @@ function closePresidentTransferMarket() {
   return renderPresidentOffseason();
 }
 
+
+function resolvePresidentCompetitionReadiness(method) {
+  const resolved = presidentModeCore.resolveCompetitionReadiness(state.presidentMode, method);
+  if (!resolved.ok) return false;
+  state.presidentMode = resolved.profile;
+  return renderPresidentOffseason();
+}
+
+function presidentCompetitionReadinessHtml(profile) {
+  const offseason = profile?.offseason;
+  if (!offseason) return '';
+  const level = Number(offseason.competitionReadinessLevel ?? 1);
+  const current = presidentModeCore.competitionReadiness(profile, level);
+  const method = offseason.competitionReadinessMethod;
+  const resolved = Boolean(offseason.competitionReadinessResolved);
+  const competition = presidentModeCore.competitionByLevel(level);
+
+  if (resolved) {
+    const copy = method === 'temporary'
+      ? 'Wybrano rozwiązanie tymczasowe na ten sezon. Stan obiektu nie został trwale podniesiony, więc temat może wrócić w kolejnych latach.'
+      : method === 'upgrade'
+        ? 'Klub został trwale przygotowany do wymagań tego poziomu w mechanice kariery.'
+        : 'Klub już spełnia progi organizacyjne tej mechaniki gry.';
+    return `
+      <section class="president-readiness resolved ${method === 'temporary' ? 'temporary' : 'ready'}">
+        <div class="president-readiness-head">
+          <span><small>🏟️ GOTOWOŚĆ NA POZIOM LIGI</small><strong>${presidentEscape(competition.label)}</strong></span>
+          <em>✓ ${method === 'temporary' ? 'plan tymczasowy' : 'gotowy'}</em>
+        </div>
+        <p>${presidentEscape(copy)}</p>
+      </section>`;
+  }
+
+  return `
+    <section class="president-readiness warning">
+      <div class="president-readiness-head">
+        <span><small>🏟️ GOTOWOŚĆ NA POZIOM LIGI · MECHANIKA GRY</small><strong>Przed sezonem w: ${presidentEscape(competition.label)}</strong></span>
+        <em>wymaga decyzji</em>
+      </div>
+      <p class="president-readiness-note">To <strong>fikcyjne progi kariery</strong>, a nie regulamin licencyjny PZPN. Mają sprawić, że awans sportowy pociąga za sobą rozwój klubu.</p>
+      <div class="president-readiness-metrics">
+        <span><small>OBIEKT</small><strong>${current.current.facilities}/${current.requirements.facilities}</strong><em>brakuje ${current.gaps.facilities}</em></span>
+        <span><small>ORGANIZACJA</small><strong>${current.current.organization}/${current.requirements.organization}</strong><em>brakuje ${current.gaps.organization}</em></span>
+      </div>
+      <div class="president-readiness-options">
+        <button type="button" data-readiness-method="upgrade" ${Number(profile.budget || 0) >= current.upgradeCost ? '' : 'disabled'}>
+          <strong>🔨 Trwałe przygotowanie</strong>
+          <span>Podnosi obiekt i organizację do wymaganych progów.</span>
+          <small>Koszt: ${presidentModeCore.money(current.upgradeCost)}</small>
+          ${Number(profile.budget || 0) >= current.upgradeCost ? '' : '<em>Brak środków</em>'}
+        </button>
+        <button type="button" data-readiness-method="temporary" ${Number(profile.budget || 0) >= current.temporaryCost ? '' : 'disabled'}>
+          <strong>🧾 Rozwiązanie tymczasowe</strong>
+          <span>Tańszy plan na jeden sezon, bez trwałego podnoszenia infrastruktury.</span>
+          <small>Koszt: ${presidentModeCore.money(current.temporaryCost)}</small>
+          ${Number(profile.budget || 0) >= current.temporaryCost ? '' : '<em>Brak środków</em>'}
+        </button>
+      </div>
+    </section>`;
+}
+
 function applyPresidentOffseasonPlan(planId) {
   const applied = presidentModeCore.applyOffseasonPlan(state.presidentMode, planId);
   if (!applied.ok) return false;
@@ -1496,6 +1557,7 @@ function renderPresidentOffseason() {
   const chosen = presidentModeCore.offseasonPlanById(offseason?.planId);
   const careerOffersEligible = Number(profile.seasonsCompleted || 0) >= 2;
   const careerOffersDeclined = Boolean(profile.jobMarket?.declined);
+  const waitingOnCareerOffers = careerOffersEligible && !careerOffersDeclined && !chosen;
   const nextSource = nextPlan.simulated
     ? `Kolejny sezon: ${nextPlan.competitionLabel}. Liga będzie symulacją kariery; nie przypisujemy fikcyjnych rywali do danych ŁNP.`
     : `Kolejny sezon ${nextPlan.season}: ${nextPlan.competitionLabel} z bazą ŁNP dla ${nextPlan.club}.`;
@@ -1542,14 +1604,16 @@ function renderPresidentOffseason() {
         </div>
       </section>
 
-      ${careerOffersEligible && !careerOffersDeclined && !chosen ? presidentJobOffersHtml(profile, career, 'career') : ''}
+      ${waitingOnCareerOffers ? presidentJobOffersHtml(profile, career, 'career') : ''}
 
       <div class="president-offseason-next-source ${nextPlan.simulated ? 'simulated' : 'official'}">
         <strong>${nextPlan.movement?.code === 'promotion' ? '⬆️ AWANS' : nextPlan.movement?.code === 'relegation' ? '⬇️ SPADEK' : nextPlan.simulated ? '🧪 Dalsza symulacja kariery' : '✅ Kolejny sezon z bazą ŁNP'}</strong>
         <span>${presidentEscape(nextSource)}</span>
       </div>
 
-      <section class="president-offseason-choice ${careerOffersEligible && !careerOffersDeclined && !chosen ? 'hidden' : ''}">
+      ${!waitingOnCareerOffers ? presidentCompetitionReadinessHtml(profile) : ''}
+
+      <section class="president-offseason-choice ${waitingOnCareerOffers || !offseason?.competitionReadinessResolved ? 'hidden' : ''}">
         <div class="president-offseason-choice-head">
           <span><small>DECYZJA LETNIA</small><strong>${chosen ? presidentEscape(chosen.label) : 'Wybierz priorytet na lato'}</strong></span>
           ${chosen ? '<em>✓ zatwierdzone</em>' : '<em>1 decyzja</em>'}
@@ -1576,7 +1640,7 @@ function renderPresidentOffseason() {
         `}
       </section>
 
-      ${chosen ? presidentSponsorContractsHtml(profile) : ''}
+      ${chosen && offseason?.competitionReadinessResolved ? presidentSponsorContractsHtml(profile) : ''}
 
       ${chosen && profile.offseason?.sponsorDecisionResolved ? presidentAcademyIntakeHtml(profile) : ''}
 
@@ -1584,7 +1648,7 @@ function renderPresidentOffseason() {
 
       ${chosen && profile.offseason?.departureResolved ? presidentTransferMarketHtml(profile, career) : ''}
 
-      ${chosen && profile.offseason?.sponsorDecisionResolved && profile.offseason?.academyDecisionResolved && profile.offseason?.transferWindowClosed ? `
+      ${chosen && profile.offseason?.competitionReadinessResolved && profile.offseason?.sponsorDecisionResolved && profile.offseason?.academyDecisionResolved && profile.offseason?.transferWindowClosed ? `
         <section class="president-offseason-continue">
           <span><small>NASTĘPNY KROK</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextPlan.season)} · ${presidentEscape(nextPlan.competitionLabel)}</strong></span>
           <p>Stan klubu, decyzja letnia i ruchy kadrowe przechodzą dalej. Teraz zarząd ustali cel oraz strategię na nowy rok.</p>
@@ -1601,6 +1665,9 @@ function renderPresidentOffseason() {
     button.addEventListener('click', () => acceptPresidentJobOffer(button.dataset.presidentJobOffer));
   });
   panel.querySelector('.president-decline-job-offers')?.addEventListener('click', declinePresidentJobOffers);
+  panel.querySelectorAll('[data-readiness-method]').forEach(button => {
+    button.addEventListener('click', () => resolvePresidentCompetitionReadiness(button.dataset.readinessMethod));
+  });
   panel.querySelectorAll('[data-offseason-plan]').forEach(button => {
     button.addEventListener('click', () => applyPresidentOffseasonPlan(button.dataset.offseasonPlan));
   });
@@ -1638,6 +1705,7 @@ function startNextPresidentSeason() {
   if (!begun.ok) return false;
   state.presidentMode = begun.profile;
   if (
+    !state.presidentMode.offseason?.competitionReadinessResolved ||
     !state.presidentMode.offseason?.planId ||
     !state.presidentMode.offseason?.sponsorDecisionResolved ||
     !state.presidentMode.offseason?.academyDecisionResolved ||
