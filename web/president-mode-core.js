@@ -367,7 +367,8 @@
     const areas = normalizedAreas(profile?.areas);
     if (Number(profile?.budget || 0) < 1500) warnings.push('Płynność finansowa jest na niebezpiecznie niskim poziomie.');
     const weakestTrust = TRUST_KEYS.reduce((a, b) => trust[a] <= trust[b] ? a : b);
-    if (trust[weakestTrust] < 30) warnings.push('Kryzys zaufania: ' + weakestTrust + '.');
+    const trustLabels = { players:'szatnia', coach:'trener', supporters:'kibice', sponsors:'sponsorzy' };
+    if (trust[weakestTrust] < 30) warnings.push('Kryzys zaufania: ' + (trustLabels[weakestTrust] || weakestTrust) + '.');
     const weakestArea = AREA_KEYS.reduce((a, b) => areas[a] <= areas[b] ? a : b);
     if (areas[weakestArea] < 30) warnings.push('Obszar wymagający pilnej reakcji: ' + (UPGRADE_META[weakestArea]?.label || weakestArea) + '.');
     if (boardConfidence(profile, context) < 30) warnings.push('Zarząd oczekuje szybkiej poprawy wyników lub kondycji klubu.');
