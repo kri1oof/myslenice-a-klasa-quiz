@@ -1754,10 +1754,7 @@
     // A player signed/promoted in the just-finished offseason has not spent a full season
     // in this alternate career yet, so do not award development immediately.
     if (joinedYear >= currentCareerYear) {
-      return {
-        player:{ ...player, careerAge:age, careerSeasons:Number(player?.careerSeasons || 0), lastDevelopmentDelta:0 },
-        change:null,
-      };
+      return { player:{ ...player }, change:null };
     }
 
     const before = clamp(Number(player?.ratings?.game_rating || 60), 35, 95);
