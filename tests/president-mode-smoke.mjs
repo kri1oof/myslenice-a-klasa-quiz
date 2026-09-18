@@ -73,6 +73,42 @@ assert.equal(applied.profile.history[0].category, 'finance');
 assert.equal(applied.profile.usedIds.includes('shirt_sponsor'), true);
 assert.notEqual(core.pickDecision(applied.profile, 1)?.id, 'shirt_sponsor', 'fresh decisions should be preferred');
 
+const infrastructureCrisis = {
+  ...initial,
+  budget:12000,
+  areas:{ squad:85, staff:85, academy:85, facilities:12, organization:85, community:85 },
+  trust:{ players:70, coach:70, supporters:70, sponsors:70 },
+  usedIds:[],
+  history:[],
+  order:core.DECISIONS.map(item => item.id),
+};
+const infrastructureCase = core.pickDecision(infrastructureCrisis, 4);
+assert.equal(infrastructureCase.category, 'facilities', 'weak facilities should prioritize infrastructure cases');
+assert.match(core.decisionTrigger(infrastructureCrisis, infrastructureCase).label, /obiekt/i);
+
+const cashCrisis = {
+  ...initial,
+  budget:800,
+  areas:{ squad:80, staff:80, academy:80, facilities:80, organization:80, community:80 },
+  trust:{ players:60, coach:60, supporters:60, sponsors:50 },
+  usedIds:[],
+  history:[],
+  order:core.DECISIONS.map(item => item.id),
+};
+assert.equal(core.pickDecision(cashCrisis, 4).category, 'finance', 'low cash should prioritize finance cases');
+
+const dressingRoomCrisis = {
+  ...initial,
+  budget:12000,
+  areas:{ squad:80, staff:80, academy:80, facilities:80, organization:80, community:80 },
+  trust:{ players:10, coach:70, supporters:70, sponsors:70 },
+  usedIds:[],
+  history:[],
+  order:core.DECISIONS.map(item => item.id),
+};
+assert.equal(core.pickDecision(dressingRoomCrisis, 4).id, 'squad_integration');
+assert.match(core.decisionTrigger(dressingRoomCrisis, core.decisionById('squad_integration')).label, /szatni/i);
+
 const broke = { ...initial, budget:100 };
 const expensive = core.decisionById('pitch_renovation');
 assert.equal(core.canChoose(broke, expensive.choices[0]), false);
@@ -333,6 +369,8 @@ assert.match(runtime, /seasonCareerCore\.simulateFixture/);
 assert.match(runtime, /bez pytań i decyzji boiskowych/);
 assert.match(runtime, /MECZ W TLE/);
 assert.match(runtime, /renderPresidentStrategySelection/);
+assert.match(runtime, /decisionTrigger/);
+assert.match(runtime, /DLACZEGO TERAZ/);
 assert.match(runtime, /presidentInvestmentsHtml/);
 assert.match(runtime, /presidentSquadProfiles/);
 assert.match(runtime, /POPARCIE ZARZĄDU/);
