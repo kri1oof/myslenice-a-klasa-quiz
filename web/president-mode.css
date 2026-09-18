@@ -437,6 +437,12 @@
 .president-squad-player span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .president-squad-player strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .president-squad-player small { color: #64748b; font-size: .7rem; }
+.president-squad-player.president-career-signing {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+.president-squad-player.president-career-signing small { color: #166534; }
+
 .president-squad-player b {
   flex: 0 0 auto;
   min-width: 34px;
