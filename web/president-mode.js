@@ -543,6 +543,141 @@ function renderPresidentRoundOutcome(context = {}) {
 }
 
 
+
+function presidentBuildJobOffers(profile, career, reason = 'career') {
+  if (!profile || !career) return [];
+  const key = `${profile.careerYear}|${career.club}|${career.season}|${reason}`;
+  if (profile.jobMarket?.key === key && Array.isArray(profile.jobMarket.offers)) {
+    return profile.jobMarket.offers;
+  }
+
+  const nextSeason = presidentNextSeasonLabel(career.season);
+  const currentLevel = Number(career.competitionLevel ?? 1);
+  const offers = [];
+  const addOffer = (club, level, simulated, sourceSeason = null, kind = 'same') => {
+    if (!club || club === career.club || offers.some(item => item.club === club)) return;
+    const competition = presidentModeCore.competitionByLevel(level);
+    const offer = {
+      id:`${reason}|${nextSeason}|${level}|${club}`,
+      club,
+      fromClub:career.club,
+      season:nextSeason,
+      competitionLevel:competition.level,
+      competitionLabel:competition.label,
+      simulated:Boolean(simulated),
+      sourceSeason,
+      reason,
+      kind,
+    };
+    offer.terms = presidentModeCore.jobOfferTerms(offer);
+    offers.push(offer);
+  };
+
+  if (currentLevel === 1 && Array.isArray(state.seasons) && state.seasons.includes(nextSeason)) {
+    const officialClubs = seasonCareerCore.clubsForSeason(
+      state.playerCharacters || [],
+      state.all || [],
+      nextSeason,
+    ).filter(club =>
+      club !== career.club &&
+      (state.playerCharacters || []).some(player => player?.season === nextSeason && player?.club === club)
+    );
+    const random = seasonCareerCore.seededRandom(`${key}|official-offers`);
+    officialClubs
+      .map(club => ({ club, sort:random() }))
+      .sort((a,b) => a.sort - b.sort)
+      .slice(0, reason === 'dismissal' ? 3 : 2)
+      .forEach(row => addOffer(row.club, 1, false, nextSeason, 'same'));
+  } else {
+    (career.clubs || [])
+      .filter(club => club !== career.club)
+      .slice(0, 2)
+      .forEach(club => addOffer(club, currentLevel, true, career.sourceSeason || null, 'same'));
+  }
+
+  if (reason === 'career' && Number(profile.seasonsCompleted || 0) >= 2 && currentLevel < 4) {
+    const higher = presidentModeCore.competitionByLevel(currentLevel + 1);
+    addOffer(`Nowy klub · ${higher.short}`, higher.level, true, career.sourceSeason || null, 'higher');
+  }
+  if (reason === 'dismissal' && offers.length < 3 && currentLevel > 0) {
+    const lower = presidentModeCore.competitionByLevel(currentLevel - 1);
+    addOffer(`Nowy klub · ${lower.short}`, lower.level, true, career.sourceSeason || null, 'lower');
+  }
+  while (offers.length < 3) {
+    const competition = presidentModeCore.competitionByLevel(currentLevel);
+    addOffer(`Nowy klub · ${competition.short} ${offers.length + 1}`, currentLevel, true, career.sourceSeason || null, 'same');
+  }
+
+  profile.jobMarket = { key, reason, season:nextSeason, offers, declined:false };
+  return offers;
+}
+
+function presidentPlanForJobOffer(previousCareer, offer) {
+  const nextSeason = offer.season || presidentNextSeasonLabel(previousCareer.season);
+  if (!offer.simulated && Number(offer.competitionLevel) === 1) {
+    const clubs = seasonCareerCore.clubsForSeason(
+      state.playerCharacters || [],
+      state.all || [],
+      nextSeason,
+    );
+    if (clubs.includes(offer.club)) {
+      return {
+        season:nextSeason,
+        club:offer.club,
+        clubs,
+        strengths:seasonCareerCore.strengthMap(state.playerCharacters || [], clubs, nextSeason),
+        simulated:false,
+        sourceSeason:nextSeason,
+        competitionLevel:1,
+        competitionLabel:presidentModeCore.competitionByLevel(1).label,
+        movement:null,
+      };
+    }
+  }
+  return presidentSimulatedCompetitionPlan(
+    {
+      ...previousCareer,
+      club:offer.club,
+      competitionLevel:Number(offer.competitionLevel ?? previousCareer.competitionLevel ?? 1),
+      competitionLabel:offer.competitionLabel,
+    },
+    nextSeason,
+    Number(offer.competitionLevel ?? previousCareer.competitionLevel ?? 1),
+  );
+}
+
+function acceptPresidentJobOffer(offerId) {
+  const profile = state.presidentMode;
+  const previousCareer = careerState();
+  const offer = profile?.jobMarket?.offers?.find(item => item.id === offerId);
+  if (!profile || !previousCareer || !offer) return false;
+
+  const accepted = presidentModeCore.acceptJobOffer(profile, offer);
+  if (!accepted.ok) return false;
+  const plan = presidentPlanForJobOffer(previousCareer, offer);
+  const nextCareer = presidentCareerFromPlan(plan);
+  state.presidentMode = presidentModeCore.prepareNextSeason(accepted.profile, nextCareer.rounds.length);
+  state.seasonCareer = nextCareer;
+
+  const from = el('season-from');
+  const to = el('season-to');
+  if (!plan.simulated && from?.querySelector(`option[value="${plan.season}"]`)) {
+    from.value = plan.season;
+    if (to) to.value = plan.season;
+  }
+
+  if (el('status')) {
+    el('status').textContent = `Kariera prezesa · nowy klub: ${offer.club} · ${offer.competitionLabel}`;
+  }
+  return renderPresidentStrategySelection();
+}
+
+function declinePresidentJobOffers() {
+  if (!state.presidentMode?.jobMarket) return false;
+  state.presidentMode.jobMarket.declined = true;
+  return renderPresidentOffseason();
+}
+
 function renderPresidentDismissal(lastRound = null) {
   const profile = state.presidentMode;
   const career = careerState();
