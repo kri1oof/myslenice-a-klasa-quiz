@@ -116,6 +116,33 @@ assert.match(core.money(12000), /12.*000.*zł/);
 assert.ok(core.boardConfidence(healthy, { position:2, teamCount:14 }) > core.boardConfidence(struggling, { position:12, teamCount:14 }));
 assert.equal(core.boardLabel(85), 'pełne poparcie');
 assert.equal(core.employmentLabel(initial), 'stanowisko bezpieczne');
+const sampleOffer = {
+  club:'Beskid',
+  fromClub:'Clavia',
+  competitionLevel:1,
+  competitionLabel:'A klasa Myślenice',
+  reason:'dismissal',
+  simulated:false,
+};
+const offerTerms = core.jobOfferTerms(sampleOffer);
+assert.ok(offerTerms.budget >= 9000);
+const switched = core.acceptJobOffer({
+  ...initial,
+  budget:25000,
+  recurring:-500,
+  upgradeLevels:{ squad:3, staff:2, academy:1, facilities:2, organization:1, community:2 },
+  transferRoster:[{ id:'x' }],
+  departedPlayerKeys:['lnp:x'],
+  jobSecurity:{ status:'fired', lowRounds:2, ultimatumRoundsLeft:0, fired:true, reason:'test', history:[] },
+}, sampleOffer);
+assert.equal(switched.ok, true);
+assert.equal(switched.profile.budget, offerTerms.budget);
+assert.equal(switched.profile.recurring, 0);
+assert.deepEqual(switched.profile.transferRoster, []);
+assert.deepEqual(switched.profile.departedPlayerKeys, []);
+assert.equal(switched.profile.jobSecurity.status, 'secure');
+assert.equal(switched.profile.employmentHistory.length, 1);
+assert.equal(switched.profile.employmentHistory[0].toClub, 'Beskid');
 const pressureBase = {
   ...struggling,
   budget:500,
@@ -276,6 +303,12 @@ assert.match(runtime, /presidentCompetitionMovement/);
 assert.match(runtime, /presidentSimulatedCompetitionPlan/);
 assert.match(runtime, /STATUS LIGOWY/);
 assert.match(runtime, /renderPresidentDismissal/);
+assert.match(runtime, /presidentBuildJobOffers/);
+assert.match(runtime, /presidentJobOffersHtml/);
+assert.match(runtime, /acceptPresidentJobOffer/);
+assert.match(runtime, /RYNEK PRACY · PO ZWOLNIENIU/);
+assert.match(runtime, /Zostaję w obecnym klubie/);
+assert.match(runtime, /nowy klub:/i);
 assert.match(runtime, /Ultimatum/);
 assert.match(runtime, /STANOWISKO PREZESA/);
 assert.match(runtime, /Zarząd zakończył współpracę/);
