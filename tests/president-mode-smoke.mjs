@@ -115,6 +115,27 @@ assert.equal(core.financeLabel({ budget:-1 }), 'zadłużenie');
 assert.match(core.money(12000), /12.*000.*zł/);
 assert.ok(core.boardConfidence(healthy, { position:2, teamCount:14 }) > core.boardConfidence(struggling, { position:12, teamCount:14 }));
 assert.equal(core.boardLabel(85), 'pełne poparcie');
+assert.equal(core.employmentLabel(initial), 'stanowisko bezpieczne');
+const pressureBase = {
+  ...struggling,
+  budget:500,
+  jobSecurity:{ status:'secure', lowRounds:0, ultimatumRoundsLeft:0, fired:false, reason:null, history:[] },
+};
+const warningJob = core.reviewEmployment(pressureBase, { position:14, teamCount:14, round:1 });
+assert.equal(warningJob.jobSecurity.status, 'warning');
+const ultimatumJob = core.reviewEmployment(warningJob, { position:14, teamCount:14, round:2 });
+assert.equal(ultimatumJob.jobSecurity.status, 'ultimatum');
+assert.equal(ultimatumJob.jobSecurity.ultimatumRoundsLeft, 3);
+const ultimatum2 = core.reviewEmployment(ultimatumJob, { position:14, teamCount:14, round:3 });
+const ultimatum1 = core.reviewEmployment(ultimatum2, { position:14, teamCount:14, round:4 });
+const firedJob = core.reviewEmployment(ultimatum1, { position:14, teamCount:14, round:5 });
+assert.equal(firedJob.jobSecurity.fired, true);
+assert.equal(core.employmentLabel(firedJob), 'zwolniony');
+const recoveredJob = core.reviewEmployment(
+  { ...ultimatumJob, budget:12000, trust:{ players:80, coach:80, supporters:80, sponsors:80 }, areas:{ squad:80, staff:80, academy:80, facilities:80, organization:80, community:80 } },
+  { position:1, teamCount:14, round:3 },
+);
+assert.equal(recoveredJob.jobSecurity.status, 'secure');
 assert.ok(core.managementWarnings({ ...struggling, budget:500 }, { position:14, teamCount:14 }).length >= 2);
 assert.equal(core.competitionByLevel(1).label, 'A klasa Myślenice');
 const promotion = core.competitionMovement({ level:1, position:1, teamCount:14 });
@@ -254,6 +275,10 @@ assert.match(runtime, /presidentCareerHistoryHtml/);
 assert.match(runtime, /presidentCompetitionMovement/);
 assert.match(runtime, /presidentSimulatedCompetitionPlan/);
 assert.match(runtime, /STATUS LIGOWY/);
+assert.match(runtime, /renderPresidentDismissal/);
+assert.match(runtime, /Ultimatum/);
+assert.match(runtime, /STANOWISKO PREZESA/);
+assert.match(runtime, /Zarząd zakończył współpracę/);
 assert.match(runtime, /AWANS/);
 assert.match(runtime, /SPADEK/);
 assert.match(runtime, /Przejdź do lata/);
