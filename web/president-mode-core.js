@@ -1102,7 +1102,12 @@
   }
 
   function canAcceptContract(profile, templateId) {
-    if (!profile?.offseason || profile.offseason.sponsorDecisionResolved) return false;
+    if (
+      !profile?.offseason ||
+      !profile.offseason.competitionReadinessResolved ||
+      !profile.offseason.planId ||
+      profile.offseason.sponsorDecisionResolved
+    ) return false;
     if ((profile.contracts || []).length >= 2) return false;
     return Boolean(contractTemplateById(templateId)) &&
       !(profile.contracts || []).some(item => item.templateId === templateId);
@@ -1384,6 +1389,7 @@
   function canChooseOffseasonPlan(profile, plan) {
     return Boolean(
       profile?.offseason &&
+      profile.offseason.competitionReadinessResolved &&
       !profile.offseason.planId &&
       plan &&
       Number(profile.budget || 0) + Number(plan.effect?.budget || 0) >= 0
