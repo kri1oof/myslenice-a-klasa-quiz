@@ -1238,6 +1238,119 @@
 }
 .president-league-movement.relegation strong { color: #991b1b; }
 
+
+.president-employment-alert {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 11px;
+  align-items: center;
+  padding: 12px 13px;
+  border: 1px solid #fde68a;
+  border-radius: 13px;
+  background: #fffbeb;
+}
+.president-employment-alert > span {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #fff;
+  font-size: 1.35rem;
+}
+.president-employment-alert small,
+.president-employment-alert strong,
+.president-employment-alert p { display: block; }
+.president-employment-alert small {
+  color: #92400e;
+  font-size: .65rem;
+  font-weight: 900;
+  letter-spacing: .05em;
+}
+.president-employment-alert strong { margin-top: 2px; color: #92400e; }
+.president-employment-alert p { margin: 3px 0 0; color: #78350f; font-size: .73rem; line-height: 1.4; }
+.president-employment-alert.ultimatum {
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+.president-employment-alert.fired {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.president-employment-alert.fired small,
+.president-employment-alert.fired strong,
+.president-employment-alert.fired p { color: #991b1b; }
+
+.president-dismissal {
+  display: grid;
+  gap: 14px;
+  border: 2px solid #fecaca;
+  border-radius: 22px;
+  padding: 20px;
+  background: #fff;
+  color: #111827;
+}
+.president-dismissal-hero {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 17px;
+  border-radius: 17px;
+  background: #fef2f2;
+}
+.president-dismissal-hero > span {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 2rem;
+}
+.president-dismissal-hero small {
+  color: #991b1b;
+  font-size: .7rem;
+  font-weight: 900;
+  letter-spacing: .07em;
+}
+.president-dismissal-hero h2 { margin: 3px 0 4px; color: #7f1d1d; }
+.president-dismissal-hero p { margin: 0; color: #7f1d1d; font-size: .82rem; line-height: 1.45; }
+.president-dismissal-summary {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 8px;
+}
+.president-dismissal-summary > div {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.president-dismissal-summary small,
+.president-dismissal-summary strong,
+.president-dismissal-summary span { display: block; }
+.president-dismissal-summary small { color: #64748b; font-size: .64rem; font-weight: 900; }
+.president-dismissal-summary strong { margin-top: 3px; color: #111827; }
+.president-dismissal-summary span { margin-top: 2px; color: #64748b; font-size: .7rem; }
+.president-dismissal-actions {
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: #f8fafc;
+}
+.president-dismissal-actions p { margin: 0 0 10px; color: #475569; font-size: .8rem; line-height: 1.4; }
+.president-dismissal-actions button {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 11px;
+  background: #fff;
+  color: #334155;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1247,6 +1360,7 @@
 @media (max-width: 900px) {
   .president-dashboard { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-final-primary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .president-dismissal-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-offseason-finance { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-offseason-finance .total { grid-column: 1 / -1; }
   .president-offseason-review { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -1274,6 +1388,9 @@
   .president-report-trust { grid-template-columns: 1fr; }
   .president-case { grid-template-columns: 48px 1fr; padding: 14px; }
   .president-season-hero { grid-template-columns: 52px 1fr; padding: 15px; }
+  .president-dismissal { padding: 14px; border-radius: 17px; }
+  .president-dismissal-hero { grid-template-columns: 48px 1fr; padding: 14px; }
+  .president-dismissal-hero > span { width: 48px; height: 48px; font-size: 1.5rem; }
   .president-offseason { padding: 14px; border-radius: 17px; }
   .president-offseason-hero { grid-template-columns: 48px 1fr; padding: 14px; }
   .president-offseason-hero > span { width: 48px; height: 48px; font-size: 1.5rem; }
@@ -1290,6 +1407,7 @@
   .president-dashboard,
   .president-upgrade-grid,
   .president-final-primary,
+  .president-dismissal-summary,
   .president-offseason-finance,
   .president-offseason-review,
   .president-offseason-options { grid-template-columns: 1fr; }
