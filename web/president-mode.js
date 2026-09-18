@@ -125,10 +125,11 @@ const PRESIDENT_TRUST_META = Object.freeze([
 
 function presidentBoardContext(profile, career) {
   const teamCount = Math.max(2, Object.keys(career?.table || {}).length || 14);
-  const position = seasonCareerCore.position(career?.table, career?.club) || teamCount;
   const target = presidentModeCore.boardTargetPosition(profile, teamCount);
+  const actualPosition = seasonCareerCore.position(career?.table, career?.club) || teamCount;
+  const position = Number(career?.roundIndex || 0) === 0 ? target : actualPosition;
   const confidence = presidentModeCore.boardConfidence(profile, { position, teamCount });
-  return { teamCount, position, target, confidence };
+  return { teamCount, position, actualPosition, target, confidence };
 }
 
 function presidentStrategy(profile) {
@@ -274,6 +275,7 @@ function presidentChoicePreview(choice) {
 
 function presidentPositionSummary(career) {
   if (!career) return { position:'—', points:0 };
+  if (Number(career.roundIndex || 0) === 0) return { position:'—', points:0 };
   return {
     position:seasonCareerCore.position(career.table, career.club) || 1,
     points:Number(career.table?.[career.club]?.points || 0),
@@ -291,7 +293,7 @@ function presidentDashboardHtml(profile, career) {
     <div class="president-dashboard">
       <div><small>BUDŻET GRY</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${presidentModeCore.financeLabel(profile)}</span></div>
       <div><small>STAŁY BILANS / KOLEJKĘ</small><strong>${recurring >= 0 ? '+' : ''}${presidentModeCore.money(recurring)}</strong><span>umowy i stałe zobowiązania</span></div>
-      <div><small>TABELA / CEL</small><strong>${standing.position}. / TOP ${board.target}</strong><span>${standing.points} pkt</span></div>
+      <div><small>TABELA / CEL</small><strong>${standing.position === "—" ? "—" : standing.position + "."} / TOP ${board.target}</strong><span>${standing.points} pkt</span></div>
       <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)}</span></div>
       <div><small>PLAN SEZONU</small><strong>${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : '—'}</strong><span>kondycja ${avgAreas}/100 · zaufanie ${avgTrust}/100</span></div>
     </div>
