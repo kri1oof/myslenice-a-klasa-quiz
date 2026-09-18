@@ -2,6 +2,7 @@
 // Financial values, trust and department ratings are fictional game systems, not real club data.
 const presidentModeCore = globalThis.PresidentModeCore;
 const presidentBaseStartGame = startGame;
+state.presidentUiTab = state.presidentUiTab || 'overview';
 
 function presidentSelected() {
   return el('game-format')?.value === 'president';
@@ -344,12 +345,78 @@ function presidentDashboardHtml(profile, career) {
       <div><small>TABELA / CEL</small><strong>${standing.position === "—" ? "—" : standing.position + "."} / TOP ${board.target}</strong><span>${presidentEscape(career.competitionLabel || presidentModeCore.competitionByLevel(career.competitionLevel ?? 1).short)} · ${standing.points} pkt</span></div>
       <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)} · ${presidentModeCore.employmentLabel(profile)}</span></div>
       <div><small>PLAN SEZONU</small><strong>${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : '—'}</strong><span>kondycja ${avgAreas}/100 · zaufanie ${avgTrust}/100</span></div>
-    </div>
-    <details class="president-club-details">
-      <summary><span><strong>🏢 Stan klubu</strong><small>kadra · sztab · akademia · obiekt · organizacja · społeczność</small></span><em>Pokaż</em></summary>
+    </div>`;
+}
+
+
+function presidentFinanceTabHtml(profile) {
+  const recurring = Number(profile?.recurring || 0);
+  const lastFinance = Number(profile?.lastFinance || 0);
+  const financialMoves = [...(profile?.history || [])]
+    .filter(item => Number(item.budgetDelta || 0) !== 0 || Number(item.recurringDelta || 0) !== 0)
+    .slice(-5)
+    .reverse();
+  return `
+    <div class="president-finance-tab">
+      <div class="president-tab-stat-grid">
+        <div><small>BUDŻET</small><strong>${presidentModeCore.money(profile.budget)}</strong><span>${presidentModeCore.financeLabel(profile)}</span></div>
+        <div><small>STAŁY BILANS</small><strong>${recurring >= 0 ? '+' : ''}${presidentModeCore.money(recurring)}</strong><span>na kolejkę</span></div>
+        <div><small>OSTATNIA KOLEJKA</small><strong>${lastFinance >= 0 ? '+' : ''}${presidentModeCore.money(lastFinance)}</strong><span>automatyczny bilans</span></div>
+      </div>
+      <div class="president-tab-list">
+        <strong>Ostatnie decyzje finansowe</strong>
+        ${financialMoves.length ? financialMoves.map(item => `<div><span>${presidentEscape(item.title || item.choice || 'Decyzja')}</span><b>${Number(item.budgetDelta || 0) >= 0 ? '+' : ''}${presidentModeCore.money(item.budgetDelta || 0)}</b></div>`).join('') : '<small>Brak większych ruchów finansowych w tym sezonie.</small>'}
+      </div>
+    </div>`;
+}
+
+function presidentClubTabHtml(profile, career) {
+  return `
+    <div class="president-club-tab">
       <div class="president-area-grid">${presidentAreaRows(profile.areas)}</div>
       <div class="president-trust-grid">${presidentTrustRows(profile.trust)}</div>
-    </details>`;
+      ${presidentInvestmentsHtml(profile, career).replace('<details class="president-investments">', '<details class="president-investments" open>')}
+    </div>`;
+}
+
+function presidentManagementHubHtml(profile, career) {
+  const active = state.presidentUiTab || 'overview';
+  const tabs = [
+    ['overview','🏠','Pulpit'],
+    ['squad','👥','Kadra'],
+    ['finance','💰','Finanse'],
+    ['club','🏢','Klub'],
+    ['history','📚','Historia'],
+  ];
+  const pane = (id, html) => `<section class="president-hub-pane ${active === id ? 'active' : ''}" data-president-pane="${id}">${html}</section>`;
+  return `
+    <div class="president-management-hub">
+      <nav class="president-hub-tabs" aria-label="Panel prezesa">
+        ${tabs.map(([id,icon,label]) => `<button type="button" class="${active === id ? 'active' : ''}" data-president-tab="${id}"><span>${icon}</span><strong>${label}</strong></button>`).join('')}
+      </nav>
+      <div class="president-hub-content">
+        ${pane('overview', presidentDashboardHtml(profile, career) + presidentEmploymentHtml(profile, career) + presidentWarningsHtml(profile, career))}
+        ${pane('squad', presidentSquadHtml(career).replace('<details class="president-squad-details">', '<details class="president-squad-details" open>'))}
+        ${pane('finance', presidentFinanceTabHtml(profile))}
+        ${pane('club', presidentClubTabHtml(profile, career))}
+        ${pane('history', presidentCareerHistoryHtml(profile) || '<p class="president-empty-copy">Historia kariery pojawi się po zakończeniu pierwszego sezonu.</p>')}
+      </div>
+    </div>`;
+}
+
+function bindPresidentManagementTabs(panel) {
+  if (!panel) return;
+  panel.querySelectorAll('[data-president-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.presidentUiTab = button.dataset.presidentTab || 'overview';
+      panel.querySelectorAll('[data-president-tab]').forEach(item => {
+        item.classList.toggle('active', item.dataset.presidentTab === state.presidentUiTab);
+      });
+      panel.querySelectorAll('[data-president-pane]').forEach(item => {
+        item.classList.toggle('active', item.dataset.presidentPane === state.presidentUiTab);
+      });
+    });
+  });
 }
 
 function currentPresidentFixture() {
@@ -375,11 +442,7 @@ function renderPresidentDecision(decision) {
         <span><small>👔 BIURKO PREZESA · KOLEJKA ${round}/${career.rounds.length}</small><strong>${presidentEscape(career.club)}</strong><em>Mecz w tle po decyzji: ${fixture ? `${presidentEscape(careerVenue(fixture))} · ${presidentEscape(opponent)}` : 'brak meczu'}</em></span>
         <span class="president-background-match"><small>⚽ MECZ</small><strong>automatycznie</strong><em>bez pytań i decyzji boiskowych</em></span>
       </div>
-      ${presidentDashboardHtml(profile, career)}
-      ${presidentEmploymentHtml(profile, career)}
-      ${presidentWarningsHtml(profile, career)}
-      ${presidentInvestmentsHtml(profile, career)}
-      ${presidentSquadHtml(career)}
+      ${presidentManagementHubHtml(profile, career)}
       <div class="president-case">
         <span class="president-case-icon">${decision.icon}</span>
         <div><small>${presidentEscape(category).toUpperCase()}</small><h2>${presidentEscape(decision.title)}</h2><p>${presidentEscape(decision.copy)}</p></div>
@@ -405,6 +468,7 @@ function renderPresidentDecision(decision) {
   panel.querySelectorAll('.president-upgrade').forEach(button => {
     button.addEventListener('click', () => buyPresidentUpgrade(button.dataset.area, decision));
   });
+  bindPresidentManagementTabs(panel);
   panel.classList.remove('hidden');
   if (el('status')) {
     el('status').textContent = `Tryb prezesa · kolejka ${round}/${career.rounds.length} · decyzja klubowa`;
@@ -517,10 +581,7 @@ function renderPresidentRoundOutcome(context = {}) {
     <div class="president-round-report">
       <div class="president-report-kicker">👔 RAPORT PO KOLEJCE ${context.fixture.round}</div>
       <h2>${presidentEscape(career.club)}</h2>
-      ${presidentDashboardHtml(profile, career)}
-      ${presidentEmploymentHtml(profile, career)}
-      ${presidentWarningsHtml(profile, career)}
-      ${presidentSquadHtml(career)}
+      ${presidentManagementHubHtml(profile, career)}
       <div class="president-background-result">
         <span><small>⚽ MECZ W TLE</small><strong>${presidentMatchScore(context)}</strong><em>${presidentResultLabel(context.resultCode)} · bez udziału gracza</em></span>
         <span><small>PO KOLEJCE</small><strong>${position}. miejsce · ${points} pkt</strong><em>wpływ długofalowego zarządzania na siłę drużyny: ${management >= 0 ? '+' : ''}${management.toFixed(1)}</em></span>
@@ -535,6 +596,7 @@ function renderPresidentRoundOutcome(context = {}) {
       <details class="president-table-details"><summary><span><strong>📊 Tabela ligi</strong><small>${position}. miejsce · ${points} pkt</small></span><em>Pokaż</em></summary>${typeof renderCareerTableHtml === 'function' ? renderCareerTableHtml() : ''}</details>
       <button type="button" class="president-next-round">Następna sprawa prezesa →</button>
     </div>`;
+  bindPresidentManagementTabs(panel);
   panel.classList.remove('hidden');
   panel.querySelector('.president-next-round')?.addEventListener('click', () => showPresidentRound());
   if (el('status')) el('status').textContent = `Tryb prezesa · kolejka ${context.fixture.round} zakończona w tle`;
