@@ -1719,6 +1719,30 @@
 }
 .president-skip-sponsor-contract:hover { background:#f8fafc; }
 
+
+.president-case-trigger {
+  margin: 10px 0 8px;
+  padding: 9px 11px;
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  border: 1px solid #dbeafe;
+  border-radius: 11px;
+  background: #eff6ff;
+}
+.president-case-trigger span {
+  flex: 0 0 auto;
+  color: #1d4ed8;
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.president-case-trigger strong {
+  color: #334155;
+  font-size: .73rem;
+  line-height: 1.35;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1745,6 +1769,7 @@
 }
 
 @media (max-width: 700px) {
+  .president-case-trigger { align-items:flex-start; flex-direction:column; gap:3px; }
   .president-hub-tabs {
     grid-template-columns: repeat(5,minmax(64px,1fr));
     overflow-x:auto;
