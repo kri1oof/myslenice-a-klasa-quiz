@@ -2127,6 +2127,48 @@
   font-style: normal;
 }
 
+
+.president-development-summary {
+  margin: 10px 12px 0;
+  padding: 10px 11px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #dbeafe;
+  border-radius: 11px;
+  background: #eff6ff;
+}
+.president-development-summary > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.president-development-summary small {
+  color: #1d4ed8;
+  font-size: .6rem;
+  font-weight: 900;
+  letter-spacing: .05em;
+}
+.president-development-summary strong {
+  color: #334155;
+  font-size: .72rem;
+}
+.president-development-summary > div {
+  display: flex;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+.president-development-summary b {
+  min-width: 36px;
+  padding: 6px 7px;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  text-align: center;
+  font-size: .68rem;
+}
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -2156,6 +2198,9 @@
 }
 
 @media (max-width: 700px) {
+  .president-development-summary { align-items:flex-start; flex-direction:column; }
+  .president-development-summary > div { width:100%; }
+  .president-development-summary b { flex:1; }
   .president-resume-card { align-items:stretch; flex-direction:column; }
   .president-resume-actions { width:100%; }
   .president-resume-actions button { flex:1; }
