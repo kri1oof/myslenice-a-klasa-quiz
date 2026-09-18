@@ -2,6 +2,8 @@
 // The player chooses a football action, then the answer decides whether that action succeeds.
 // Loaded after match-mode.js and intentionally overrides Match 90' only.
 
+const matchQuestionContextCore = globalThis.MatchQuestionContextCore || null;
+
 const rpgBaseShowQuestion = typeof matchLegacyShowQuestion === 'function' ? matchLegacyShowQuestion : showQuestion;
 const rpgBaseAnswer = typeof matchLegacyAnswer === 'function' ? matchLegacyAnswer : answer;
 const rpgNonMatchStart = startGame;
@@ -546,7 +548,8 @@ showQuestion = function rpgShowQuestion() {
   el('question-number').textContent = `Akcja ${state.index + 1}`;
   el('difficulty-label').textContent = `Test ${state.current.difficulty || action?.dc || 3}/5`;
   el('question-type-label').textContent = labelType(state.current.type);
-  el('question-style').textContent = `TEST AKCJI · ${String(action?.label || '').toUpperCase()}`;
+  const contextLabel = state.current?.gameMeta?.contextLabel;
+  el('question-style').textContent = `TEST AKCJI · ${String(action?.label || '').toUpperCase()}${contextLabel ? ' · ' + String(contextLabel).toUpperCase() : ''}`;
   const narrator = el('rpg-narrator')?.querySelector('strong');
   if (narrator) narrator.textContent = `${action.label}. Poprawna odpowiedź oznacza powodzenie akcji.`;
   renderRpgBoard();
