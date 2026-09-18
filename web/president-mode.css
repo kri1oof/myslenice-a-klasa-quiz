@@ -915,6 +915,111 @@
 .president-start-next-season:hover { background: #14532d; }
 
 
+
+.president-departure-case {
+  border: 1px solid #dbe3ec;
+  border-radius: 15px;
+  overflow: hidden;
+  background: #fff;
+}
+.president-departure-case.resolved { background: #f8fafc; }
+.president-departure-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 13px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.president-departure-head span { display: flex; flex-direction: column; gap: 2px; }
+.president-departure-head small {
+  color: #64748b;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.president-departure-head em {
+  color: #92400e;
+  font-size: .72rem;
+  font-style: normal;
+  font-weight: 900;
+}
+.president-departure-context {
+  margin: 0;
+  padding: 11px 13px 0;
+  color: #475569;
+  font-size: .75rem;
+  line-height: 1.45;
+}
+.president-departure-player {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  gap: 7px;
+  padding: 12px 13px;
+}
+.president-departure-player > div {
+  padding: 8px;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.president-departure-player small,
+.president-departure-player strong { display: block; }
+.president-departure-player small { color: #64748b; font-size: .6rem; }
+.president-departure-player strong {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #111827;
+  font-size: .74rem;
+}
+.president-departure-options {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 9px;
+  padding: 0 12px 12px;
+}
+.president-departure-options button {
+  min-height: 126px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+  text-align: left;
+  border: 2px solid #cbd5e1;
+  border-radius: 13px;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+.president-departure-options button:hover:not(:disabled) {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+.president-departure-options button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+.president-departure-options strong { font-size: .84rem; }
+.president-departure-options span { color: #475569; font-size: .73rem; line-height: 1.35; }
+.president-departure-options small { margin-top: auto; color: #64748b; font-size: .67rem; line-height: 1.35; }
+.president-departure-options em { color: #991b1b; font-size: .68rem; font-style: normal; }
+.president-departure-result {
+  padding: 12px 13px;
+}
+.president-departure-result strong,
+.president-departure-result span { display: block; }
+.president-departure-result strong { color: #111827; }
+.president-departure-result span { margin-top: 3px; color: #64748b; font-size: .74rem; line-height: 1.4; }
+.president-squad-player.president-career-retention {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+.president-squad-player.president-career-retention small { color: #92400e; }
+
 .president-transfer-market {
   border: 1px solid #dbe3ec;
   border-radius: 15px;
@@ -1089,6 +1194,7 @@
   .president-offseason-review { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-offseason-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-transfer-grid { grid-template-columns: 1fr; }
+  .president-departure-player { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .president-board-summary { grid-template-columns: 1fr; }
   .president-strategy-grid { grid-template-columns: 1fr; }
   .president-upgrade-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -1132,6 +1238,8 @@
   .president-offseason-finance .total { grid-column: auto; }
   .president-transfer-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-transfer-terms { flex-direction: column; }
+  .president-departure-player,
+  .president-departure-options { grid-template-columns: 1fr; }
   .president-area-row,
   .president-trust-row { grid-template-columns: minmax(90px,auto) 1fr 28px; font-size: .72rem; }
 }
