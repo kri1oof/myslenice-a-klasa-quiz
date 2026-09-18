@@ -153,35 +153,27 @@
     return b.reduce((sum, item) => sum + (set.has(item) ? 1 : 0), 0);
   }
 
-  function candidateScore(question, selectedEntries, priorHistory, categoryCounts, random) {
-    const entry = historyEntry(question);
-    const combined = [...priorHistory, ...selectedEntries];
-    const recentFacts = recentSlice(combined, FACT_COOLDOWN);
-    const recentSubjects = recentSlice(combined, SUBJECT_COOLDOWN);
-    const recentCategories = recentSlice(combined, CATEGORY_COOLDOWN);
-    let score = Number(random?.() ?? Math.random()) * 5;
+  function candidateScore(entry, context) {
+    let score = Number(context.jitter || 0);
 
-    if (recentFacts.some(item => item.fact && item.fact === entry.fact)) score -= 140;
-    if (priorHistory.some(item => item.id && item.id === entry.id)) score -= 55;
+    if (context.recentFacts.some(item => item.fact && item.fact === entry.fact)) score -= 140;
+    if (context.priorIds.has(entry.id)) score -= 55;
 
-    const subjectOverlap = recentSubjects.reduce(
+    const subjectOverlap = context.recentSubjects.reduce(
       (sum, item) => sum + overlapCount(entry.subjects, item.subjects),
       0,
     );
     score -= Math.min(72, subjectOverlap * 16);
 
-    if (recentCategories.at(-1)?.category === entry.category) score -= 30;
-    else if (recentCategories.some(item => item.category === entry.category)) score -= 11;
+    if (context.recentCategories.at(-1)?.category === entry.category) score -= 30;
+    else if (context.recentCategories.some(item => item.category === entry.category)) score -= 11;
     else score += 18;
 
-    if (recentFacts.at(-1)?.type === entry.type) score -= 16;
-    if (recentFacts.at(-1)?.season === entry.season && entry.season) score -= 4;
+    if (context.recentFacts.at(-1)?.type === entry.type) score -= 16;
+    if (context.recentFacts.at(-1)?.season === entry.season && entry.season) score -= 4;
 
-    const minCategoryCount = categoryCounts.size
-      ? Math.min(...categoryCounts.values())
-      : 0;
-    const currentCategoryCount = Number(categoryCounts.get(entry.category) || 0);
-    score += Math.max(0, minCategoryCount + 1 - currentCategoryCount) * 13;
+    const currentCategoryCount = Number(context.categoryCounts.get(entry.category) || 0);
+    score += Math.max(0, context.minCategoryCount + 1 - currentCategoryCount) * 13;
 
     return score;
   }
@@ -193,33 +185,51 @@
 
     const random = typeof options.random === 'function' ? options.random : Math.random;
     const history = normalizeHistory(options.history);
-    const remaining = [...candidates];
+    const priorIds = new Set(history.map(item => item.id).filter(Boolean));
+    const remaining = candidates.map(question => ({
+      question,
+      entry:historyEntry(question),
+      jitter:Number(random() || 0) * 5,
+    }));
     const selected = [];
     const selectedEntries = [];
     const categoryCounts = new Map();
 
     while (selected.length < count && remaining.length) {
+      const combined = [...history, ...selectedEntries];
+      const recentFacts = recentSlice(combined, FACT_COOLDOWN);
+      const recentSubjects = recentSlice(combined, SUBJECT_COOLDOWN);
+      const recentCategories = recentSlice(combined, CATEGORY_COOLDOWN);
+      const minCategoryCount = categoryCounts.size
+        ? Math.min(...categoryCounts.values())
+        : 0;
       let bestIndex = 0;
       let bestScore = -Infinity;
+
       for (let index = 0; index < remaining.length; index += 1) {
-        const score = candidateScore(
-          remaining[index],
-          selectedEntries,
-          history,
+        const candidate = remaining[index];
+        const score = candidateScore(candidate.entry, {
+          jitter:candidate.jitter,
+          priorIds,
+          recentFacts,
+          recentSubjects,
+          recentCategories,
           categoryCounts,
-          random,
-        );
+          minCategoryCount,
+        });
         if (score > bestScore) {
           bestScore = score;
           bestIndex = index;
         }
       }
 
-      const [question] = remaining.splice(bestIndex, 1);
-      const entry = historyEntry(question);
-      selected.push(question);
-      selectedEntries.push(entry);
-      categoryCounts.set(entry.category, Number(categoryCounts.get(entry.category) || 0) + 1);
+      const [picked] = remaining.splice(bestIndex, 1);
+      selected.push(picked.question);
+      selectedEntries.push(picked.entry);
+      categoryCounts.set(
+        picked.entry.category,
+        Number(categoryCounts.get(picked.entry.category) || 0) + 1,
+      );
     }
     return selected;
   }
