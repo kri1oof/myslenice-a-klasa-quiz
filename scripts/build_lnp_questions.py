@@ -144,10 +144,22 @@ def merge_exports(existing_path: Path, lnp_path: Path, output_path: Path) -> tup
     for name, meta in (incoming.get("clubs") or {}).items():
         clubs[name] = _merge_club(clubs.get(name), meta)
 
+    lnp_seasons = {
+        str(season)
+        for season in (existing.get("lnp_seasons") or [])
+        if season
+    }
+    lnp_seasons.update(
+        str(q.get("season"))
+        for q in incoming_questions
+        if q.get("season")
+    )
+
     payload = {
         "version": max(int(existing.get("version") or 1), int(incoming.get("version") or 1)),
         "count": len(questions),
         "clubs": clubs,
+        "lnp_seasons": sorted(lnp_seasons),
         "questions": questions,
     }
     write_question_store(payload, output_path)
