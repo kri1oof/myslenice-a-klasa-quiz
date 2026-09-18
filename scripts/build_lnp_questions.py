@@ -90,6 +90,7 @@ def _filter_conservative_historical_questions(conn, questions):
         "compare_player_minutes",
         "match_player_minutes",
         "match_compare_player_minutes",
+        "lnp_player_age",
     }
     return [
         q for q in questions
@@ -157,6 +158,7 @@ def main() -> None:
     parser.add_argument("--player-export", default="web/data/player-characters.json")
     parser.add_argument("--existing", default="web/data/questions.json")
     parser.add_argument("--output", default="web/data/questions.json")
+    parser.add_argument("--only-season", default=None)
     args = parser.parse_args()
 
     db_path = Path(args.db)
@@ -168,6 +170,12 @@ def main() -> None:
         completed_seasons = _mark_completed_seasons(conn)
         player_count = export_player_characters(conn, args.player_export, 0.80)
         questions = _filter_conservative_historical_questions(conn, generate_all(conn, 0.80))
+        if args.only_season:
+            season_row = conn.execute("SELECT id FROM seasons WHERE label=?", (args.only_season,)).fetchone()
+            if not season_row:
+                raise SystemExit(f"Season not found in imported snapshot: {args.only_season}")
+            only_season_id = int(season_row[0])
+            questions = [q for q in questions if q.season_id == only_season_id]
         conn.execute("UPDATE question_bank SET enabled=0")
         saved = save_questions(conn, questions)
         exported = export_questions(conn, args.lnp_export, 0.80)
