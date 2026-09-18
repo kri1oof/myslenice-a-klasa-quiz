@@ -1306,7 +1306,12 @@
   }
 
   function canResolveDeparture(profile, candidate, outcome) {
-    if (!profile?.offseason || profile.offseason.departureResolved || !candidate?.playerKey) return false;
+    if (
+      !profile?.offseason ||
+      !profile.offseason.academyDecisionResolved ||
+      profile.offseason.departureResolved ||
+      !candidate?.playerKey
+    ) return false;
     if (outcome === 'retain') {
       return Number(profile.budget || 0) >= departureGameTerms(candidate).retentionCost;
     }
