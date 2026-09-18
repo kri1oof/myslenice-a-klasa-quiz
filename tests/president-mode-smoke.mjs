@@ -67,6 +67,18 @@ assert.equal(strategy.profile.trust.coach, 60);
 assert.equal(strategy.profile.history[0].type, 'strategy');
 assert.equal(core.boardTargetPosition(strategy.profile, 14), 3);
 
+assert.equal(core.canChooseMatchdayPolicy(initial, 'standard'), false, 'matchday policy requires a season strategy first');
+assert.equal(core.canChooseMatchdayPolicy(strategy.profile, 'local'), true);
+const localPolicyChoice = core.chooseMatchdayPolicy(strategy.profile, 'local');
+assert.equal(localPolicyChoice.ok, true);
+assert.equal(localPolicyChoice.profile.matchdayPolicy, 'local');
+assert.equal(localPolicyChoice.profile.matchdayPolicyHistory.length, 1);
+assert.equal(localPolicyChoice.profile.matchdayPolicyHistory[0].policyId, 'local');
+assert.equal(localPolicyChoice.profile.trust.supporters, strategy.profile.trust.supporters + 4);
+assert.equal(localPolicyChoice.profile.trust.sponsors, strategy.profile.trust.sponsors - 1);
+assert.equal(core.canChooseMatchdayPolicy(localPolicyChoice.profile, 'commercial'), false, 'policy is fixed for the whole season');
+assert.equal(core.activeMatchdayPolicy({ ...initial, matchdayPolicy:null }).id, 'standard', 'missing legacy policy must fall back neutrally');
+
 assert.equal(core.canUpgrade(strategy.profile, 'squad', 0), true);
 const investment = core.buyUpgrade(strategy.profile, 'squad', 0);
 assert.equal(investment.ok, true);
@@ -165,6 +177,32 @@ const strongerAttendance = core.estimateAttendance(strongerSupport, { venue:'DOM
 assert.ok(strongerAttendance.attendance > baseAttendance.attendance);
 assert.ok(core.attendanceCapacity(strongerSupport, 2) > core.attendanceCapacity(sponsorProfile, 1));
 assert.ok(core.supporterBaseDelta(strongerSupport, { result:'W' }, strongerAttendance) > 0);
+
+const localAttendance = core.estimateAttendance(
+  { ...strongerSupport, matchdayPolicy:'local' },
+  { venue:'DOM', competitionLevel:2 },
+);
+const standardAttendance = core.estimateAttendance(
+  { ...strongerSupport, matchdayPolicy:'standard' },
+  { venue:'DOM', competitionLevel:2 },
+);
+const commercialAttendance = core.estimateAttendance(
+  { ...strongerSupport, matchdayPolicy:'commercial' },
+  { venue:'DOM', competitionLevel:2 },
+);
+assert.ok(localAttendance.attendance >= standardAttendance.attendance);
+assert.ok(standardAttendance.attendance >= commercialAttendance.attendance);
+assert.ok(commercialAttendance.unitYield > standardAttendance.unitYield);
+assert.ok(standardAttendance.unitYield > localAttendance.unitYield);
+assert.ok(commercialAttendance.operatingCost > localAttendance.operatingCost);
+assert.ok(commercialAttendance.matchdayRevenue > localAttendance.matchdayRevenue);
+assert.equal(localAttendance.policyLabel, 'Lokalny i dostępny');
+assert.equal(commercialAttendance.policyLabel, 'Mocniej komercyjny');
+assert.ok(
+  core.supporterBaseDelta({ ...strongerSupport, matchdayPolicy:'local' }, { result:'W' }, localAttendance) >
+  core.supporterBaseDelta({ ...strongerSupport, matchdayPolicy:'commercial' }, { result:'W' }, commercialAttendance),
+);
+
 const awayAttendance = core.estimateAttendance(sponsorProfile, { venue:'WYJAZD', competitionLevel:1 });
 assert.equal(awayAttendance.attendance, 0);
 assert.equal(awayAttendance.matchdayRevenue, -320);
@@ -616,6 +654,8 @@ assert.equal(core.canSignTransfer(closedWindow.profile, {
 const nextSeason = core.prepareNextSeason(closedWindow.profile, 26, () => 0.25);
 assert.equal(nextSeason.careerYear, 2);
 assert.equal(nextSeason.strategy, null);
+assert.equal(nextSeason.matchdayPolicy, null);
+assert.deepEqual(nextSeason.matchdayPolicyHistory, closedWindow.profile.matchdayPolicyHistory || []);
 assert.equal(nextSeason.budget, closedWindow.profile.budget, 'post-transfer summer budget must carry across seasons');
 assert.equal(nextSeason.recurring, closedWindow.profile.recurring, 'contracts and transfer costs must carry across seasons');
 assert.equal(nextSeason.supporterBase, closedWindow.profile.supporterBase, 'supporter base must carry across seasons');
@@ -635,6 +675,18 @@ assert.equal(nextSeason.usedIds.length, 0, 'seasonal decision pool should reset'
 assert.equal(nextSeason.playerDevelopmentHistory.length, 1);
 assert.equal(nextSeason.playerDevelopmentHistory[0].targetCareerYear, 2);
 assert.equal(nextSeason.playerDevelopmentHistory[0].changes.length, 0, 'new summer arrivals must not develop immediately');
+
+const policyCarryProfile = core.prepareNextSeason(
+  {
+    ...localPolicyChoice.profile,
+    matchdayPolicyHistory:[...localPolicyChoice.profile.matchdayPolicyHistory],
+  },
+  26,
+  () => 0.25,
+);
+assert.equal(policyCarryProfile.matchdayPolicy, null);
+assert.equal(policyCarryProfile.matchdayPolicyHistory.length, 1);
+assert.equal(policyCarryProfile.matchdayPolicyHistory[0].policyId, 'local');
 
 const academyBeforeDevelopment = nextSeason.academyRoster[0].ratings.game_rating;
 const academyAgeBeforeDevelopment = nextSeason.academyRoster[0].age;
@@ -746,6 +798,14 @@ assert.match(runtime, /renderPresidentStrategySelection/);
 assert.match(runtime, /WIELOSEZONOWY MANDAT ZARZĄDU/);
 assert.match(runtime, /data-board-mandate/);
 assert.match(runtime, /Mandat wieloletni jest ustalony/);
+assert.match(runtime, /DZIEŃ MECZOWY/);
+assert.match(runtime, /data-matchday-policy/);
+assert.match(runtime, /Lokalny i dostępny/);
+assert.match(runtime, /Standard klubowy/);
+assert.match(runtime, /Mocniej komercyjny/);
+assert.match(runtime, /symulowaną frekwencję, przychód na kibica/);
+assert.match(runtime, /model wybrany na cały sezon/);
+assert.match(runtime, /presidentEnsureMatchdayPolicy/);
 assert.match(runtime, /MANDAT ZARZĄDU/);
 assert.match(runtime, /Poprzedni mandat/);
 assert.match(runtime, /Najpierw wybierz wielosezonowy mandat zarządu/);
