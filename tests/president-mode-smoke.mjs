@@ -7,8 +7,10 @@ const core = require('../web/president-mode-core.js');
 const runtime = fs.readFileSync(new URL('../web/president-mode.js', import.meta.url), 'utf8');
 const achievementBridge = fs.readFileSync(new URL('../web/president-achievements-bridge.js', import.meta.url), 'utf8');
 
-assert.equal(core.DECISIONS.length, 26, 'president v2 should cover a full A-class season with varied club issues');
-assert.equal(new Set(core.DECISIONS.map(item => item.id)).size, 26, 'decision ids must be unique');
+assert.equal(core.DECISIONS.length, 34, 'president v3 should provide more club issues than a full A-class season');
+assert.equal(new Set(core.DECISIONS.map(item => item.id)).size, 34, 'decision ids must be unique');
+assert.equal(core.STRATEGIES.length, 3, 'president v3 should offer three board strategies');
+assert.deepEqual(Object.keys(core.UPGRADE_META), ['squad','staff','academy','facilities','organization','community']);
 assert.ok(core.DECISIONS.every(item => Array.isArray(item.choices) && item.choices.length === 3), 'every decision should have three choices');
 assert.ok(core.DECISIONS.every(item => item.choices.every(choice => !('match' in (choice.effect || {})))), 'president decisions must not contain in-match action bonuses');
 
@@ -22,9 +24,31 @@ assert.equal(initial.budget, 12000);
 assert.equal(initial.recurring, 0);
 assert.deepEqual(initial.trust, { players:55, coach:55, supporters:50, sponsors:50 });
 assert.deepEqual(initial.areas, { squad:55, staff:55, academy:45, facilities:45, organization:55, community:50 });
-assert.equal(initial.order.length, 26);
-assert.equal(new Set(initial.order).size, 26);
-assert.equal('currentMatchEffect' in initial, false, 'v2 must not keep an in-match president modifier');
+assert.equal(initial.order.length, 34);
+assert.equal(new Set(initial.order).size, 34);
+assert.equal(initial.strategy, null);
+assert.deepEqual(initial.upgradeLevels, { squad:0, staff:0, academy:0, facilities:0, organization:0, community:0 });
+assert.equal(initial.lastUpgradeRound, -99);
+assert.equal('currentMatchEffect' in initial, false, 'president mode must not keep an in-match president modifier');
+
+const strategy = core.chooseStrategy(initial, 'promotion');
+assert.equal(strategy.ok, true);
+assert.equal(strategy.profile.strategy, 'promotion');
+assert.equal(strategy.profile.budget, 9800);
+assert.equal(strategy.profile.recurring, -80);
+assert.equal(strategy.profile.areas.squad, 62);
+assert.equal(strategy.profile.trust.coach, 60);
+assert.equal(strategy.profile.history[0].type, 'strategy');
+assert.equal(core.boardTargetPosition(strategy.profile, 14), 3);
+
+assert.equal(core.canUpgrade(strategy.profile, 'squad', 0), true);
+const investment = core.buyUpgrade(strategy.profile, 'squad', 0);
+assert.equal(investment.ok, true);
+assert.equal(investment.profile.upgradeLevels.squad, 1);
+assert.equal(investment.profile.areas.squad, 66);
+assert.equal(investment.profile.budget, 9100);
+assert.equal(core.canUpgrade(investment.profile, 'staff', 1), false, 'investment cooldown should block consecutive upgrades');
+assert.equal(core.canUpgrade(investment.profile, 'staff', 3), true, 'investment should reopen after three rounds');
 
 const sponsor = core.decisionById('shirt_sponsor');
 assert.ok(sponsor);
@@ -82,12 +106,19 @@ assert.equal(core.trustLabel(80), 'bardzo wysokie');
 assert.equal(core.areaLabel(65), 'mocne');
 assert.equal(core.financeLabel({ budget:-1 }), 'zadłużenie');
 assert.match(core.money(12000), /12.*000.*zł/);
+assert.ok(core.boardConfidence(healthy, { position:2, teamCount:14 }) > core.boardConfidence(struggling, { position:12, teamCount:14 }));
+assert.equal(core.boardLabel(85), 'pełne poparcie');
+assert.ok(core.managementWarnings({ ...struggling, budget:500 }, { position:14, teamCount:14 }).length >= 2);
 
-// Runtime contract: President v2 simulates football in the background rather than entering Match RPG.
+// Runtime contract: President v3 remains a board-management mode, not Match RPG.
 assert.match(runtime, /function simulatePresidentRound/);
 assert.match(runtime, /seasonCareerCore\.simulateFixture/);
 assert.match(runtime, /bez pytań i decyzji boiskowych/);
 assert.match(runtime, /MECZ W TLE/);
+assert.match(runtime, /renderPresidentStrategySelection/);
+assert.match(runtime, /presidentInvestmentsHtml/);
+assert.match(runtime, /presidentSquadProfiles/);
+assert.match(runtime, /POPARCIE ZARZĄDU/);
 assert.doesNotMatch(runtime, /scenarioOdds\s*=/, 'president mode must not alter individual RPG action odds');
 assert.doesNotMatch(runtime, /renderActionPanel\s*=/, 'president mode must not inject president decisions into pitch actions');
 assert.match(achievementBridge, /recordFinish/);
