@@ -44,6 +44,8 @@ assert.deepEqual(initial.transferRoster, []);
 assert.deepEqual(initial.transferHistory, []);
 assert.deepEqual(initial.academyRoster, []);
 assert.deepEqual(initial.academyHistory, []);
+assert.deepEqual(initial.retainedRoster, []);
+assert.deepEqual(initial.playerContractHistory, []);
 assert.deepEqual(initial.playerDevelopmentHistory, []);
 assert.deepEqual(initial.upgradeLevels, { squad:0, staff:0, academy:0, facilities:0, organization:0, community:0 });
 assert.equal(initial.lastUpgradeRound, -99);
@@ -267,6 +269,9 @@ assert.ok(offseasonStarted.offseason.settlement.performanceBonus > 0);
 assert.ok(offseasonStarted.offseason.settlement.maintenanceCost > 0);
 assert.ok(Array.isArray(offseasonStarted.offseason.academyProspects));
 assert.ok(offseasonStarted.offseason.academyProspects.length >= 1);
+assert.equal(offseasonStarted.offseason.playerContractsResolved, true);
+assert.deepEqual(offseasonStarted.offseason.playerContractCases, []);
+assert.deepEqual(offseasonStarted.offseason.retirementNotices, []);
 assert.equal(offseasonStarted.offseason.academyDecisionResolved, false);
 assert.equal(offseasonStarted.offseason.competitionReadinessLevel, 2);
 assert.equal(offseasonStarted.offseason.competitionReadinessResolved, false);
@@ -360,6 +365,9 @@ assert.equal(promotedAcademy.profile.offseason.academyDecisionResolved, true);
 assert.equal(promotedAcademy.profile.academyRoster.length, 1);
 assert.equal(promotedAcademy.profile.academyHistory.at(-1).type, 'promoted');
 assert.equal(promotedAcademy.profile.academyRoster[0].fictional, true);
+assert.equal(promotedAcademy.profile.academyRoster[0].contractYears, 3);
+assert.equal(promotedAcademy.profile.academyRoster[0].contractRemaining, 3);
+assert.equal(promotedAcademy.profile.academyRoster[0].contractRecurring, firstProspect.recurring);
 assert.equal(
   promotedAcademy.profile.budget,
   sponsorContract.profile.budget - firstProspect.developmentCost,
@@ -396,6 +404,11 @@ assert.equal(retained.ok, true);
 assert.equal(retained.profile.offseason.departureResolved, true);
 assert.equal(retained.profile.departureHistory.length, 1);
 assert.equal(retained.profile.departureHistory[0].outcome, 'retain');
+assert.equal(retained.profile.retainedRoster.length, 1);
+assert.equal(retained.profile.retainedRoster[0].playerKey, departureCandidate.playerKey);
+assert.equal(retained.profile.retainedRoster[0].contractYears, 2);
+assert.equal(retained.profile.retainedRoster[0].contractRemaining, 2);
+assert.equal(retained.profile.retainedRoster[0].contractRecurring, departureTerms.retentionRecurring);
 assert.equal(retained.profile.budget, promotedAcademy.profile.budget - departureTerms.retentionCost);
 assert.equal(retained.profile.recurring, promotedAcademy.profile.recurring - departureTerms.retentionRecurring);
 assert.ok(retained.profile.areas.squad > summer.profile.areas.squad);
@@ -421,6 +434,9 @@ assert.equal(signed.profile.transferRoster.length, 1);
 assert.equal(signed.profile.transferHistory.length, 1);
 assert.equal(signed.profile.transferRoster[0].sourceGameRating, 78);
 assert.ok(signed.profile.transferRoster[0].ratings.potential >= 78);
+assert.equal(signed.profile.transferRoster[0].contractYears, 2);
+assert.equal(signed.profile.transferRoster[0].contractRemaining, 2);
+assert.equal(signed.profile.transferRoster[0].contractRecurring, transferTerms.recurring);
 assert.equal(marketCandidate.ratings.game_rating, 78, 'source candidate data must remain unchanged');
 assert.equal(signed.profile.budget, retained.profile.budget - transferTerms.fee);
 assert.equal(signed.profile.recurring, retained.profile.recurring - transferTerms.recurring);
@@ -443,6 +459,10 @@ assert.equal(nextSeason.recurring, closedWindow.profile.recurring, 'contracts an
 assert.deepEqual(nextSeason.upgradeLevels, closedWindow.profile.upgradeLevels, 'investments must carry across seasons');
 assert.deepEqual(nextSeason.transferRoster, closedWindow.profile.transferRoster, 'career signings must carry across seasons');
 assert.deepEqual(nextSeason.academyRoster, closedWindow.profile.academyRoster, 'academy graduates must carry across seasons');
+assert.deepEqual(nextSeason.retainedRoster, closedWindow.profile.retainedRoster, 'retained career players must carry across seasons');
+assert.equal(nextSeason.transferRoster[0].contractRemaining, 2, 'new transfer contract must not tick down immediately');
+assert.equal(nextSeason.academyRoster[0].contractRemaining, 3, 'new academy contract must not tick down immediately');
+assert.equal(nextSeason.retainedRoster[0].contractRemaining, 2, 'new retained-player contract must not tick down immediately');
 assert.deepEqual(nextSeason.seasonHistory, closedWindow.profile.seasonHistory, 'career history must carry across seasons');
 assert.equal(nextSeason.offseason, null, 'the finished offseason should close when the next season starts');
 assert.equal(nextSeason.offseasonHistory.length, 1, 'summer decisions should remain in career history');
@@ -464,6 +484,94 @@ assert.equal(developedForYear3.transferRoster[0].sourceGameRating, sourceTransfe
 assert.equal(marketCandidate.ratings.game_rating, 78, 'career development must never mutate source ŁNP-like candidate data');
 const developedAgain = core.developCareerSquad(developedForYear3, 3);
 assert.equal(developedAgain.playerDevelopmentHistory.length, developedForYear3.playerDevelopmentHistory.length, 'same target season must not apply development twice');
+
+const migratedContract = core.normalizeCareerPlayerContract({ player:'Stary zapis', recurring:25 }, 'transfer');
+assert.equal(migratedContract.contractYears, 2);
+assert.equal(migratedContract.contractRemaining, 2);
+assert.equal(migratedContract.__careerContractMigrated, true);
+
+const expiringProfile = {
+  ...nextSeason,
+  careerYear:3,
+  offseason:null,
+  academyRoster:[{ ...nextSeason.academyRoster[0], contractRemaining:1, promotedCareerYear:1 }],
+  transferRoster:[{ ...nextSeason.transferRoster[0], contractRemaining:1, careerYear:1 }],
+  retainedRoster:[{ ...nextSeason.retainedRoster[0], contractRemaining:1, careerYear:1 }],
+};
+const expiry = core.processCareerPlayerContracts(expiringProfile, { season:'2027/28', careerYear:3 });
+assert.equal(expiry.cases.length, 3);
+assert.equal(expiry.retirements.length, 0);
+assert.ok(expiry.cases.every(item => item.resolved === false));
+assert.ok(expiry.profile.academyRoster.every(item => item.contractRemaining === 0));
+assert.ok(expiry.profile.transferRoster.every(item => item.contractRemaining === 0));
+assert.ok(expiry.profile.retainedRoster.every(item => item.contractRemaining === 0));
+
+let contractDecisionProfile = {
+  ...expiry.profile,
+  budget:20000,
+  offseason:{
+    careerYear:3,
+    season:'2027/28',
+    sponsorDecisionResolved:true,
+    playerContractCases:expiry.cases,
+    playerContractsResolved:false,
+  },
+};
+const firstExpiry = core.currentCareerPlayerContractCase(contractDecisionProfile);
+assert.ok(firstExpiry);
+assert.equal(core.canResolveCareerPlayerContract(contractDecisionProfile, firstExpiry.id, 'renew'), true);
+const renewedCareerPlayer = core.resolveCareerPlayerContract(contractDecisionProfile, firstExpiry.id, 'renew');
+assert.equal(renewedCareerPlayer.ok, true);
+assert.equal(renewedCareerPlayer.event.type, 'renewed');
+assert.ok(renewedCareerPlayer.event.years >= 1);
+assert.equal(renewedCareerPlayer.profile.playerContractHistory.at(-1).type, 'renewed');
+const renewedRoster = renewedCareerPlayer.profile[firstExpiry.rosterKey];
+const renewedPlayer = renewedRoster.find(player => core.normalizeCareerPlayerContract(player, firstExpiry.kind).contractRemaining > 0);
+assert.ok(renewedPlayer);
+assert.ok(Number(renewedPlayer.contractRenewals || 0) >= 1);
+
+const secondExpiry = core.currentCareerPlayerContractCase(renewedCareerPlayer.profile);
+assert.ok(secondExpiry);
+const recurringBeforeRelease = renewedCareerPlayer.profile.recurring;
+const releasedCareerPlayer = core.resolveCareerPlayerContract(renewedCareerPlayer.profile, secondExpiry.id, 'release');
+assert.equal(releasedCareerPlayer.ok, true);
+assert.equal(releasedCareerPlayer.event.type, 'released');
+assert.equal(releasedCareerPlayer.profile[secondExpiry.rosterKey].some(player =>
+  core.normalizeCareerPlayerContract(player, secondExpiry.kind).contractRemaining === 0 &&
+  String(player.player) === String(secondExpiry.player)
+), false);
+assert.ok(releasedCareerPlayer.profile.recurring > recurringBeforeRelease, 'releasing an expiring career player must free recurring cost');
+
+const oldCareerPlayer = {
+  id:'academy:old-veteran',
+  player:'Weteran Kariery',
+  age:37,
+  careerAge:37,
+  promotedCareerYear:1,
+  careerSeasons:5,
+  ratings:{ game_rating:58, potential:58 },
+  recurring:30,
+  contractYears:1,
+  contractRemaining:1,
+  contractRecurring:30,
+  squadGain:2,
+  fictional:true,
+};
+const retirementProfile = {
+  ...initial,
+  careerYear:6,
+  recurring:-30,
+  academyRoster:[oldCareerPlayer],
+  areas:{ ...initial.areas, squad:60 },
+};
+const retirement = core.processCareerPlayerContracts(retirementProfile, { season:'2030/31', careerYear:6 });
+assert.equal(retirement.cases.length, 0);
+assert.equal(retirement.retirements.length, 1);
+assert.equal(retirement.retirements[0].type, 'retired');
+assert.equal(retirement.retirements[0].player, 'Weteran Kariery');
+assert.equal(retirement.profile.academyRoster.length, 0);
+assert.equal(retirement.profile.recurring, 0);
+assert.equal(retirement.profile.playerContractHistory.at(-1).type, 'retired');
 
 // Runtime contract: President v3 remains a board-management mode, not Match RPG.
 assert.match(runtime, /function simulatePresidentRound/);
@@ -528,10 +636,19 @@ assert.match(runtime, /UMOWY WIELOSEZONOWE/);
 assert.match(runtime, /data-sponsor-contract/);
 assert.match(runtime, /Pakiety są fikcyjne/);
 assert.match(runtime, /Aktywne umowy wielosezonowe/);
+assert.match(runtime, /UMOWY KADRY KARIERY/);
+assert.match(runtime, /fikcyjna umowa w alternatywnej karierze/);
+assert.match(runtime, /data-career-contract-id/);
+assert.match(runtime, /Odnów umowę/);
+assert.match(runtime, /Pozwól odejść/);
+assert.match(runtime, /fikcyjny koniec kariery/);
 assert.match(runtime, /NABÓR Z AKADEMII/);
 assert.match(runtime, /FIKCYJNY WYCHOWANEK/);
 assert.match(runtime, /data-academy-prospect/);
 assert.match(runtime, /Nie włączam wychowanka tego lata/);
+assert.match(runtime, /UMOWA KARIERY/);
+assert.match(runtime, /umowa kariery 2 sez/);
+assert.match(runtime, /umowa kariery 3 sez/);
 assert.match(runtime, /nie są używani jako fakty ani pytania quizowe/);
 assert.match(runtime, /president-career-academy/);
 assert.match(runtime, /RUCH WYCHODZĄCY/);
@@ -544,6 +661,7 @@ assert.match(runtime, /data-transfer-player/);
 assert.match(runtime, /fikcyjną mechaniką tej kariery/);
 assert.match(runtime, /Wzmocnienie kariery/);
 assert.match(runtime, /alternatywnej warstwy kariery/);
+assert.match(runtime, /nie opisują realnych kontraktów/);
 assert.match(runtime, /Zamknij okno transferowe/);
 assert.match(runtime, /Przejdź do planowania sezonu/);
 assert.match(lifecycle, /myslenice-president-career-v1/);
