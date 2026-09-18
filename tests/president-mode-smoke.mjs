@@ -38,6 +38,9 @@ assert.equal(initial.strategy, null);
 assert.equal(initial.careerYear, 1);
 assert.equal(initial.seasonsCompleted, 0);
 assert.deepEqual(initial.seasonHistory, []);
+assert.equal(initial.boardMandate, null);
+assert.deepEqual(initial.boardMandateHistory, []);
+assert.equal(core.BOARD_MANDATES.length, 4);
 assert.equal(initial.offseason, null);
 assert.deepEqual(initial.offseasonHistory, []);
 assert.deepEqual(initial.transferRoster, []);
@@ -175,6 +178,62 @@ assert.match(core.money(12000), /12.*000.*zł/);
 assert.ok(core.boardConfidence(healthy, { position:2, teamCount:14 }) > core.boardConfidence(struggling, { position:12, teamCount:14 }));
 assert.equal(core.boardLabel(85), 'pełne poparcie');
 assert.equal(core.employmentLabel(initial), 'stanowisko bezpieczne');
+
+const mandateChoice = core.chooseBoardMandate(initial, 'promotion_path', { competitionLevel:1 });
+assert.equal(mandateChoice.ok, true);
+assert.equal(mandateChoice.profile.boardMandate.status, 'active');
+assert.equal(mandateChoice.profile.boardMandate.startedCareerYear, 1);
+assert.equal(mandateChoice.profile.boardMandate.deadlineCareerYear, 3);
+assert.equal(mandateChoice.profile.boardMandate.target.level, 2);
+assert.equal(core.canChooseBoardMandate(mandateChoice.profile, 'academy_path'), false);
+const openingMandateProgress = core.boardMandateProgress(mandateChoice.profile, { competitionLevel:1, position:6 });
+assert.equal(openingMandateProgress.percent, 0);
+assert.equal(openingMandateProgress.achieved, false);
+
+const mandateOngoing = core.chooseBoardMandate(initial, 'academy_path', { competitionLevel:1 });
+const ongoingSettlement = core.settleBoardMandateSeason(mandateOngoing.profile, {
+  careerYear:1,
+  competitionLevel:1,
+  movement:{ toLevel:1, code:'stay' },
+  position:7,
+});
+assert.equal(ongoingSettlement.outcome, null);
+assert.equal(ongoingSettlement.profile.boardMandate.status, 'active');
+assert.equal(ongoingSettlement.profile.boardMandateHistory.length, 0);
+
+const financeMandate = core.chooseBoardMandate(
+  { ...initial, careerYear:1, budget:5000, recurring:-200 },
+  'financial_stability',
+  { competitionLevel:1 },
+);
+const failedMandate = core.settleBoardMandateSeason(
+  { ...financeMandate.profile, careerYear:2, budget:7000, recurring:-150 },
+  { careerYear:2, competitionLevel:1, movement:{ toLevel:1, code:'stay' }, position:8 },
+);
+assert.equal(failedMandate.outcome, 'failed');
+assert.equal(failedMandate.reputationDelta, -6);
+assert.equal(failedMandate.profile.boardMandate.status, 'failed');
+assert.equal(failedMandate.profile.boardMandateHistory.length, 1);
+assert.equal(failedMandate.profile.jobSecurity.status, 'warning');
+
+const achievedMandate = core.settleBoardMandateSeason(
+  { ...mandateChoice.profile, careerYear:1 },
+  { careerYear:1, competitionLevel:1, movement:{ toLevel:2, code:'promotion' }, position:1 },
+);
+assert.equal(achievedMandate.outcome, 'achieved');
+assert.equal(achievedMandate.reputationDelta, 6);
+assert.equal(achievedMandate.profile.boardMandate.status, 'achieved');
+assert.equal(achievedMandate.profile.boardMandateHistory.length, 1);
+
+const highMandateProgress = core.chooseBoardMandate(
+  { ...initial, areas:{ ...initial.areas, academy:75 }, academyHistory:[
+    { type:'promoted', careerYear:1 },
+    { type:'promoted', careerYear:1 },
+  ] },
+  'academy_path',
+  { competitionLevel:1 },
+);
+assert.ok(core.boardMandateConfidenceModifier(highMandateProgress.profile, { competitionLevel:1 }) > 0);
 const sampleOffer = {
   club:'Beskid',
   fromClub:'Clavia',
@@ -186,7 +245,7 @@ const sampleOffer = {
 const offerTerms = core.jobOfferTerms(sampleOffer);
 assert.ok(offerTerms.budget >= 9000);
 const switched = core.acceptJobOffer({
-  ...initial,
+  ...mandateChoice.profile,
   budget:25000,
   recurring:-500,
   upgradeLevels:{ squad:3, staff:2, academy:1, facilities:2, organization:1, community:2 },
@@ -202,6 +261,8 @@ assert.deepEqual(switched.profile.departedPlayerKeys, []);
 assert.equal(switched.profile.jobSecurity.status, 'secure');
 assert.equal(switched.profile.employmentHistory.length, 1);
 assert.equal(switched.profile.employmentHistory[0].toClub, 'Beskid');
+assert.equal(switched.profile.boardMandate, null);
+assert.equal(switched.profile.boardMandateHistory.at(-1).status, 'abandoned');
 const pressureBase = {
   ...struggling,
   budget:500,
@@ -262,6 +323,20 @@ assert.equal(completed.reputationHistory[0].type, 'season');
 assert.ok(completed.seasonHistory[0].reputationDelta > 0);
 assert.equal(completed.seasonHistory[0].reputationAfter, completed.reputation);
 assert.equal(core.seasonVerdict({ position:1, target:3 }).label, 'Mistrz ligi');
+
+const strategyWithMandate = core.chooseBoardMandate(strategy.profile, 'promotion_path', { competitionLevel:1 });
+const completedMandate = core.completeSeason(strategyWithMandate.profile, {
+  season:'2025/26', club:'Clavia', position:1, points:61,
+  wins:19, draws:4, losses:3, gf:70, ga:28, target:3, boardConfidence:92,
+  competitionLevel:1, competitionLabel:'A klasa Myślenice', teamCount:14,
+});
+assert.equal(completedMandate.boardMandate.status, 'achieved');
+assert.equal(completedMandate.seasonHistory[0].mandateOutcome, 'achieved');
+assert.equal(
+  completedMandate.seasonHistory[0].reputationDelta,
+  completed.seasonHistory[0].reputationDelta + 6,
+);
+assert.ok(completedMandate.reputation > completed.reputation);
 
 const offseasonStarted = core.beginOffseason(completed);
 assert.equal(offseasonStarted.ok, true);
@@ -579,6 +654,12 @@ assert.match(runtime, /seasonCareerCore\.simulateFixture/);
 assert.match(runtime, /bez pytań i decyzji boiskowych/);
 assert.match(runtime, /MECZ W TLE/);
 assert.match(runtime, /renderPresidentStrategySelection/);
+assert.match(runtime, /WIELOSEZONOWY MANDAT ZARZĄDU/);
+assert.match(runtime, /data-board-mandate/);
+assert.match(runtime, /Mandat wieloletni jest ustalony/);
+assert.match(runtime, /MANDAT ZARZĄDU/);
+assert.match(runtime, /Poprzedni mandat/);
+assert.match(runtime, /Najpierw wybierz wielosezonowy mandat zarządu/);
 assert.match(runtime, /decisionTrigger/);
 assert.match(runtime, /DLACZEGO TERAZ/);
 assert.match(runtime, /presidentInvestmentsHtml/);
