@@ -800,9 +800,10 @@ assert.match(runtime, /data-board-mandate/);
 assert.match(runtime, /Mandat wieloletni jest ustalony/);
 assert.match(runtime, /DZIEŃ MECZOWY/);
 assert.match(runtime, /data-matchday-policy/);
-assert.match(runtime, /Lokalny i dostępny/);
-assert.match(runtime, /Standard klubowy/);
-assert.match(runtime, /Mocniej komercyjny/);
+assert.deepEqual(
+  core.MATCHDAY_POLICIES.map(item => item.label),
+  ['Lokalny i dostępny', 'Standard klubowy', 'Mocniej komercyjny'],
+);
 assert.match(runtime, /symulowaną frekwencję, przychód na kibica/);
 assert.match(runtime, /model wybrany na cały sezon/);
 assert.match(runtime, /presidentEnsureMatchdayPolicy/);
