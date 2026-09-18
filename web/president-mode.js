@@ -1,4 +1,4 @@
-// President mode v2: manage the club around football; matches are simulated in the background.
+// President mode v4: manage the club around football; matches are simulated in the background.
 // Financial values, trust and department ratings are fictional game systems, not real club data.
 const presidentModeCore = globalThis.PresidentModeCore;
 const presidentBaseStartGame = startGame;
@@ -486,59 +486,249 @@ function renderPresidentRoundOutcome(context = {}) {
   return true;
 }
 
+
+function presidentNextSeasonLabel(label) {
+  const match = String(label || '').match(/^(\d{4})\/(\d{2})/);
+  if (!match) return 'kolejny sezon';
+  const start = Number(match[1]) + 1;
+  return \`\${start}/\${String((start + 1) % 100).padStart(2, '0')}\`;
+}
+
+function presidentNextSeasonPlan(previousCareer) {
+  const nextSeason = presidentNextSeasonLabel(previousCareer?.season);
+  const hasOfficialSeason = Array.isArray(state.seasons) && state.seasons.includes(nextSeason);
+  const hasClubProfile = (state.playerCharacters || []).some(
+    player => player?.season === nextSeason && player?.club === previousCareer?.club
+  );
+
+  if (hasOfficialSeason && hasClubProfile) {
+    const clubs = seasonCareerCore.clubsForSeason(
+      state.playerCharacters || [],
+      state.all || [],
+      nextSeason,
+    );
+    if (clubs.length >= 6 && clubs.includes(previousCareer.club)) {
+      return {
+        season:nextSeason,
+        club:previousCareer.club,
+        clubs,
+        strengths:seasonCareerCore.strengthMap(state.playerCharacters || [], clubs, nextSeason),
+        simulated:false,
+        sourceSeason:nextSeason,
+      };
+    }
+  }
+
+  return {
+    season:nextSeason,
+    club:previousCareer.club,
+    clubs:[...(previousCareer?.clubs || [])],
+    strengths:{ ...(previousCareer?.strengths || {}) },
+    simulated:true,
+    sourceSeason:previousCareer?.sourceSeason || previousCareer?.season || null,
+  };
+}
+
+function presidentCareerFromPlan(plan) {
+  const rounds = seasonCareerCore.roundRobin(plan.clubs);
+  return {
+    active:true,
+    season:plan.season,
+    club:plan.club,
+    clubs:[...plan.clubs],
+    rounds,
+    roundIndex:0,
+    table:seasonCareerCore.createTable(plan.clubs),
+    strengths:{ ...plan.strengths },
+    objective:seasonCareerCore.objective(plan.clubs.length),
+    development:{},
+    history:[],
+    currentFixture:null,
+    matchResolved:false,
+    completed:false,
+    presidentSimulatedSeason:Boolean(plan.simulated),
+    sourceSeason:plan.sourceSeason || plan.season,
+  };
+}
+
+function presidentCareerHistoryHtml(profile) {
+  const seasons = [...(profile?.seasonHistory || [])].reverse();
+  if (!seasons.length) return '';
+  return \`
+    <details class="president-career-history">
+      <summary><span><strong>📚 Historia kariery</strong><small>\${seasons.length} zakończonych sezonów</small></span><em>Pokaż</em></summary>
+      <div class="president-career-history-list">
+        \${seasons.map(item => {
+          const verdict = presidentModeCore.seasonVerdict({ position:item.position, target:item.target });
+          return \`<div class="president-career-history-row">
+            <span><strong>Sezon \${item.careerYear} · \${presidentEscape(item.season)}</strong><small>\${item.simulated ? 'symulowany sezon kariery' : 'sezon oparty na bazie ŁNP'}</small></span>
+            <span><b>\${item.position}.</b><small>\${item.points} pkt · \${item.wins}-\${item.draws}-\${item.losses}</small></span>
+            <span class="president-history-verdict \${verdict.tone}">\${verdict.icon} \${presidentEscape(verdict.label)}</span>
+          </div>\`;
+        }).join('')}
+      </div>
+    </details>\`;
+}
+
+function finalizePresidentSeasonProfile(profile, career) {
+  const year = Number(profile?.careerYear || 1);
+  const existing = (profile?.seasonHistory || []).some(item => Number(item.careerYear) === year);
+  if (existing) return profile;
+
+  const position = seasonCareerCore.position(career.table, career.club) || Object.keys(career.table || {}).length || 1;
+  const row = career.table?.[career.club] || {};
+  const board = presidentBoardContext(profile, career);
+  return presidentModeCore.completeSeason(profile, {
+    season:career.season,
+    club:career.club,
+    simulated:Boolean(career.presidentSimulatedSeason),
+    position,
+    points:Number(row.points || 0),
+    wins:Number(row.wins || 0),
+    draws:Number(row.draws || 0),
+    losses:Number(row.losses || 0),
+    gf:Number(row.gf || 0),
+    ga:Number(row.ga || 0),
+    target:board.target,
+    boardConfidence:board.confidence,
+  });
+}
+
+function startNextPresidentSeason() {
+  const previousCareer = careerState();
+  if (!previousCareer || !state.presidentMode) return false;
+  state.presidentMode = finalizePresidentSeasonProfile(state.presidentMode, previousCareer);
+  const plan = presidentNextSeasonPlan(previousCareer);
+  if (!plan.clubs.length || !plan.club) return false;
+
+  const nextCareer = presidentCareerFromPlan(plan);
+  state.seasonCareer = nextCareer;
+  state.presidentMode = presidentModeCore.prepareNextSeason(
+    state.presidentMode,
+    nextCareer.rounds.length,
+  );
+
+  const from = el('season-from');
+  const to = el('season-to');
+  if (!plan.simulated && from?.querySelector(\`option[value="\${plan.season}"]\`)) {
+    from.value = plan.season;
+    if (to) to.value = plan.season;
+  }
+
+  const panel = ensurePresidentDecisionPanel();
+  panel?.classList.remove('hidden');
+  if (el('status')) {
+    el('status').textContent = plan.simulated
+      ? \`Kariera prezesa · sezon \${state.presidentMode.careerYear} · \${plan.season} (symulacja dalszej kariery)\`
+      : \`Kariera prezesa · sezon \${state.presidentMode.careerYear} · \${plan.season} · baza ŁNP\`;
+  }
+  return renderPresidentStrategySelection();
+}
+
+function finishPresidentCareer() {
+  const panel = ensurePresidentDecisionPanel();
+  panel?.classList.add('hidden');
+  state.presidentMode = null;
+  state.seasonCareer = null;
+  if (typeof frontGameStarted !== 'undefined') frontGameStarted = false;
+  if (typeof showLanding === 'function') {
+    showLanding();
+    return;
+  }
+  if (el('status')) {
+    el('status').textContent = 'Kariera prezesa zakończona. Możesz rozpocząć nową.';
+    el('status').classList.remove('hidden');
+  }
+}
+
 function renderPresidentSeasonFinal(lastRound = null) {
-  const profile = state.presidentMode;
+  let profile = state.presidentMode;
   const career = careerState();
   const panel = ensurePresidentDecisionPanel();
   if (!profile || !career || !panel) return false;
+
   hidePresidentGameSurfaces();
+  profile = finalizePresidentSeasonProfile(profile, career);
+  state.presidentMode = profile;
+
   const position = seasonCareerCore.position(career.table, career.club) || '—';
   const row = career.table?.[career.club] || {};
-  const avgTrust = presidentModeCore.averageTrust(profile);
-  const avgAreas = presidentModeCore.averageAreas(profile);
   const board = presidentBoardContext(profile, career);
   const strategy = presidentStrategy(profile);
-  const decisionCount = (profile.history || []).filter(item => item.decisionId).length;
-  panel.innerHTML = `
+  const verdict = presidentModeCore.seasonVerdict({ position, target:board.target });
+  const seasonDecisionCount = (profile.history || []).filter(
+    item => item.decisionId && Number(item.careerYear || 1) === Number(profile.careerYear || 1)
+  ).length;
+  const nextSeason = presidentNextSeasonLabel(career.season);
+  const sourceNote = career.presidentSimulatedSeason
+    ? 'Ten sezon kariery był symulowany na bazie ostatniego dostępnego składu i profilu ligi.'
+    : 'Kluby i profile tego sezonu pochodzą z dostępnej bazy ŁNP.';
+
+  panel.innerHTML = \`
     <div class="president-season-final">
-      <div class="president-finale-kicker">👔 KONIEC SEZONU PREZESA</div>
-      <h2>${presidentEscape(career.club)} · ${presidentEscape(career.season)}</h2>
-      ${lastRound?.fixture ? `<div class="president-last-match"><small>OSTATNI MECZ W TLE</small><strong>${presidentMatchScore(lastRound)}</strong></div>` : ''}
-      <div class="president-finale-grid">
-        <span><small>MIEJSCE</small><strong>${position}.</strong></span>
-        <span><small>PUNKTY</small><strong>${row.points || 0}</strong></span>
-        <span><small>BUDŻET GRY</small><strong>${presidentModeCore.money(profile.budget)}</strong></span>
-        <span><small>KONDYCJA KLUBU</small><strong>${avgAreas}/100</strong><em>${presidentModeCore.areaLabel(avgAreas)}</em></span>
-        <span><small>ZAUFANIE</small><strong>${avgTrust}/100</strong><em>${presidentModeCore.trustLabel(avgTrust)}</em></span>
-        <span><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><em>${presidentModeCore.boardLabel(board.confidence)}</em></span>
-        <span><small>PLAN SEZONU</small><strong>${strategy ? presidentEscape(strategy.label) : "—"}</strong><em>cel TOP ${board.target}</em></span>
-        <span><small>DECYZJE</small><strong>${decisionCount}</strong></span>
+      <section class="president-season-hero \${verdict.tone}">
+        <div class="president-season-hero-icon">\${verdict.icon}</div>
+        <div>
+          <small>SEZON \${profile.careerYear} ZAKOŃCZONY · \${presidentEscape(career.season)}</small>
+          <h2>\${presidentEscape(verdict.label)}</h2>
+          <p>\${presidentEscape(career.club)} kończy rozgrywki na <strong>\${position}. miejscu</strong>. Cel zarządu: TOP \${board.target}.</p>
+        </div>
+      </section>
+
+      \${lastRound?.fixture ? \`<div class="president-last-match compact"><small>OSTATNI MECZ</small><strong>\${presidentMatchScore(lastRound)}</strong></div>\` : ''}
+
+      <section class="president-final-primary" aria-label="Najważniejsze wyniki sezonu">
+        <div><small>MIEJSCE</small><strong>\${position}.</strong><span>cel TOP \${board.target}</span></div>
+        <div><small>PUNKTY</small><strong>\${Number(row.points || 0)}</strong><span>\${Number(row.played || 0)} meczów</span></div>
+        <div><small>BILANS</small><strong>\${Number(row.wins || 0)}–\${Number(row.draws || 0)}–\${Number(row.losses || 0)}</strong><span>W–R–P</span></div>
+        <div><small>BRAMKI</small><strong>\${Number(row.gf || 0)}:\${Number(row.ga || 0)}</strong><span>bilans \${Number(row.gf || 0) - Number(row.ga || 0) >= 0 ? '+' : ''}\${Number(row.gf || 0) - Number(row.ga || 0)}</span></div>
+      </section>
+
+      <section class="president-board-summary">
+        <div class="president-board-score">
+          <small>POPARCIE ZARZĄDU</small>
+          <strong>\${board.confidence}/100</strong>
+          <span>\${presidentEscape(presidentModeCore.boardLabel(board.confidence))}</span>
+        </div>
+        <div class="president-board-copy">
+          <strong>\${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : 'Plan sezonu zakończony'}</strong>
+          <span>Budżet: \${presidentModeCore.money(profile.budget)} · decyzje w sezonie: \${seasonDecisionCount} · kondycja klubu: \${presidentModeCore.averageAreas(profile)}/100</span>
+          <small>\${presidentEscape(sourceNote)}</small>
+        </div>
+      </section>
+
+      \${presidentWarningsHtml(profile, career)}
+      \${presidentCareerHistoryHtml(profile)}
+
+      <div class="president-final-details">
+        <details class="president-club-details">
+          <summary><span><strong>🏢 Kondycja klubu</strong><small>działy i zaufanie</small></span><em>Pokaż</em></summary>
+          <div class="president-area-grid">\${presidentAreaRows(profile.areas)}</div>
+          <div class="president-trust-grid">\${presidentTrustRows(profile.trust)}</div>
+        </details>
+        \${presidentSquadHtml(career)}
+        <details class="president-table-details">
+          <summary><span><strong>📊 Końcowa tabela</strong><small>\${position}. miejsce · \${Number(row.points || 0)} pkt</small></span><em>Pokaż</em></summary>
+          \${typeof renderCareerTableHtml === 'function' ? renderCareerTableHtml() : ''}
+        </details>
       </div>
-      ${presidentWarningsHtml(profile, career)}
-      ${presidentSquadHtml(career)}
-      <details class="president-club-details" open>
-        <summary><span><strong>🏢 Klub po sezonie</strong><small>pełne podsumowanie obszarów</small></span><em>Ukryj</em></summary>
-        <div class="president-area-grid">${presidentAreaRows(profile.areas)}</div>
-        <div class="president-trust-grid">${presidentTrustRows(profile.trust)}</div>
-      </details>
-      <details class="president-table-details"><summary><span><strong>📊 Końcowa tabela</strong><small>${position}. miejsce · ${row.points || 0} pkt</small></span><em>Pokaż</em></summary>${typeof renderCareerTableHtml === 'function' ? renderCareerTableHtml() : ''}</details>
-      <small class="president-disclaimer">Cały tryb prezesa jest symulacją gry. Realne są nazwy klubów i bazowe profile sezonu; finanse, decyzje organizacyjne i wskaźniki klubu są fikcyjne.</small>
-      <button type="button" class="president-new-season">Nowy sezon prezesa</button>
-    </div>`;
+
+      <section class="president-next-season-box">
+        <span><small>KARIERA TRWA DALEJ</small><strong>Sezon \${Number(profile.careerYear || 1) + 1} · \${presidentEscape(nextSeason)}</strong></span>
+        <p>Budżet, inwestycje, stałe umowy i reputacja zostają w klubie. Na początku nowego sezonu wybierzesz kolejny plan zarządu.</p>
+        <button type="button" class="president-continue-career">Kontynuuj karierę →</button>
+        <button type="button" class="president-end-career">Zakończ karierę</button>
+      </section>
+
+      <small class="president-disclaimer">Finanse, strategie i wskaźniki są mechaniką gry. Po wyczerpaniu dostępnych sezonów ŁNP dalsze lata są wyraźnie oznaczoną symulacją kariery.</small>
+    </div>\`;
+
   panel.classList.remove('hidden');
-  panel.querySelector('.president-new-season')?.addEventListener('click', () => {
-    state.presidentMode = null;
-    state.seasonCareer = null;
-    panel.classList.add('hidden');
-    if (typeof frontGameStarted !== 'undefined') frontGameStarted = false;
-    if (el('status')) {
-      el('status').textContent = 'Wybierz klub i sezon, a następnie rozpocznij nowy sezon prezesa.';
-      el('status').classList.remove('hidden');
-    }
-    syncPresidentSetup();
-    document.querySelector('.game-setup')?.scrollIntoView({ behavior:'smooth', block:'start' });
-  });
-  if (el('status')) el('status').textContent = `Koniec sezonu prezesa · ${position}. miejsce · ${row.points || 0} pkt`;
+  panel.querySelector('.president-continue-career')?.addEventListener('click', startNextPresidentSeason);
+  panel.querySelector('.president-end-career')?.addEventListener('click', finishPresidentCareer);
+  if (el('status')) {
+    el('status').textContent = \`Kariera prezesa · sezon \${profile.careerYear} zakończony · \${position}. miejsce · \${row.points || 0} pkt\`;
+  }
   window.scrollTo({ top:0, behavior:'smooth' });
   return true;
 }
@@ -581,11 +771,11 @@ startGame = function presidentStartGame() {
     state.seasonCareer = null;
     if (!initializeSeasonCareer()) return false;
     state.presidentMode = presidentModeCore.initialState(careerState()?.rounds?.length || 0);
-  } else if (!state.seasonCareer?.active || state.seasonCareer.completed) {
-    state.presidentMode = null;
+  } else if (!state.seasonCareer?.active) {
     state.seasonCareer = null;
     if (!initializeSeasonCareer()) return false;
-    state.presidentMode = presidentModeCore.initialState(careerState()?.rounds?.length || 0);
+  } else if (state.seasonCareer.completed) {
+    return renderPresidentSeasonFinal();
   }
 
   if (!state.presidentMode?.strategy) return renderPresidentStrategySelection();
