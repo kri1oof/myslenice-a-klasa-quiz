@@ -88,18 +88,6 @@
       };
     }
 
-    if (/counter|advance|create_chance|setup_chance|attack|midfield|opening|build/.test(text)) {
-      return {
-        id:'build_up',
-        label:'Budowanie akcji · składy i zawodnicy',
-        categories:{ sklady:22, zawodnicy:18, mecze:8 },
-        patterns:[
-          [/starting_xi|captain|player_match|match_player|substitution/, 22],
-          [/scorer|player_season/, 12],
-        ],
-      };
-    }
-
     if (ctx.minute >= 80 || /late_drama|late|stoppage/.test(text)) {
       return {
         id:'late_game',
@@ -108,6 +96,18 @@
         patterns:[
           [/match_score|match_winner|scorer_minute|goal_minute|late|comeback/, 30],
           [/h2h|streak|round|weekday|date/, 14],
+        ],
+      };
+    }
+
+    if (/counter|advance|create_chance|setup_chance|attack|midfield|opening|build/.test(text)) {
+      return {
+        id:'build_up',
+        label:'Budowanie akcji · składy i zawodnicy',
+        categories:{ sklady:22, zawodnicy:18, mecze:8 },
+        patterns:[
+          [/starting_xi|captain|player_match|match_player|substitution/, 22],
+          [/scorer|player_season/, 12],
         ],
       };
     }
