@@ -3,84 +3,68 @@
   "version": 4,
   "count": 115232,
   "clubs": {
-    "BESKID TOKARNIA": {
+    "Beskid Tokarnia": {
       "slug": "beskid-tokarnia",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/5/1/3/68766c30a893e47ddc14b315__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male",
       "short_name": "Beskid",
       "city": "Tokarnia",
-      "crest": "assets/crests/beskid-tokarnia.jpg",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/130/f/e/0b462c3f68a50d00fb24a26cc829bde6f4f86d.jpg",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/174"
+      "crest": "assets/crests/beskid-tokarnia.jpg"
     },
-    "CLAVIA ŚWIĄTNIKI GÓRNE": {
+    "Clavia Świątniki Górne": {
       "slug": "clavia-swiatniki-gorne",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/4/1/6/632444aa92382fb95583a614__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male",
       "short_name": "Clavia",
       "city": "Świątniki Górne",
-      "crest": "assets/crests/clavia-swiatniki-gorne.jpg",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/130/a/0/458ab663d0ae952a5e60ef7d0a35b5923962b3.jpg",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/5058"
+      "crest": "assets/crests/clavia-swiatniki-gorne.jpg"
     },
     "Cyrhla Krzczonów": {
       "slug": "cyrhla-krzczonow",
       "short_name": "Cyrhla",
       "city": "Krzczonów",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.ktowygral.info/druzyna/cyrhla-krzczonow"
     },
-    "DALIN II MYŚLENICE": {
+    "Dalin II Myślenice": {
       "slug": "dalin-ii-myslenice",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/9/2/7/6aab9090a893e47ddc151729__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male",
       "short_name": "Dalin II",
-      "city": "Myślenice",
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": "https://www.ktowygral.info/druzyna/dalin-ii-myslenice"
+      "city": "Myślenice"
     },
-    "DZIECANOVIA DZIEKANOWICE": {
+    "Dziecanovia Dziekanowice": {
       "slug": "dziecanovia-dziekanowice",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/5/3/e/630e0ad792382fb955839e35__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male",
       "short_name": "Dziecanovia",
       "city": "Dziekanowice",
-      "crest": "assets/crests/dziecanovia-dziekanowice.jpg",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/45/9/9/ba391ffcbef933cb03dca5534c733f71b4c394.jpg",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/209"
+      "crest": "assets/crests/dziecanovia-dziekanowice.jpg"
     },
     "Dalin Myślenice": {
-      "slug": "dalin-myslenice",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
+      "slug": "dalin-myslenice"
     },
     "Dalin Myślenice B1 Junior młodszy": {
-      "slug": "dalin-myslenice-b1-junior-mlodszy",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
+      "slug": "dalin-myslenice-b1-junior-mlodszy"
     },
-    "GOŚCIBIA SUŁKOWICE": {
+    "Gościbia Sułkowice": {
       "slug": "goscibia-sulkowice",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/a/e/630e677392382fb955839ea6__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male",
       "short_name": "Gościbia",
       "city": "Sułkowice",
-      "crest": "assets/crests/goscibia-sulkowice.jpg",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/130/3/4/2dafd302d00c24c60efe0a87ed3b54fb92ecba.jpg",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/213"
+      "crest": "assets/crests/goscibia-sulkowice.jpg"
     },
-    "GRODZISKO RACIECHOWICE": {
+    "Grodzisko Raciechowice": {
       "slug": "grodzisko-raciechowice",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/d/5/e/63fca3f0a893e47ddc067e5d__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=4be7b40c-84ff-4e5a-96e5-875d7f13483a&group=e8609430-5f3f-4dea-8aac-c2184e985bfc&genderType=Male",
       "short_name": "Grodzisko",
-      "city": "Raciechowice",
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": "https://www.ktowygral.info/druzyna/grodzisko-raciechowice"
+      "city": "Raciechowice"
     },
     "Gdovia Gdów": {
       "slug": "gdovia-gdow",
       "short_name": "Gdovia",
       "city": "Gdów",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.ktowygral.info/druzyna/gdovia-gdow"
     },
     "Górki Myślenice": {
@@ -99,132 +83,108 @@
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/b/9/c/628b2eeb92382fb955838c9b__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=49712e9d-0b6f-4e54-8a9c-597551d30df1&group=b59f8b14-42ca-4c52-b899-47cb6fbccf1d&genderType=Male"
     },
-    "ISKRA BRZĄCZOWICE": {
+    "Iskra Brzączowice": {
       "slug": "iskra-brzaczowice",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/1/5/7/6a7e3274a893e47ddc150751__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male",
       "short_name": "Iskra Brzączowice",
       "city": "Brzączowice",
-      "crest": "assets/crests/iskra-brzaczowice.png",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/130/f/b/27d8538db42c74647b597fb7edc2b5e1a2be59.png",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/2351"
+      "crest": "assets/crests/iskra-brzaczowice.png"
     },
-    "ISKRA GŁOGOCZÓW": {
+    "Iskra Głogoczów": {
       "slug": "iskra-glogoczow",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male",
       "short_name": "Iskra Głogoczów",
       "city": "Głogoczów",
       "crest": "assets/crests/iskra-glogoczow.png",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/130/a/1/abdf7c43026fb8de9b16fd5c8e54c1e38e5bca.png",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/6709"
+      "crest_remote_url": "https://static.futbolowo.pl/assets/130/a/1/abdf7c43026fb8de9b16fd5c8e54c1e38e5bca.png"
     },
     "Jordan Sum Zakliczyn": {
       "slug": "jordan-sum-zakliczyn",
       "short_name": "Jordan",
       "city": "Zakliczyn",
-      "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/b/9/e/61102d18eeb389649d4a9e9b__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
     },
-    "KARPATY SIEPRAW": {
+    "Karpaty Siepraw": {
       "slug": "karpaty-siepraw",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/3/8/e/64423014a893e47ddc068e83__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=02117303-7b42-4b50-892a-1c40d983624d&group=49e14d83-8901-415d-a054-0e5889376493&genderType=Male",
       "short_name": "Karpaty",
-      "city": "Siepraw",
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": "https://www.ktowygral.info/druzyna/karpaty-siepraw"
+      "city": "Siepraw"
     },
     "Krakus Swoszowice (Kraków)": {
       "slug": "krakus-swoszowice-krakow",
       "short_name": "Krakus",
       "city": "Swoszowice",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.ktowygral.info/druzyna/krakus-swoszowice-krakow"
     },
     "LKS Libertów": {
       "slug": "lks-libertow",
       "short_name": "Libertów",
       "city": "Libertów",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.ktowygral.info/druzyna/lks-libertow"
     },
     "LKS Mogilany": {
       "slug": "lks-mogilany",
       "short_name": "Mogilany",
       "city": "Mogilany",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=7cad69c6-c7a9-4a9d-9641-0e7ef9ce6b75&group=06884f67-96cf-4fac-aefa-35e0c190dbd4&genderType=Male"
     },
-    "LKS RUDNIK": {
+    "LKS Rudnik": {
       "slug": "lks-rudnik",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/1/3/f/6446d0dda893e47ddc068f31__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male",
       "short_name": "Rudnik",
       "city": "Rudnik",
-      "crest": "assets/crests/lks-rudnik.png",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/130/c/3/56e0b4bf2696cdb16fee76d351eaddf3f3e0bc.png",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/147"
+      "crest": "assets/crests/lks-rudnik.png"
     },
     "LKS Rudnik II": {
       "slug": "lks-rudnik-ii",
       "short_name": "Rudnik II",
       "city": "Rudnik",
-      "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/1/3/f/6446d0dda893e47ddc068f31__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=7cad69c6-c7a9-4a9d-9641-0e7ef9ce6b75&group=06884f67-96cf-4fac-aefa-35e0c190dbd4&genderType=Male"
     },
-    "LKS TRZEBUNIA": {
+    "LKS Trzebunia": {
       "slug": "lks-trzebunia",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/9/f/61b2534794a3b9d06f427f96__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male",
       "short_name": "Trzebunia",
-      "city": "Trzebunia",
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": "https://www.ktowygral.info/druzyna/lks-trzebunia"
+      "city": "Trzebunia"
     },
-    "LUBOMIR WIŚNIOWA": {
+    "Lubomir Wiśniowa": {
       "slug": "lubomir-wisniowa",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/3/3/c/630cc26492382fb955839c33__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=2c1a6e1d-bf4d-41e9-8a2f-fa1b994104ba&group=277923ac-b847-4b3e-9b4c-8e6af355b2c8&genderType=Male",
       "short_name": "Lubomir",
-      "city": "Wiśniowa",
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": "https://www.ktowygral.info/druzyna/lubomir-wisniowa"
+      "city": "Wiśniowa"
     },
-    "ORZEŁ NOWA WIEŚ": {
+    "Orzeł Nowa Wieś": {
       "slug": "orzel-nowa-wies",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/2/5/1/62c53a5a92382fb955839152__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male",
       "short_name": "Orzeł",
       "city": "Nowa Wieś",
-      "crest": "assets/crests/orzel-nowa-wies.jpg",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/130/0/c/1d84e02f1a8476ea3bb78843614f67b807a7fa.jpg",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/163"
+      "crest": "assets/crests/orzel-nowa-wies.jpg"
     },
     "Opatkowianka": {
       "slug": "opatkowianka",
       "short_name": "Opatkowianka",
       "city": "Opatkowice",
-      "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/c/e/8/6305348392382fb9558398ec__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Opatkowianka Opatkowice": {
-      "slug": "opatkowianka-opatkowice",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
+      "slug": "opatkowianka-opatkowice"
     },
     "Orzeł": {
-      "slug": "orzel",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
+      "slug": "orzel"
     },
     "Orzeł Myślenice": {
       "slug": "orzel-myslenice",
       "short_name": "Orzeł Myślenice",
       "city": "Myślenice",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.ktowygral.info/druzyna/orzel-myslenice"
     },
     "Pasternik Ochojno": {
@@ -237,9 +197,6 @@
     },
     "Pcimianka II Pcim": {
       "slug": "pcimianka-ii-pcim",
-      "short_name": null,
-      "city": null,
-      "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/d/6/1/6313a6a392382fb95583a16d__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=29d748c8-3e54-4a3d-8f94-368614f481a4&group=117c3104-3b8d-4d6d-b770-bf4ad1cb2789&genderType=Male"
     },
@@ -247,41 +204,31 @@
       "slug": "pcimianka-pcim",
       "short_name": "Pcimianka",
       "city": "Pcim",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.ktowygral.info/druzyna/pcimianka-pcim"
     },
     "Raba Dobczyce": {
       "slug": "raba-dobczyce",
       "short_name": "Raba",
       "city": "Dobczyce",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.ktowygral.info/druzyna/raba-dobczyce"
     },
     "Rokita Kornatka": {
       "slug": "rokita-kornatka",
       "short_name": "Rokita",
       "city": "Kornatka",
-      "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/a/5/f/64edb550a893e47ddc06af5a__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=7cad69c6-c7a9-4a9d-9641-0e7ef9ce6b75&group=06884f67-96cf-4fac-aefa-35e0c190dbd4&genderType=Male"
     },
     "Rokita Kornatka A2 Junior starszy": {
-      "slug": "rokita-kornatka-a2-junior-starszy",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
+      "slug": "rokita-kornatka-a2-junior-starszy"
     },
-    "SKALNIK TRZEMEŚNIA": {
+    "Skalnik Trzemeśnia": {
       "slug": "skalnik-trzemesnia",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/b/7/3/61491bbf94a3b9d06f42737b__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male",
       "short_name": "Skalnik",
       "city": "Trzemeśnia",
-      "crest": "assets/crests/skalnik-trzemesnia.png",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/130/d/b/bacd1fc1e8298b635c27a43965d50d6466677c.png",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/222"
+      "crest": "assets/crests/skalnik-trzemesnia.png"
     },
     "Sokół Borzęta": {
       "slug": "sokol-borzeta",
@@ -292,20 +239,10 @@
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male"
     },
     "Sparta Kazimierza Wielka": {
-      "slug": "sparta-kazimierza-wielka",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
+      "slug": "sparta-kazimierza-wielka"
     },
     "Sparta Szczekociny Sparta Szczekociny": {
-      "slug": "sparta-szczekociny-sparta-szczekociny",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
+      "slug": "sparta-szczekociny-sparta-szczekociny"
     },
     "Staw Polanka": {
       "slug": "staw-polanka",
@@ -319,7 +256,6 @@
       "slug": "szczebel-lubien",
       "short_name": "Szczebel",
       "city": "Lubień",
-      "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/9/3/8/6300feb392382fb955839839__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
     },
@@ -327,15 +263,12 @@
       "slug": "sep-droginia",
       "short_name": "Sęp",
       "city": "Droginia",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Tempo Rzeszotary": {
       "slug": "tempo-rzeszotary",
       "short_name": "Tempo",
       "city": "Rzeszotary",
-      "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/2/b/7/652ac410a893e47ddc06e7b2__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
     },
@@ -351,7 +284,6 @@
       "slug": "wicher-stroza",
       "short_name": "Wicher",
       "city": "Stróża",
-      "crest": null,
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/f/8/1/66fd0dd5a893e47ddc08218f__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
     },
@@ -359,119 +291,36 @@
       "slug": "wrzosy-osieczany",
       "short_name": "Wrzosy",
       "city": "Osieczany",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
     },
     "Wróblowianka Wróblowice (Kraków)": {
       "slug": "wroblowianka-wroblowice-krakow",
       "short_name": "Wróblowianka",
       "city": "Wróblowice",
-      "crest": null,
-      "crest_remote_url": null,
       "crest_source_url": "https://www.ktowygral.info/druzyna/wroblowianka-wroblowice-krakow"
     },
     "Węgrzcanka Węgrzce Wielkie": {
-      "slug": "wegrzcanka-wegrzce-wielkie",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
+      "slug": "wegrzcanka-wegrzce-wielkie"
     },
-    "ZIELONKA WRZĄSOWICE": {
+    "Zielonka Wrząsowice": {
       "slug": "zielonka-wrzasowice",
+      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/4/e/66d41e9ea893e47ddc07be46__w64",
+      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=7cad69c6-c7a9-4a9d-9641-0e7ef9ce6b75&group=06884f67-96cf-4fac-aefa-35e0c190dbd4&genderType=Male",
       "short_name": "Zielonka",
       "city": "Wrząsowice",
-      "crest": "assets/crests/zielonka-wrzasowice.png",
-      "crest_remote_url": "https://static.futbolowo.pl/assets/45/c/d/b096adee6162ab7435f2325e00f38c966de67e.png",
-      "crest_source_url": "https://dziecanovia.futbolowo.pl/club/225"
+      "crest": "assets/crests/zielonka-wrzasowice.png"
     },
     "Za artyzm punktów nie ma: Błękitni": {
-      "slug": "za-artyzm-punktow-nie-ma-blekitni",
-      "short_name": null,
-      "city": null,
-      "crest": null,
-      "crest_remote_url": null,
-      "crest_source_url": null
-    },
-    "Beskid Tokarnia": {
-      "slug": "beskid-tokarnia",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/5/1/3/68766c30a893e47ddc14b315__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
-    },
-    "Clavia Świątniki Górne": {
-      "slug": "clavia-swiatniki-gorne",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/4/1/6/632444aa92382fb95583a614__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
-    },
-    "Dalin II Myślenice": {
-      "slug": "dalin-ii-myslenice",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/9/2/7/6aab9090a893e47ddc151729__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male"
-    },
-    "Dziecanovia Dziekanowice": {
-      "slug": "dziecanovia-dziekanowice",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/5/3/e/630e0ad792382fb955839e35__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
-    },
-    "Gościbia Sułkowice": {
-      "slug": "goscibia-sulkowice",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/a/e/630e677392382fb955839ea6__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male"
-    },
-    "Iskra Głogoczów": {
-      "slug": "iskra-glogoczow",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=e9d66181-d03e-4bb3-b889-4da848f4831d&group=83230fb6-b571-4c0d-ac1b-77d1a5d42475&genderType=Male"
-    },
-    "LKS Rudnik": {
-      "slug": "lks-rudnik",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/1/3/f/6446d0dda893e47ddc068f31__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
-    },
-    "LKS Trzebunia": {
-      "slug": "lks-trzebunia",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/9/f/61b2534794a3b9d06f427f96__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
-    },
-    "Orzeł Nowa Wieś": {
-      "slug": "orzel-nowa-wies",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/2/5/1/62c53a5a92382fb955839152__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
-    },
-    "Skalnik Trzemeśnia": {
-      "slug": "skalnik-trzemesnia",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/b/7/3/61491bbf94a3b9d06f42737b__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=3c77d143-8010-4073-9842-d6b63365ffce&group=081b0700-ae25-4be8-a2bd-e38cad5bfc50&genderType=Male"
+      "slug": "za-artyzm-punktow-nie-ma-blekitni"
     },
     "Gościbia II Sułkowice": {
       "slug": "goscibia-ii-sulkowice",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/a/e/630e677392382fb955839ea6__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=b89891e4-a5eb-428a-abd5-a9528d097fa3&group=8c5c8ed5-a99f-4745-8a13-469c37374792&genderType=Male"
     },
-    "Grodzisko Raciechowice": {
-      "slug": "grodzisko-raciechowice",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/d/5/e/63fca3f0a893e47ddc067e5d__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=4be7b40c-84ff-4e5a-96e5-875d7f13483a&group=e8609430-5f3f-4dea-8aac-c2184e985bfc&genderType=Male"
-    },
     "HALNIAK ZAWADA": {
       "slug": "halniak-zawada",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
-    },
-    "Iskra Brzączowice": {
-      "slug": "iskra-brzaczowice",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/1/5/7/6a7e3274a893e47ddc150751__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
-    },
-    "Karpaty Siepraw": {
-      "slug": "karpaty-siepraw",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/3/8/e/64423014a893e47ddc068e83__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=02117303-7b42-4b50-892a-1c40d983624d&group=49e14d83-8901-415d-a054-0e5889376493&genderType=Male"
-    },
-    "Lubomir Wiśniowa": {
-      "slug": "lubomir-wisniowa",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/3/3/c/630cc26492382fb955839c33__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=2c1a6e1d-bf4d-41e9-8a2f-fa1b994104ba&group=277923ac-b847-4b3e-9b4c-8e6af355b2c8&genderType=Male"
     },
     "Mogilany Mogilany": {
       "slug": "mogilany-mogilany",
@@ -485,11 +334,6 @@
       "slug": "zielonka-gamar-wrzasowice",
       "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/4/e/66d41e9ea893e47ddc07be46__w64",
       "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=ea1b9cb6-49ce-44cd-afd8-4bbe96f59f94&group=ff68d0a9-81c1-4cdc-8b73-a5da17fc8d2a&genderType=Male"
-    },
-    "Zielonka Wrząsowice": {
-      "slug": "zielonka-wrzasowice",
-      "crest_remote_url": "https://cdn.laczynaspilka.pl/content/static/pz/images/6/4/e/66d41e9ea893e47ddc07be46__w64",
-      "crest_source_url": "https://www.laczynaspilka.pl/rozgrywki?season=7cad69c6-c7a9-4a9d-9641-0e7ef9ce6b75&group=06884f67-96cf-4fac-aefa-35e0c190dbd4&genderType=Male"
     }
   },
   "seasons": [
