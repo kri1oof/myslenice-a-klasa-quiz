@@ -360,6 +360,8 @@
       budget:12000,
       recurring:0,
       financeLedger:[],
+      reputation:40,
+      reputationHistory:[],
       contracts:[],
       contractHistory:[],
       careerYear:1,
@@ -492,6 +494,68 @@
     if (score >= 30) return 'narastająca presja';
     return 'kryzys zaufania';
   }
+  function reputationScore(profile) {
+    if (Number.isFinite(Number(profile?.reputation))) return Math.round(clamp(Number(profile.reputation), 0, 100));
+    let score = 40;
+    for (const season of profile?.seasonHistory || []) score = clamp(score + seasonReputationDelta(season), 0, 100);
+    return Math.round(score);
+  }
+
+  function reputationLabel(value) {
+    const score = Number(value || 0);
+    if (score >= 80) return 'uznana marka';
+    if (score >= 65) return 'ceniony prezes';
+    if (score >= 50) return 'mocna reputacja lokalna';
+    if (score >= 35) return 'rozpoznawalny lokalnie';
+    return 'odbudowa reputacji';
+  }
+
+  function seasonReputationDelta(record = {}) {
+    const verdict = record.verdict || seasonVerdict(record).code;
+    const movement = record.movement || competitionMovement({
+      level:Number(record.competitionLevel ?? 1),
+      position:Number(record.position || 0),
+      teamCount:Number(record.teamCount || 14),
+    });
+    let delta = verdict === 'champion' ? 10 : verdict === 'target' ? 5 : verdict === 'close' ? 1 : -5;
+    if (movement.code === 'promotion') delta += 7;
+    if (movement.code === 'relegation') delta -= 7;
+    const confidence = Number(record.boardConfidence || 0);
+    if (confidence >= 75) delta += 2;
+    if (confidence > 0 && confidence < 30) delta -= 3;
+    const level = Number(record.competitionLevel ?? 1);
+    if (verdict !== 'missed') delta += Math.max(0, level - 1);
+    return Math.round(clamp(delta, -15, 20));
+  }
+
+  function jobMarketLevels(profile, currentLevel = 1, reason = 'career') {
+    const level = competitionByLevel(currentLevel).level;
+    const reputation = reputationScore(profile);
+    const levels = new Set([level]);
+
+    if (reason === 'dismissal') {
+      if (level > 0) levels.add(level - 1);
+      if (reputation >= 72 && level < 4) levels.add(level + 1);
+    } else {
+      if (reputation >= 55 && level < 4) levels.add(level + 1);
+      if (reputation >= 80 && level < 3) levels.add(level + 2);
+      if (reputation < 35 && level > 0) levels.add(level - 1);
+    }
+    return [...levels].sort((a,b) => b - a);
+  }
+
+  function jobMarketSummary(profile, currentLevel = 1, reason = 'career') {
+    const reputation = reputationScore(profile);
+    const levels = jobMarketLevels(profile, currentLevel, reason);
+    return {
+      reputation,
+      label:reputationLabel(reputation),
+      levels,
+      highestLevel:Math.max(...levels),
+      lowestLevel:Math.min(...levels),
+    };
+  }
+
   function jobOfferTerms(offer = {}) {
     const level = competitionByLevel(offer.competitionLevel ?? 1).level;
     const budget = Math.round((9000 + level * 1800 + Number(offer.budgetBonus || 0)) / 500) * 500;
@@ -609,6 +673,23 @@
     }
 
     if (event) next.history = [...current.history, event];
+    if (event?.type === 'fired') {
+      const before = reputationScore(profile);
+      const delta = -6;
+      const after = Math.round(clamp(before + delta, 0, 100));
+      return {
+        ...profile,
+        reputation:after,
+        reputationHistory:[...(profile.reputationHistory || []), {
+          careerYear:Number(profile.careerYear || 1),
+          type:'dismissal',
+          delta,
+          before,
+          after,
+        }],
+        jobSecurity:next,
+      };
+    }
     return { ...profile, jobSecurity:next };
   }
 
@@ -1311,10 +1392,30 @@
       }),
       verdict:seasonVerdict(summary).code,
     };
+    const beforeReputation = reputationScore(profile);
+    const reputationDelta = seasonReputationDelta(record);
+    const afterReputation = Math.round(clamp(beforeReputation + reputationDelta, 0, 100));
+    const enrichedRecord = {
+      ...record,
+      reputationDelta,
+      reputationAfter:afterReputation,
+    };
     return {
       ...profile,
+      reputation:afterReputation,
+      reputationHistory:[...(profile.reputationHistory || []), {
+        careerYear:record.careerYear,
+        season:record.season,
+        club:record.club,
+        type:'season',
+        delta:reputationDelta,
+        before:beforeReputation,
+        after:afterReputation,
+        verdict:record.verdict,
+        movement:record.movement?.code || 'stay',
+      }],
       seasonsCompleted:Number(profile.seasonsCompleted || 0) + 1,
-      seasonHistory:[...(profile.seasonHistory || []), record],
+      seasonHistory:[...(profile.seasonHistory || []), enrichedRecord],
     };
   }
 
@@ -1375,7 +1476,9 @@
   const api = {
     TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, CONTRACT_TEMPLATES, COMPETITIONS, FINANCE_CATEGORIES, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
-    boardTargetPosition, boardConfidence, boardLabel, jobOfferTerms, acceptJobOffer, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
+    boardTargetPosition, boardConfidence, boardLabel,
+    reputationScore, reputationLabel, seasonReputationDelta, jobMarketLevels, jobMarketSummary,
+    jobOfferTerms, acceptJobOffer, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
     contractTemplateById, contractConditionMet, processSeasonContracts, availableContractTemplates,
     canAcceptContract, acceptSponsorContract, skipSponsorContract,
