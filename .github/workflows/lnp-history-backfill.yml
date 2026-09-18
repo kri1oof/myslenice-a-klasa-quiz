@@ -184,11 +184,11 @@ jobs:
             --raw lnp_myslenice_all.json \
             --db lnp_history_build.db \
             --lnp-export lnp_history_questions.json \
-            --player-export web/data/player-characters.json \
+            --player-export /tmp/history-player-characters.json \
             --existing web/data/questions.json \
-            --output web/data/questions.json | tee lnp_history_build_summary.txt
+            --output web/data/questions.json \
+            --only-season "2022/23" | tee lnp_history_build_summary.txt
           cp web/data/questions.json docs/data/questions.json
-          cp web/data/player-characters.json docs/data/player-characters.json
 
       - name: Validate 2022/23 evidence-only questions
         if: success()
@@ -212,6 +212,7 @@ jobs:
               'compare_player_minutes',
               'match_player_minutes',
               'match_compare_player_minutes',
+              'lnp_player_age',
           }
           bad = [q for q in season if q.get('type') in blocked]
           assert not bad, [(q.get('type'), q.get('question')) for q in bad[:10]]
@@ -223,6 +224,8 @@ jobs:
           assert player_positive, 'No positive player questions for 2022/23'
 
           types = Counter(q.get('type') for q in season)
+          assert types['match_score'] == 182, types['match_score']
+          assert types['match_winner'] == 182, types['match_winner']
           print('SEASON_2022_23_QUESTIONS', len(season))
           print('SEASON_2022_23_TYPES', json.dumps(dict(types), ensure_ascii=False, sort_keys=True))
           print('SEASON_2022_23_PLAYER_POSITIVE', len(player_positive))
@@ -233,7 +236,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add web/data/questions.json docs/data/questions.json web/data/player-characters.json docs/data/player-characters.json
+          git add web/data/questions.json docs/data/questions.json
           if git diff --cached --quiet; then
             echo 'No historical database changes to commit.'
           else
