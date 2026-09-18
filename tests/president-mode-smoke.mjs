@@ -147,10 +147,10 @@ assert.equal(core.applyOffseasonPlan(summer.profile, 'community').reason, 'alrea
 const nextSeason = core.prepareNextSeason(summer.profile, 26, () => 0.25);
 assert.equal(nextSeason.careerYear, 2);
 assert.equal(nextSeason.strategy, null);
-assert.equal(nextSeason.budget, completed.budget, 'budget must carry across seasons');
-assert.equal(nextSeason.recurring, completed.recurring, 'contracts must carry across seasons');
-assert.deepEqual(nextSeason.upgradeLevels, completed.upgradeLevels, 'investments must carry across seasons');
-assert.deepEqual(nextSeason.seasonHistory, completed.seasonHistory, 'career history must carry across seasons');
+assert.equal(nextSeason.budget, summer.profile.budget, 'post-settlement summer budget must carry across seasons');
+assert.equal(nextSeason.recurring, summer.profile.recurring, 'contracts must carry across seasons');
+assert.deepEqual(nextSeason.upgradeLevels, summer.profile.upgradeLevels, 'investments must carry across seasons');
+assert.deepEqual(nextSeason.seasonHistory, summer.profile.seasonHistory, 'career history must carry across seasons');
 assert.equal(nextSeason.offseason, null, 'the finished offseason should close when the next season starts');
 assert.equal(nextSeason.offseasonHistory.length, 1, 'summer decisions should remain in career history');
 assert.equal(nextSeason.lastUpgradeRound, -99, 'offseason should clear investment cooldown');
