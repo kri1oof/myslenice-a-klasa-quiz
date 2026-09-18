@@ -371,6 +371,89 @@ function presidentBoardMandateSummaryHtml(profile, career) {
     </section>`;
 }
 
+function presidentEnsureMatchdayPolicy(profile, career) {
+  if (!profile?.strategy || profile.matchdayPolicy) return profile;
+  if (Number(career?.roundIndex || 0) <= 0) return profile;
+  // Older saves created before this system existed continue mid-season on the
+  // neutral standard model, without retroactive trust changes.
+  state.presidentMode = {
+    ...profile,
+    matchdayPolicy:'standard',
+  };
+  return state.presidentMode;
+}
+
+function choosePresidentMatchdayPolicy(policyId) {
+  const chosen = presidentModeCore.chooseMatchdayPolicy(state.presidentMode, policyId);
+  if (!chosen.ok) return false;
+  state.presidentMode = chosen.profile;
+  return showPresidentRound();
+}
+
+function presidentMatchdayPolicySummaryHtml(profile) {
+  const policy = presidentModeCore.matchdayPolicyById(profile?.matchdayPolicy);
+  if (!policy) return '';
+  const demandPct = Math.round((Number(policy.demandMultiplier || 1) - 1) * 100);
+  const yieldPct = Math.round((Number(policy.yieldMultiplier || 1) - 1) * 100);
+  return `
+    <section class="president-matchday-policy-summary">
+      <span><small>🎟️ POLITYKA DNIA MECZOWEGO</small><strong>${policy.icon} ${presidentEscape(policy.label)}</strong></span>
+      <div>
+        <b>frekwencja ${demandPct >= 0 ? '+' : ''}${demandPct}%</b>
+        <b>przychód/kibic ${yieldPct >= 0 ? '+' : ''}${yieldPct}%</b>
+        <b>koszt domowy ${presidentModeCore.money(policy.operatingCost || 0)}</b>
+      </div>
+    </section>`;
+}
+
+function renderPresidentMatchdayPolicySelection() {
+  const profile = initializePresidentMode();
+  const career = careerState();
+  const panel = ensurePresidentDecisionPanel();
+  if (!profile || !career || !panel || !profile.strategy) return false;
+  if (profile.matchdayPolicy) return showPresidentRound();
+  hidePresidentGameSurfaces();
+
+  panel.innerHTML = `
+    <div class="president-strategy-card president-matchday-policy-card">
+      <div class="president-report-kicker">🎟️ SEZON ${Number(profile.careerYear || 1)} · DZIEŃ MECZOWY</div>
+      <h2>Jak ma wyglądać domowy mecz ${presidentEscape(career.club)}?</h2>
+      <p class="president-strategy-intro">Wybierz model na cały sezon. Zmienia on <strong>symulowaną frekwencję, przychód na kibica, koszt organizacji i relację z kibicami</strong>. Nie są to realne ceny biletów ani dane frekwencyjne klubu.</p>
+      <div class="president-matchday-policy-grid">
+        ${presidentModeCore.MATCHDAY_POLICIES.map(policy => {
+          const demandPct = Math.round((Number(policy.demandMultiplier || 1) - 1) * 100);
+          const yieldPct = Math.round((Number(policy.yieldMultiplier || 1) - 1) * 100);
+          const supporterTrust = Number(policy.trust?.supporters || 0);
+          const sponsorTrust = Number(policy.trust?.sponsors || 0);
+          return `
+            <button type="button" class="president-matchday-policy-option" data-matchday-policy="${policy.id}">
+              <span class="president-matchday-policy-icon">${policy.icon}</span>
+              <strong>${presidentEscape(policy.label)}</strong>
+              <p>${presidentEscape(policy.copy)}</p>
+              <div>
+                <span><small>POPYT</small><b>${demandPct >= 0 ? '+' : ''}${demandPct}%</b></span>
+                <span><small>PRZYCHÓD / KIBIC</small><b>${yieldPct >= 0 ? '+' : ''}${yieldPct}%</b></span>
+                <span><small>KOSZT DOMOWY</small><b>${presidentModeCore.money(policy.operatingCost || 0)}</b></span>
+              </div>
+              <small>Kibice ${supporterTrust >= 0 ? '+' : ''}${supporterTrust} · sponsorzy ${sponsorTrust >= 0 ? '+' : ''}${sponsorTrust}</small>
+            </button>`;
+        }).join('')}
+      </div>
+      ${presidentBoardMandateSummaryHtml(profile, career)}
+      <small class="president-disclaimer">Polityka dnia meczowego jest mechaniką gry. Nie odwzorowuje rzeczywistych cen, wpływów, frekwencji ani polityki ${presidentEscape(career.club)}.</small>
+    </div>`;
+
+  panel.classList.remove('hidden');
+  panel.querySelectorAll('[data-matchday-policy]').forEach(button => {
+    button.addEventListener('click', () => choosePresidentMatchdayPolicy(button.dataset.matchdayPolicy));
+  });
+  if (el('status')) {
+    el('status').textContent = `Kariera prezesa · sezon ${Number(profile.careerYear || 1)} · wybierz politykę dnia meczowego`;
+  }
+  window.scrollTo({ top:0, behavior:'smooth' });
+  return true;
+}
+
 function renderPresidentStrategySelection() {
   const profile = initializePresidentMode();
   const career = careerState();
@@ -409,7 +492,7 @@ function renderPresidentStrategySelection() {
       const applied = presidentModeCore.chooseStrategy(state.presidentMode, button.dataset.strategy);
       if (!applied.ok) return;
       state.presidentMode = applied.profile;
-      showPresidentRound();
+      renderPresidentMatchdayPolicySelection();
     });
   });
   if (el('status')) {
@@ -491,6 +574,7 @@ function presidentDashboardHtml(profile, career) {
       <div><small>POPARCIE ZARZĄDU</small><strong>${board.confidence}/100</strong><span>${presidentModeCore.boardLabel(board.confidence)} · ${presidentModeCore.employmentLabel(profile)}</span></div>
       <div><small>REPUTACJA PREZESA</small><strong>${presidentModeCore.reputationScore(profile)}/100</strong><span>${presidentEscape(presidentModeCore.reputationLabel(presidentModeCore.reputationScore(profile)))}</span></div>
       <div><small>BAZA KIBICÓW GRY</small><strong>${presidentModeCore.supporterBaseValue(profile)}</strong><span>${profile.lastAttendance ? 'ostatni domowy: ' + Number(profile.lastAttendance) : 'symulowana lokalna baza'}</span></div>
+      <div><small>POLITYKA MECZOWA</small><strong>${presidentModeCore.activeMatchdayPolicy(profile).icon} ${presidentEscape(presidentModeCore.activeMatchdayPolicy(profile).label)}</strong><span>model wybrany na cały sezon</span></div>
       <div><small>PLAN SEZONU</small><strong>${strategy ? strategy.icon + ' ' + presidentEscape(strategy.label) : '—'}</strong><span>kondycja ${avgAreas}/100 · zaufanie ${avgTrust}/100</span></div>
     </div>`;
 }
@@ -575,7 +659,7 @@ function presidentManagementHubHtml(profile, career) {
         ${tabs.map(([id,icon,label]) => `<button type="button" class="${active === id ? 'active' : ''}" data-president-tab="${id}"><span>${icon}</span><strong>${label}</strong></button>`).join('')}
       </nav>
       <div class="president-hub-content">
-        ${pane('overview', presidentDashboardHtml(profile, career) + presidentBoardMandateSummaryHtml(profile, career) + presidentEmploymentHtml(profile, career) + presidentWarningsHtml(profile, career))}
+        ${pane('overview', presidentDashboardHtml(profile, career) + presidentMatchdayPolicySummaryHtml(profile) + presidentBoardMandateSummaryHtml(profile, career) + presidentEmploymentHtml(profile, career) + presidentWarningsHtml(profile, career))}
         ${pane('squad', presidentSquadHtml(career).replace('<details class="president-squad-details">', '<details class="president-squad-details" open>'))}
         ${pane('finance', presidentFinanceTabHtml(profile))}
         ${pane('club', presidentClubTabHtml(profile, career))}
@@ -768,7 +852,7 @@ function renderPresidentRoundOutcome(context = {}) {
       <div class="president-background-result">
         <span><small>⚽ MECZ W TLE</small><strong>${presidentMatchScore(context)}</strong><em>${presidentResultLabel(context.resultCode)} · bez udziału gracza</em></span>
         <span><small>PO KOLEJCE</small><strong>${position}. miejsce · ${points} pkt</strong><em>wpływ długofalowego zarządzania na siłę drużyny: ${management >= 0 ? '+' : ''}${management.toFixed(1)}</em></span>
-        ${String(context.venue || '').toUpperCase() === 'DOM' ? `<span class="president-attendance-result"><small>👥 FREKWENCJA GRY</small><strong>${Number(profile.lastAttendance || 0)} / ${Number(profile.lastAttendanceCapacity || 0)}</strong><em>baza kibiców ${presidentModeCore.supporterBaseValue(profile)} · zmiana ${Number(profile.lastSupporterBaseDelta || 0) >= 0 ? '+' : ''}${Number(profile.lastSupporterBaseDelta || 0)}</em></span>` : ''}
+        ${String(context.venue || '').toUpperCase() === 'DOM' ? `<span class="president-attendance-result"><small>👥 FREKWENCJA GRY</small><strong>${Number(profile.lastAttendance || 0)} / ${Number(profile.lastAttendanceCapacity || 0)}</strong><em>${presidentEscape(presidentModeCore.activeMatchdayPolicy(profile).label)} · baza kibiców ${presidentModeCore.supporterBaseValue(profile)} · zmiana ${Number(profile.lastSupporterBaseDelta || 0) >= 0 ? '+' : ''}${Number(profile.lastSupporterBaseDelta || 0)}</em></span>` : ''}
       </div>
       <div class="president-decision-result">
         <strong>${decision ? `${presidentEscape(decision.title)} → ${presidentEscape(decision.choice)}` : 'Decyzja klubowa zakończona'}</strong>
@@ -2094,8 +2178,12 @@ function renderPresidentSeasonFinal(lastRound = null) {
 
 function showPresidentRound() {
   const career = careerState();
-  const profile = initializePresidentMode();
+  let profile = initializePresidentMode();
   if (!career || !profile) return false;
+  profile = presidentEnsureMatchdayPolicy(profile, career);
+  if (!profile.matchdayPolicy && Number(career.roundIndex || 0) === 0) {
+    return renderPresidentMatchdayPolicySelection();
+  }
   hidePresidentGameSurfaces();
   advanceCareerByes();
   if (career.roundIndex >= career.rounds.length) {
@@ -2138,6 +2226,9 @@ startGame = function presidentStartGame() {
   }
 
   if (!state.presidentMode?.strategy) return renderPresidentStrategySelection();
+  if (!state.presidentMode?.matchdayPolicy && Number(careerState()?.roundIndex || 0) === 0) {
+    return renderPresidentMatchdayPolicySelection();
+  }
   return showPresidentRound();
 };
 
