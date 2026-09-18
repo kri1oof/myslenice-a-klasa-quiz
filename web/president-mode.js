@@ -138,8 +138,13 @@ function presidentStrategy(profile) {
 
 function presidentSquadProfiles(career) {
   const sourceSeason = career?.sourceSeason || career?.season;
+  const departed = new Set(state.presidentMode?.departedPlayerKeys || []);
   return (state.playerCharacters || [])
-    .filter(player => player?.club === career?.club && player?.season === sourceSeason)
+    .filter(player =>
+      player?.club === career?.club &&
+      player?.season === sourceSeason &&
+      !departed.has(presidentStablePlayerKey(player))
+    )
     .sort((a, b) =>
       Number(b?.ratings?.game_rating || 0) - Number(a?.ratings?.game_rating || 0) ||
       Number(b?.stats?.appearances || 0) - Number(a?.stats?.appearances || 0) ||
@@ -157,15 +162,24 @@ function presidentSquadHtml(career) {
     const rating = Number(player?.ratings?.game_rating || 0);
     return `<div class="president-squad-player"><span><strong>${presidentEscape(player.player)}</strong><small>${presidentEscape(player.archetype || 'Zawodnik')} · ${Number(stats.appearances || 0)} mecz. · ${Number(stats.goals || 0)} goli</small></span><b>${rating || '—'}</b></div>`;
   }).join('');
+  const currentKeys = new Set(players.map(player => presidentStablePlayerKey(player)));
   const careerSignings = (state.presidentMode?.transferRoster || []).map(item => `
     <div class="president-squad-player president-career-signing">
       <span><strong>${presidentEscape(item.player)}</strong><small>Wzmocnienie kariery · z ${presidentEscape(item.sourceClub || 'innego klubu')} · profil ŁNP ${presidentEscape(item.sourceSeason || '')}</small></span>
       <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
     </div>`).join('');
+  const careerRetentions = (state.presidentMode?.departureHistory || [])
+    .filter(item => item.outcome === 'retain' && !currentKeys.has(item.playerKey))
+    .filter((item, index, list) => list.findIndex(other => other.playerKey === item.playerKey) === index)
+    .map(item => `
+      <div class="president-squad-player president-career-retention">
+        <span><strong>${presidentEscape(item.player)}</strong><small>Zatrzymany w alternatywnej karierze · profil ŁNP ${presidentEscape(item.sourceSeason || '')}</small></span>
+        <b>${Number(item?.ratings?.game_rating || 0) || '—'}</b>
+      </div>`).join('');
   const sourceCopy = career?.presidentSimulatedSeason && career?.sourceSeason
     ? `Ostatnia dostępna baza ŁNP: ${presidentEscape(career.sourceSeason)}. W kolejnych latach służy jako punkt odniesienia kariery.`
     : 'Nazwiska i statystyki pochodzą z protokołów ŁNP; ocena gry jest wskaźnikiem mechaniki, nie oficjalną oceną zawodnika.';
-  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>${players.length} profili źródłowych${careerSignings ? ' · wzmocnienia kariery poniżej' : ''}</small></span><em>Pokaż</em></summary><div class="president-squad-list">${careerSignings}${leaders}</div><small class="president-data-note">${sourceCopy}${careerSignings ? ' Transfery wykonane przez gracza są alternatywną historią tej kariery.' : ''}</small></details>`;
+  return `<details class="president-squad-details"><summary><span><strong>👥 Kadra ŁNP</strong><small>${players.length} profili źródłowych${careerSignings ? ' · wzmocnienia kariery poniżej' : ''}</small></span><em>Pokaż</em></summary><div class="president-squad-list">${careerRetentions}${careerSignings}${leaders}</div><small class="president-data-note">${sourceCopy}${careerSignings || careerRetentions ? ' Decyzje kadrowe gracza tworzą alternatywną historię tej kariery.' : ''}</small></details>`;
 }
 
 function presidentWarningsHtml(profile, career) {
@@ -633,6 +647,158 @@ function presidentStablePlayerKey(profile) {
   return globalThis.TransferInvestigationCore?.stablePlayerKey(profile) || profile?.id || null;
 }
 
+
+function presidentDepartureCandidate(profile, career) {
+  if (!profile?.offseason || !career) return null;
+  const stored = profile.offseason.departureCase;
+  const sourceSeason = career?.sourceSeason || career?.season;
+  const departed = new Set(profile.departedPlayerKeys || []);
+
+  if (stored?.playerId) {
+    const source = (state.playerCharacters || []).find(player => player?.id === stored.playerId);
+    if (source) {
+      return {
+        ...source,
+        playerKey:stored.playerKey || presidentStablePlayerKey(source),
+        factualTransition:Boolean(stored.factualTransition),
+        observedNextClub:stored.observedNextClub || null,
+        observedNextSeason:stored.observedNextSeason || null,
+      };
+    }
+  }
+
+  const ownProfiles = (state.playerCharacters || [])
+    .filter(player =>
+      player?.club === career.club &&
+      player?.season === sourceSeason &&
+      player?.id &&
+      !departed.has(presidentStablePlayerKey(player))
+    )
+    .sort((a, b) =>
+      Number(b?.ratings?.game_rating || 0) - Number(a?.ratings?.game_rating || 0) ||
+      Number(b?.stats?.appearances || 0) - Number(a?.stats?.appearances || 0)
+    );
+
+  if (!ownProfiles.length) {
+    profile.offseason.departureResolved = true;
+    return null;
+  }
+
+  let candidate = null;
+  if (sourceSeason === career.season && globalThis.TransferInvestigationCore) {
+    const nextSeason = presidentNextSeasonLabel(career.season);
+    const transitions = globalThis.TransferInvestigationCore.detectTransitions(state.playerCharacters || [])
+      .filter(item =>
+        item.fromSeason === career.season &&
+        item.toSeason === nextSeason &&
+        item.fromClub === career.club &&
+        !departed.has(item.playerKey)
+      );
+    if (transitions.length) {
+      const byKey = new Map(ownProfiles.map(player => [presidentStablePlayerKey(player), player]));
+      const factual = transitions
+        .map(item => ({ item, profile:byKey.get(item.playerKey) }))
+        .filter(row => row.profile)
+        .sort((a, b) => Number(b.profile?.ratings?.game_rating || 0) - Number(a.profile?.ratings?.game_rating || 0))[0];
+      if (factual) {
+        candidate = {
+          ...factual.profile,
+          playerKey:factual.item.playerKey,
+          factualTransition:true,
+          observedNextClub:factual.item.toClub,
+          observedNextSeason:factual.item.toSeason,
+        };
+      }
+    }
+  }
+
+  if (!candidate) {
+    const source = ownProfiles[0];
+    candidate = {
+      ...source,
+      playerKey:presidentStablePlayerKey(source),
+      factualTransition:false,
+      observedNextClub:null,
+      observedNextSeason:null,
+    };
+  }
+
+  profile.offseason.departureCase = {
+    playerId:candidate.id,
+    playerKey:candidate.playerKey,
+    factualTransition:Boolean(candidate.factualTransition),
+    observedNextClub:candidate.observedNextClub || null,
+    observedNextSeason:candidate.observedNextSeason || null,
+  };
+  return candidate;
+}
+
+function presidentDepartureHtml(profile, career) {
+  if (!profile?.offseason?.planId) return '';
+  const year = Number(profile.offseason.careerYear || profile.careerYear || 1);
+  const resolved = (profile.departureHistory || []).find(item => Number(item.careerYear) === year);
+  if (profile.offseason.departureResolved) {
+    if (!resolved) {
+      return '<section class="president-departure-case resolved"><div class="president-departure-head"><span><small>RUCH WYCHODZĄCY</small><strong>Brak sprawy do rozstrzygnięcia</strong></span><em>✓</em></div></section>';
+    }
+    const outcome = resolved.outcome === 'retain'
+      ? 'Zawodnik zostaje w alternatywnej karierze'
+      : 'Zawodnik odchodzi z kadry kariery';
+    return `<section class="president-departure-case resolved">
+      <div class="president-departure-head"><span><small>RUCH WYCHODZĄCY</small><strong>${presidentEscape(resolved.player)}</strong></span><em>✓ rozstrzygnięte</em></div>
+      <div class="president-departure-result"><strong>${presidentEscape(outcome)}</strong><span>${resolved.factualTransition && resolved.observedNextClub ? 'ŁNP pokazuje kolejny klub: ' + presidentEscape(resolved.observedNextClub) + ' (' + presidentEscape(resolved.observedNextSeason || '') + ').' : 'To rozstrzygnięcie jest elementem alternatywnej kariery.'}</span></div>
+    </section>`;
+  }
+
+  const candidate = presidentDepartureCandidate(profile, career);
+  if (!candidate) return presidentDepartureHtml(profile, career);
+  const terms = presidentModeCore.departureGameTerms(candidate);
+  const stats = candidate.stats || {};
+  const retainAvailable = presidentModeCore.canResolveDeparture(profile, candidate, 'retain');
+  const context = candidate.factualTransition
+    ? `W oficjalnych profilach ŁNP ten sam identyfikator zawodnika pojawia się w ${presidentEscape(candidate.observedNextClub)} w sezonie ${presidentEscape(candidate.observedNextSeason)}. To potwierdza zmianę przynależności klubowej w danych, ale nie określa prawnej formy przejścia.`
+    : 'To fikcyjne zainteresowanie innego klubu stworzone na potrzeby kariery. Nie jest informacją o realnej ofercie dla tego zawodnika.';
+
+  return `
+    <section class="president-departure-case">
+      <div class="president-departure-head">
+        <span><small>RUCH WYCHODZĄCY · ${candidate.factualTransition ? 'FAKT ŁNP + DECYZJA GRY' : 'SCENARIUSZ GRY'}</small><strong>${presidentEscape(candidate.player)}</strong></span>
+        <em>decyzja prezesa</em>
+      </div>
+      <p class="president-departure-context">${context}</p>
+      <div class="president-departure-player">
+        <div><small>KLUB ŹRÓDŁOWY</small><strong>${presidentEscape(candidate.club)}</strong></div>
+        <div><small>MECZE</small><strong>${Number(stats.appearances || 0)}</strong></div>
+        <div><small>MINUTY</small><strong>${Number(stats.minutes || 0)}</strong></div>
+        <div><small>GOLE</small><strong>${Number(stats.goals || 0)}</strong></div>
+        <div><small>RPG</small><strong>${Number(candidate?.ratings?.game_rating || 0) || '—'}</strong></div>
+      </div>
+      <div class="president-departure-options">
+        <button type="button" data-departure-outcome="retain" ${retainAvailable ? '' : 'disabled'}>
+          <strong>🤝 Zatrzymaj zawodnika</strong>
+          <span>Premia ${presidentModeCore.money(terms.retentionCost)} · stały koszt −${presidentModeCore.money(terms.retentionRecurring)}/kolejkę</span>
+          <small>Kariera odchodzi od rzeczywistej ścieżki danych, jeśli ŁNP pokazuje zmianę klubu.</small>
+          ${retainAvailable ? '' : '<em>Brak środków na zatrzymanie</em>'}
+        </button>
+        <button type="button" data-departure-outcome="release">
+          <strong>➡️ Nie blokuj odejścia</strong>
+          <span>Fikcyjna rekompensata gry +${presidentModeCore.money(terms.compensation)}</span>
+          <small>Siła kadry spadnie; w przypadku potwierdzonej zmiany zachowujemy kierunek widoczny w ŁNP.</small>
+        </button>
+      </div>
+    </section>`;
+}
+
+function resolvePresidentDeparture(outcome) {
+  const career = careerState();
+  const candidate = presidentDepartureCandidate(state.presidentMode, career);
+  if (!candidate) return false;
+  const applied = presidentModeCore.resolveDeparture(state.presidentMode, candidate, outcome);
+  if (!applied.ok) return false;
+  state.presidentMode = applied.profile;
+  return renderPresidentOffseason();
+}
+
 function presidentTransferCandidates(profile, career) {
   if (!profile?.offseason || !career) return [];
   const sourceSeason = career?.sourceSeason || career?.season;
@@ -676,7 +842,7 @@ function presidentTransferSigningCount(profile) {
 }
 
 function presidentTransferMarketHtml(profile, career) {
-  if (!profile?.offseason?.planId) return '';
+  if (!profile?.offseason?.planId || !profile.offseason.departureResolved) return '';
   const signings = presidentTransferSigningCount(profile);
   const closed = Boolean(profile.offseason.transferWindowClosed);
   const candidates = presidentTransferCandidates(profile, career);
@@ -857,7 +1023,9 @@ function renderPresidentOffseason() {
         `}
       </section>
 
-      ${chosen ? presidentTransferMarketHtml(profile, career) : ''}
+      ${chosen ? presidentDepartureHtml(profile, career) : ''}
+
+      ${chosen && profile.offseason?.departureResolved ? presidentTransferMarketHtml(profile, career) : ''}
 
       ${chosen && profile.offseason?.transferWindowClosed ? `
         <section class="president-offseason-continue">
@@ -874,6 +1042,9 @@ function renderPresidentOffseason() {
   panel.classList.remove('hidden');
   panel.querySelectorAll('[data-offseason-plan]').forEach(button => {
     button.addEventListener('click', () => applyPresidentOffseasonPlan(button.dataset.offseasonPlan));
+  });
+  panel.querySelectorAll('[data-departure-outcome]').forEach(button => {
+    button.addEventListener('click', () => resolvePresidentDeparture(button.dataset.departureOutcome));
   });
   panel.querySelectorAll('[data-transfer-player]').forEach(button => {
     button.addEventListener('click', () => signPresidentTransfer(button.dataset.transferPlayer));
@@ -897,7 +1068,11 @@ function startNextPresidentSeason() {
   const begun = presidentModeCore.beginOffseason(state.presidentMode);
   if (!begun.ok) return false;
   state.presidentMode = begun.profile;
-  if (!state.presidentMode.offseason?.planId || !state.presidentMode.offseason?.transferWindowClosed) {
+  if (
+    !state.presidentMode.offseason?.planId ||
+    !state.presidentMode.offseason?.departureResolved ||
+    !state.presidentMode.offseason?.transferWindowClosed
+  ) {
     return renderPresidentOffseason();
   }
   const plan = presidentNextSeasonPlan(previousCareer);

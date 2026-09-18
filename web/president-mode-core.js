@@ -288,6 +288,8 @@
       offseasonHistory:[],
       transferRoster:[],
       transferHistory:[],
+      departedPlayerKeys:[],
+      departureHistory:[],
       strategy:null,
       upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
       lastUpgradeRound:-99,
@@ -559,6 +561,8 @@
       planResult:null,
       transferWindowClosed:false,
       marketIds:[],
+      departureResolved:false,
+      departureCase:null,
     };
     return {
       ok:true,
@@ -615,6 +619,79 @@
     };
   }
 
+  function departureGameTerms(candidate = {}) {
+    const rating = clamp(Number(candidate?.ratings?.game_rating || 60), 35, 95);
+    const appearances = Math.max(0, Number(candidate?.stats?.appearances || 0));
+    const retentionCost = Math.max(400, Math.round((450 + Math.max(0, rating - 55) * 36 + Math.min(24, appearances) * 12) / 50) * 50);
+    const retentionRecurring = Math.max(15, Math.round((rating - 35) * 0.9 / 5) * 5);
+    const compensation = Math.max(250, Math.round((retentionCost * 0.55) / 50) * 50);
+    const squadLoss = rating >= 84 ? 5 : rating >= 76 ? 4 : 3;
+    return { retentionCost, retentionRecurring, compensation, squadLoss };
+  }
+
+  function canResolveDeparture(profile, candidate, outcome) {
+    if (!profile?.offseason || profile.offseason.departureResolved || !candidate?.playerKey) return false;
+    if (outcome === 'retain') {
+      return Number(profile.budget || 0) >= departureGameTerms(candidate).retentionCost;
+    }
+    return outcome === 'release';
+  }
+
+  function resolveDeparture(profile, candidate, outcome) {
+    if (!canResolveDeparture(profile, candidate, outcome)) return { ok:false, reason:'unavailable' };
+    const terms = departureGameTerms(candidate);
+    const retained = outcome === 'retain';
+    const entry = {
+      careerYear:Number(profile.offseason?.careerYear || profile.careerYear || 1),
+      playerKey:candidate.playerKey,
+      player:candidate.player || 'Zawodnik',
+      sourceClub:candidate.club || null,
+      sourceSeason:candidate.season || null,
+      factualTransition:Boolean(candidate.factualTransition),
+      observedNextClub:candidate.observedNextClub || null,
+      observedNextSeason:candidate.observedNextSeason || null,
+      outcome:retained ? 'retain' : 'release',
+      retentionCost:retained ? terms.retentionCost : 0,
+      retentionRecurring:retained ? terms.retentionRecurring : 0,
+      compensation:retained ? 0 : terms.compensation,
+      stats:{ ...(candidate.stats || {}) },
+      ratings:{ ...(candidate.ratings || {}) },
+      archetype:candidate.archetype || null,
+    };
+    const departed = new Set(profile.departedPlayerKeys || []);
+    if (!retained) departed.add(candidate.playerKey);
+    return {
+      ok:true,
+      terms,
+      profile:{
+        ...profile,
+        budget:Number(profile.budget || 0) + (retained ? -terms.retentionCost : terms.compensation),
+        recurring:Number(profile.recurring || 0) + (retained ? -terms.retentionRecurring : 0),
+        areas:applyMap(profile.areas, { squad:retained ? 1 : -terms.squadLoss }, AREA_KEYS, normalizedAreas),
+        trust:applyMap(
+          profile.trust,
+          retained ? { players:3, coach:2, supporters:1 } : { players:1, coach:-2, supporters:-1 },
+          TRUST_KEYS,
+          normalizedTrust,
+        ),
+        departedPlayerKeys:[...departed],
+        departureHistory:[...(profile.departureHistory || []), entry],
+        offseason:{
+          ...profile.offseason,
+          departureResolved:true,
+          departureCase:{
+            playerKey:candidate.playerKey,
+            player:candidate.player || 'Zawodnik',
+            outcome:entry.outcome,
+            factualTransition:entry.factualTransition,
+            observedNextClub:entry.observedNextClub,
+            observedNextSeason:entry.observedNextSeason,
+          },
+        },
+      },
+    };
+  }
+
   function transferGameTerms(candidate = {}) {
     const rating = clamp(Number(candidate?.ratings?.game_rating || 60), 35, 95);
     const appearances = Math.max(0, Number(candidate?.stats?.appearances || 0));
@@ -627,7 +704,12 @@
   }
 
   function canSignTransfer(profile, candidate) {
-    if (!profile?.offseason || profile.offseason.transferWindowClosed || !candidate?.id) return false;
+    if (
+      !profile?.offseason ||
+      !profile.offseason.departureResolved ||
+      profile.offseason.transferWindowClosed ||
+      !candidate?.id
+    ) return false;
     const candidateKey = candidate.playerKey || candidate.id;
     const signingsThisWindow = (profile.transferHistory || []).filter(
       item => Number(item.careerYear) === Number(profile.offseason.careerYear)
@@ -779,6 +861,7 @@
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardTargetPosition, boardConfidence, boardLabel, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
+    departureGameTerms, canResolveDeparture, resolveDeparture,
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
     seasonVerdict, completeSeason, prepareNextSeason,
     decisionById, pickDecision, canChoose, applyChoice,

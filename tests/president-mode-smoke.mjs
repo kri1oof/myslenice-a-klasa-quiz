@@ -147,6 +147,36 @@ assert.equal(summer.profile.offseasonHistory.length, 1);
 assert.equal(core.applyOffseasonPlan(summer.profile, 'community').reason, 'already');
 
 
+const departureCandidate = {
+  id:'2025/26|Clavia|lnp:test-departure',
+  playerKey:'lnp:test-departure',
+  player:'Kluczowy Zawodnik',
+  club:'Clavia',
+  season:'2025/26',
+  archetype:'Lider',
+  stats:{ appearances:22, minutes:1850, goals:8 },
+  ratings:{ game_rating:82 },
+  factualTransition:true,
+  observedNextClub:'Tempo',
+  observedNextSeason:'2026/27',
+};
+const departureTerms = core.departureGameTerms(departureCandidate);
+assert.ok(departureTerms.retentionCost > 0);
+assert.ok(departureTerms.compensation > 0);
+assert.equal(core.canResolveDeparture(summer.profile, departureCandidate, 'retain'), true);
+assert.equal(core.canSignTransfer(summer.profile, {
+  id:'blocked-before-departure',
+  playerKey:'lnp:blocked',
+}), false, 'incoming market should stay closed until outgoing case is resolved');
+const retained = core.resolveDeparture(summer.profile, departureCandidate, 'retain');
+assert.equal(retained.ok, true);
+assert.equal(retained.profile.offseason.departureResolved, true);
+assert.equal(retained.profile.departureHistory.length, 1);
+assert.equal(retained.profile.departureHistory[0].outcome, 'retain');
+assert.equal(retained.profile.budget, summer.profile.budget - departureTerms.retentionCost);
+assert.equal(retained.profile.recurring, summer.profile.recurring - departureTerms.retentionRecurring);
+assert.ok(retained.profile.areas.squad > summer.profile.areas.squad);
+
 const marketCandidate = {
   id:'2025/26|Tempo|lnp:test-transfer',
   playerKey:'lnp:test-transfer',
@@ -161,14 +191,14 @@ const transferTerms = core.transferGameTerms(marketCandidate);
 assert.ok(transferTerms.fee >= 350);
 assert.ok(transferTerms.recurring > 0);
 assert.ok(transferTerms.squadGain >= 2);
-assert.equal(core.canSignTransfer(summer.profile, marketCandidate), true);
-const signed = core.signTransfer(summer.profile, marketCandidate);
+assert.equal(core.canSignTransfer(retained.profile, marketCandidate), true);
+const signed = core.signTransfer(retained.profile, marketCandidate);
 assert.equal(signed.ok, true);
 assert.equal(signed.profile.transferRoster.length, 1);
 assert.equal(signed.profile.transferHistory.length, 1);
-assert.equal(signed.profile.budget, summer.profile.budget - transferTerms.fee);
-assert.equal(signed.profile.recurring, summer.profile.recurring - transferTerms.recurring);
-assert.ok(signed.profile.areas.squad > summer.profile.areas.squad);
+assert.equal(signed.profile.budget, retained.profile.budget - transferTerms.fee);
+assert.equal(signed.profile.recurring, retained.profile.recurring - transferTerms.recurring);
+assert.ok(signed.profile.areas.squad > retained.profile.areas.squad);
 assert.equal(core.canSignTransfer(signed.profile, marketCandidate), false, 'same player cannot be signed twice');
 const closedWindow = core.closeTransferWindow(signed.profile);
 assert.equal(closedWindow.ok, true);
@@ -208,11 +238,16 @@ assert.match(runtime, /Przejdź do lata/);
 assert.match(runtime, /renderPresidentOffseason/);
 assert.match(runtime, /Lato prezesa/);
 assert.match(runtime, /DECYZJA LETNIA/);
+assert.match(runtime, /RUCH WYCHODZĄCY/);
+assert.match(runtime, /FAKT ŁNP \+ DECYZJA GRY/);
+assert.match(runtime, /data-departure-outcome/);
+assert.match(runtime, /Zatrzymaj zawodnika/);
+assert.match(runtime, /Nie blokuj odejścia/);
 assert.match(runtime, /OKNO KADROWE/);
 assert.match(runtime, /data-transfer-player/);
 assert.match(runtime, /fikcyjną mechaniką tej kariery/);
 assert.match(runtime, /Wzmocnienie kariery/);
-assert.match(runtime, /alternatywną historią tej kariery/);
+assert.match(runtime, /alternatywną historię tej kariery/);
 assert.match(runtime, /Zamknij okno transferowe/);
 assert.match(runtime, /Przejdź do planowania sezonu/);
 assert.match(runtime, /SYMULACJA KARIERY/);
