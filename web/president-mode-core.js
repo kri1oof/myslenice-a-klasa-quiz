@@ -1387,8 +1387,12 @@
       recentResults:[...(profile.recentResults || []), context.result || 'D'].slice(-5),
       roundsCompleted:Number(profile.roundsCompleted || 0) + 1,
       lastFinance:finance,
-      lastAttendance:breakdown.attendance?.home ? Number(breakdown.attendance.attendance || 0) : null,
-      lastAttendanceCapacity:Number(breakdown.attendance?.capacity || 0),
+      lastAttendance:breakdown.attendance?.home
+        ? Number(breakdown.attendance.attendance || 0)
+        : (profile.lastAttendance ?? null),
+      lastAttendanceCapacity:breakdown.attendance?.home
+        ? Number(breakdown.attendance?.capacity || 0)
+        : Number(profile.lastAttendanceCapacity || 0),
       lastSupporterBaseDelta:baseDelta,
       lastResult:context.result || null,
       lastMatch:context.match ? { ...context.match } : null,
