@@ -73,6 +73,39 @@
     },
   ]);
 
+  const CONTRACT_TEMPLATES = Object.freeze([
+    {
+      id:'local_partner',
+      icon:'🤝',
+      label:'Pakiet lokalny',
+      copy:'Spokojna, wielosezonowa współpraca bez ostrego celu sportowego.',
+      duration:2,
+      signingBonus:900,
+      recurring:100,
+      condition:null,
+    },
+    {
+      id:'performance_partner',
+      icon:'🎯',
+      label:'Pakiet wynikowy',
+      copy:'Wyższe wpływy, ale partner oczekuje miejsca w TOP 5 na koniec każdego sezonu.',
+      duration:2,
+      signingBonus:1600,
+      recurring:180,
+      condition:{ type:'position', threshold:5, label:'TOP 5' },
+    },
+    {
+      id:'community_partner',
+      icon:'🌱',
+      label:'Pakiet społecznościowy',
+      copy:'Partner wspiera klub długofalowo, jeśli rozwój akademii i społeczności nie zostanie zaniedbany.',
+      duration:3,
+      signingBonus:650,
+      recurring:85,
+      condition:{ type:'community', threshold:55, label:'społeczność min. 55/100' },
+    },
+  ]);
+
   const choice = (label, desc, result, budget = 0, trust = {}, areas = {}, recurring = 0) => ({
     label, desc, result, effect:{ budget, trust, areas, recurring },
   });
@@ -327,6 +360,8 @@
       budget:12000,
       recurring:0,
       financeLedger:[],
+      contracts:[],
+      contractHistory:[],
       careerYear:1,
       seasonsCompleted:0,
       seasonHistory:[],
@@ -497,6 +532,7 @@
         upgradeLevels:Object.fromEntries(AREA_KEYS.map(key => [key, 0])),
         lastUpgradeRound:-99,
         transferRoster:[],
+        contracts:[],
         departedPlayerKeys:[],
         jobMarket:null,
         offseason:null,
@@ -710,6 +746,120 @@
     };
   }
 
+  function contractTemplateById(id) {
+    return CONTRACT_TEMPLATES.find(item => item.id === id) || null;
+  }
+
+  function contractConditionMet(contract, season, profile) {
+    const condition = contract?.condition;
+    if (!condition) return true;
+    if (condition.type === 'position') {
+      return Number(season?.position || 999) <= Number(condition.threshold || 0);
+    }
+    if (condition.type === 'community') {
+      return Number(profile?.areas?.community || 0) >= Number(condition.threshold || 0);
+    }
+    return true;
+  }
+
+  function processSeasonContracts(profile, season) {
+    if (!profile) return null;
+    let recurring = Number(profile.recurring || 0);
+    let trust = normalizedTrust(profile.trust);
+    const active = [];
+    const history = [...(profile.contractHistory || [])];
+
+    for (const raw of profile.contracts || []) {
+      const contract = { ...raw };
+      const conditionMet = contractConditionMet(contract, season, profile);
+      const nextRemaining = Math.max(0, Number(contract.remainingSeasons || 0) - 1);
+      if (!conditionMet) {
+        recurring -= Number(contract.recurring || 0);
+        trust = applyMap(trust, { sponsors:-4 }, TRUST_KEYS, normalizedTrust);
+        history.push({
+          ...contract,
+          endedCareerYear:Number(profile.careerYear || 1),
+          endReason:'condition',
+          conditionMet:false,
+        });
+        continue;
+      }
+      if (nextRemaining <= 0) {
+        recurring -= Number(contract.recurring || 0);
+        history.push({
+          ...contract,
+          remainingSeasons:0,
+          endedCareerYear:Number(profile.careerYear || 1),
+          endReason:'expired',
+          conditionMet:true,
+        });
+        continue;
+      }
+      active.push({ ...contract, remainingSeasons:nextRemaining, lastConditionMet:true });
+      trust = applyMap(trust, { sponsors:1 }, TRUST_KEYS, normalizedTrust);
+    }
+
+    return { ...profile, recurring, trust, contracts:active, contractHistory:history };
+  }
+
+  function availableContractTemplates(profile) {
+    const activeIds = new Set((profile?.contracts || []).map(item => item.templateId));
+    return CONTRACT_TEMPLATES.filter(template => !activeIds.has(template.id));
+  }
+
+  function canAcceptContract(profile, templateId) {
+    if (!profile?.offseason || profile.offseason.sponsorDecisionResolved) return false;
+    if ((profile.contracts || []).length >= 2) return false;
+    return Boolean(contractTemplateById(templateId)) &&
+      !(profile.contracts || []).some(item => item.templateId === templateId);
+  }
+
+  function acceptSponsorContract(profile, templateId) {
+    const template = contractTemplateById(templateId);
+    if (!template || !canAcceptContract(profile, templateId)) return { ok:false, reason:'unavailable' };
+    const contract = {
+      id:'sponsor:' + template.id + ':' + Number(profile.careerYear || 1),
+      templateId:template.id,
+      kind:'sponsor',
+      label:template.label,
+      icon:template.icon,
+      startedCareerYear:Number(profile.careerYear || 1),
+      duration:Number(template.duration || 1),
+      remainingSeasons:Number(template.duration || 1),
+      signingBonus:Number(template.signingBonus || 0),
+      recurring:Number(template.recurring || 0),
+      condition:template.condition ? { ...template.condition } : null,
+    };
+    return {
+      ok:true,
+      contract,
+      profile:{
+        ...profile,
+        budget:Number(profile.budget || 0) + contract.signingBonus,
+        recurring:Number(profile.recurring || 0) + contract.recurring,
+        trust:applyMap(profile.trust, { sponsors:3 }, TRUST_KEYS, normalizedTrust),
+        contracts:[...(profile.contracts || []), contract],
+        contractHistory:[...(profile.contractHistory || []), {
+          ...contract,
+          event:'signed',
+          careerYear:Number(profile.careerYear || 1),
+        }],
+        financeLedger:appendFinanceEntries(profile, [
+          financeEntry(profile, 'sponsors', 'Podpisanie umowy: ' + contract.label, contract.signingBonus, null),
+        ]),
+        offseason:{ ...profile.offseason, sponsorDecisionResolved:true, selectedContractId:contract.id },
+      },
+    };
+  }
+
+  function skipSponsorContract(profile) {
+    if (!profile?.offseason || profile.offseason.sponsorDecisionResolved) return { ok:false, reason:'unavailable' };
+    return {
+      ok:true,
+      profile:{ ...profile, offseason:{ ...profile.offseason, sponsorDecisionResolved:true, selectedContractId:null } },
+    };
+  }
+
   function latestSeasonRecord(profile) {
     const history = profile?.seasonHistory || [];
     return history.length ? history[history.length - 1] : null;
@@ -754,15 +904,18 @@
     if (profile.offseason && Number(profile.offseason.careerYear) === Number(season.careerYear)) {
       return { ok:true, profile, offseason:profile.offseason, reused:true };
     }
-    const settlement = offseasonSettlement(profile);
+    const processed = processSeasonContracts(profile, season);
+    const settlement = offseasonSettlement(processed);
     if (!settlement) return { ok:false, reason:'settlement' };
     const offseason = {
-      careerYear:Number(season.careerYear || profile.careerYear || 1),
+      careerYear:Number(season.careerYear || processed.careerYear || 1),
       season:season.season,
       settlement,
       planId:null,
       planLabel:null,
       planResult:null,
+      sponsorDecisionResolved:(processed.contracts || []).length >= 2 || availableContractTemplates(processed).length === 0,
+      selectedContractId:null,
       transferWindowClosed:false,
       marketIds:[],
       departureResolved:false,
@@ -772,12 +925,12 @@
       ok:true,
       offseason,
       profile:{
-        ...profile,
+        ...processed,
         budget:settlement.budgetAfter,
-        financeLedger:appendFinanceEntries(profile, [
-          financeEntry(profile, 'sponsors', 'Premia za wynik sezonu', settlement.performanceBonus, null),
-          financeEntry(profile, 'sponsors', 'Partnerzy i otoczenie', settlement.partnerBonus, null),
-          financeEntry(profile, 'investment', 'Utrzymanie i przeglądy', -settlement.maintenanceCost, null),
+        financeLedger:appendFinanceEntries(processed, [
+          financeEntry(processed, 'sponsors', 'Premia za wynik sezonu', settlement.performanceBonus, null),
+          financeEntry(processed, 'sponsors', 'Partnerzy i otoczenie', settlement.partnerBonus, null),
+          financeEntry(processed, 'investment', 'Utrzymanie i przeglądy', -settlement.maintenanceCost, null),
         ]),
         offseason,
       },
@@ -1124,10 +1277,12 @@
   function money(value) { return `${Math.round(Number(value || 0)).toLocaleString('pl-PL')} zł`; }
 
   const api = {
-    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, COMPETITIONS, FINANCE_CATEGORIES, DECISIONS,
+    TRUST_KEYS, AREA_KEYS, CATEGORY_LABELS, STRATEGIES, UPGRADE_META, OFFSEASON_PLANS, CONTRACT_TEMPLATES, COMPETITIONS, FINANCE_CATEGORIES, DECISIONS,
     initialState, strategyById, chooseStrategy, upgradeLevel, upgradeCost, canUpgrade, buyUpgrade,
     boardTargetPosition, boardConfidence, boardLabel, jobOfferTerms, acceptJobOffer, normalizedJobSecurity, employmentLabel, reviewEmployment, managementWarnings,
     offseasonPlanById, offseasonSettlement, beginOffseason, canChooseOffseasonPlan, applyOffseasonPlan,
+    contractTemplateById, contractConditionMet, processSeasonContracts, availableContractTemplates,
+    canAcceptContract, acceptSponsorContract, skipSponsorContract,
     departureGameTerms, canResolveDeparture, resolveDeparture,
     transferGameTerms, canSignTransfer, signTransfer, closeTransferWindow,
     competitionByLevel, competitionMovement, competitionMovementLabel,
