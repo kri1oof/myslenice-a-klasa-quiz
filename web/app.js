@@ -1,3 +1,6 @@
+const smartQuestionEngine = globalThis.SmartQuestionEngineCore || null;
+const SMART_QUESTION_HISTORY_KEY = 'myslenice-smart-question-history-v1';
+
 const state = {
   all: [],
   pool: [],
@@ -13,9 +16,43 @@ const state = {
   questionIndex: null,
   loadedQuestionFiles: new Set(),
   loadingQuestionFiles: new Map(),
+  smartQuestionHistory: [],
 };
 
 const el = (id) => document.getElementById(id);
+
+function loadSmartQuestionHistory() {
+  if (!smartQuestionEngine) return [];
+  try {
+    const raw = window.localStorage?.getItem(SMART_QUESTION_HISTORY_KEY);
+    return smartQuestionEngine.normalizeHistory(raw ? JSON.parse(raw) : []);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function saveSmartQuestionHistory() {
+  if (!smartQuestionEngine) return;
+  try {
+    window.localStorage?.setItem(
+      SMART_QUESTION_HISTORY_KEY,
+      JSON.stringify(state.smartQuestionHistory.slice(-smartQuestionEngine.HISTORY_LIMIT)),
+    );
+  } catch (_error) {
+    // Restricted/private storage should not block the quiz.
+  }
+}
+
+function rememberSmartQuestion(question) {
+  if (!smartQuestionEngine || !question) return;
+  state.smartQuestionHistory = smartQuestionEngine.appendHistory(
+    state.smartQuestionHistory,
+    question,
+  );
+  saveSmartQuestionHistory();
+}
+
+state.smartQuestionHistory = loadSmartQuestionHistory();
 
 function shuffle(values) {
   const copy = [...values];
@@ -560,13 +597,19 @@ function startGame() {
   const difficulty = el('difficulty').value;
   const type = el('type').value;
   const selectedClub = el('scope-mode').value === 'club' ? el('club').value : null;
-  const matching = shuffle(state.all.filter(q =>
+  const matching = state.all.filter(q =>
     questionMatchesScope(q) && questionMatchesSeason(q) &&
     (difficulty === 'all' || String(q.difficulty) === difficulty) &&
     (type === 'all' || q.type === type)
-  ));
+  );
   state.availableCount = matching.length;
-  state.pool = matching.slice(0, getRequestedQuestionCount(matching.length));
+  const requestedCount = getRequestedQuestionCount(matching.length);
+  state.pool = smartQuestionEngine
+    ? smartQuestionEngine.buildQuestionPool(matching, requestedCount, {
+        history:state.smartQuestionHistory,
+        random:Math.random,
+      })
+    : shuffle(matching).slice(0, requestedCount);
   state.index = 0;
   state.correct = 0;
   state.answered = 0;
@@ -604,6 +647,7 @@ function showQuestion() {
   }
   const q = state.pool[state.index];
   state.current = q;
+  rememberSmartQuestion(q);
   renderQuestionClubs(q);
   const [styleName] = styleForQuestion(q);
   el('question-number').textContent = `Pytanie ${state.index + 1} z ${state.pool.length}`;
