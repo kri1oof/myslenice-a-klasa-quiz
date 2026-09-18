@@ -1589,6 +1589,136 @@
   flex:0 0 auto;
 }
 
+
+.president-contract-summary {
+  margin-top: 9px;
+  padding: 11px;
+  display: grid;
+  gap: 7px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.president-contract-summary-head,
+.president-contract-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+.president-contract-summary-head strong { color:#334155; font-size:.78rem; }
+.president-contract-summary-head span { color:#64748b; font-size:.68rem; }
+.president-contract-row {
+  padding: 8px 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background:#fff;
+}
+.president-contract-row > span { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.president-contract-row > span strong { color:#111827; font-size:.75rem; }
+.president-contract-row small { color:#64748b; font-size:.64rem; }
+.president-contract-row b { flex:0 0 auto; color:#166534; font-size:.72rem; }
+.president-contract-empty { color:#64748b; font-size:.7rem; }
+.president-contract-ended summary { cursor:pointer; color:#64748b; font-size:.68rem; font-weight:800; }
+.president-contract-ended > div {
+  margin-top:5px;
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  font-size:.67rem;
+}
+
+.president-sponsor-window {
+  border:1px solid #dbe3ec;
+  border-radius:15px;
+  overflow:hidden;
+  background:#fff;
+}
+.president-sponsor-window-head {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  padding:12px 13px;
+  border-bottom:1px solid #e2e8f0;
+  background:#f8fafc;
+}
+.president-sponsor-window-head span { display:flex; flex-direction:column; gap:2px; }
+.president-sponsor-window-head small {
+  color:#64748b;
+  font-size:.66rem;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.president-sponsor-window-head em {
+  color:#166534;
+  font-size:.7rem;
+  font-style:normal;
+  font-weight:900;
+}
+.president-sponsor-note {
+  margin:0;
+  padding:11px 13px 0;
+  color:#475569;
+  font-size:.73rem;
+  line-height:1.4;
+}
+.president-sponsor-window .president-contract-summary {
+  margin:11px 12px 0;
+}
+.president-sponsor-offers {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  padding:12px;
+}
+.president-sponsor-offer {
+  padding:12px;
+  display:grid;
+  gap:8px;
+  border:1px solid #cbd5e1;
+  border-radius:13px;
+  background:#fff;
+}
+.president-sponsor-icon { font-size:1.45rem; }
+.president-sponsor-offer strong { color:#111827; font-size:.86rem; }
+.president-sponsor-offer p { margin:3px 0 0; color:#64748b; font-size:.71rem; line-height:1.4; }
+.president-sponsor-terms {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px;
+}
+.president-sponsor-terms > span {
+  padding:7px;
+  border-radius:8px;
+  background:#f8fafc;
+}
+.president-sponsor-terms small,
+.president-sponsor-terms b { display:block; }
+.president-sponsor-terms small { color:#94a3b8; font-size:.56rem; }
+.president-sponsor-terms b { margin-top:2px; color:#334155; font-size:.67rem; }
+.president-sponsor-offer button,
+.president-skip-sponsor-contract {
+  min-height:39px;
+  border-radius:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.president-sponsor-offer button {
+  border:0;
+  background:#166534;
+  color:#fff;
+}
+.president-sponsor-offer button:hover { background:#14532d; }
+.president-skip-sponsor-contract {
+  width:calc(100% - 24px);
+  margin:0 12px 12px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+  color:#475569;
+}
+.president-skip-sponsor-contract:hover { background:#f8fafc; }
+
 .president-mode-card .mode-icon { filter: none; }
 
 /* Legacy president RPG HUD/chips are intentionally hidden in v2: matches are background-only. */
@@ -1604,6 +1734,7 @@
   .president-offseason-review { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-offseason-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .president-job-offers { grid-template-columns: 1fr; }
+  .president-sponsor-offers { grid-template-columns:1fr; }
   .president-transfer-grid { grid-template-columns: 1fr; }
   .president-departure-player { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .president-board-summary { grid-template-columns: 1fr; }
@@ -1651,6 +1782,8 @@
 
 @media (max-width: 440px) {
   .president-finance-categories { grid-template-columns:1fr; }
+  .president-contract-row,
+  .president-contract-summary-head { align-items:flex-start; flex-direction:column; }
   .president-dashboard,
   .president-upgrade-grid,
   .president-final-primary,

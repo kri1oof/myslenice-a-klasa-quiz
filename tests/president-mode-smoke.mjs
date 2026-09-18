@@ -23,6 +23,8 @@ const initial = core.initialState(26, () => 0.42);
 assert.equal(initial.budget, 12000);
 assert.equal(initial.recurring, 0);
 assert.deepEqual(initial.financeLedger, []);
+assert.deepEqual(initial.contracts, []);
+assert.deepEqual(initial.contractHistory, []);
 assert.deepEqual(initial.trust, { players:55, coach:55, supporters:50, sponsors:50 });
 assert.deepEqual(initial.areas, { squad:55, staff:55, academy:45, facilities:45, organization:55, community:50 });
 assert.equal(initial.order.length, 34);
@@ -222,6 +224,33 @@ assert.equal(summer.profile.offseason.planId, 'reserve');
 assert.equal(summer.profile.offseasonHistory.length, 1);
 assert.equal(core.applyOffseasonPlan(summer.profile, 'community').reason, 'already');
 
+assert.equal(core.CONTRACT_TEMPLATES.length, 3);
+assert.equal(summer.profile.offseason.sponsorDecisionResolved, false);
+assert.ok(core.availableContractTemplates(summer.profile).length >= 3);
+const sponsorContract = core.acceptSponsorContract(summer.profile, 'performance_partner');
+assert.equal(sponsorContract.ok, true);
+assert.equal(sponsorContract.profile.contracts.length, 1);
+assert.equal(sponsorContract.profile.offseason.sponsorDecisionResolved, true);
+assert.equal(sponsorContract.profile.contracts[0].remainingSeasons, 2);
+assert.equal(
+  sponsorContract.profile.budget,
+  summer.profile.budget + core.contractTemplateById('performance_partner').signingBonus,
+);
+assert.equal(
+  sponsorContract.profile.recurring,
+  summer.profile.recurring + core.contractTemplateById('performance_partner').recurring,
+);
+const contractMet = core.processSeasonContracts(sponsorContract.profile, { position:4 });
+assert.equal(contractMet.contracts.length, 1);
+assert.equal(contractMet.contracts[0].remainingSeasons, 1);
+assert.equal(contractMet.recurring, sponsorContract.profile.recurring);
+const contractFailed = core.processSeasonContracts(sponsorContract.profile, { position:8 });
+assert.equal(contractFailed.contracts.length, 0);
+assert.equal(
+  contractFailed.recurring,
+  sponsorContract.profile.recurring - core.contractTemplateById('performance_partner').recurring,
+);
+assert.equal(contractFailed.contractHistory.at(-1).endReason, 'condition');
 
 const departureCandidate = {
   id:'2025/26|Clavia|lnp:test-departure',
@@ -239,18 +268,18 @@ const departureCandidate = {
 const departureTerms = core.departureGameTerms(departureCandidate);
 assert.ok(departureTerms.retentionCost > 0);
 assert.ok(departureTerms.compensation > 0);
-assert.equal(core.canResolveDeparture(summer.profile, departureCandidate, 'retain'), true);
-assert.equal(core.canSignTransfer(summer.profile, {
+assert.equal(core.canResolveDeparture(sponsorContract.profile, departureCandidate, 'retain'), true);
+assert.equal(core.canSignTransfer(sponsorContract.profile, {
   id:'blocked-before-departure',
   playerKey:'lnp:blocked',
 }), false, 'incoming market should stay closed until outgoing case is resolved');
-const retained = core.resolveDeparture(summer.profile, departureCandidate, 'retain');
+const retained = core.resolveDeparture(sponsorContract.profile, departureCandidate, 'retain');
 assert.equal(retained.ok, true);
 assert.equal(retained.profile.offseason.departureResolved, true);
 assert.equal(retained.profile.departureHistory.length, 1);
 assert.equal(retained.profile.departureHistory[0].outcome, 'retain');
-assert.equal(retained.profile.budget, summer.profile.budget - departureTerms.retentionCost);
-assert.equal(retained.profile.recurring, summer.profile.recurring - departureTerms.retentionRecurring);
+assert.equal(retained.profile.budget, sponsorContract.profile.budget - departureTerms.retentionCost);
+assert.equal(retained.profile.recurring, sponsorContract.profile.recurring - departureTerms.retentionRecurring);
 assert.ok(retained.profile.areas.squad > summer.profile.areas.squad);
 
 const marketCandidate = {
@@ -341,6 +370,10 @@ assert.match(runtime, /Przejdź do lata/);
 assert.match(runtime, /renderPresidentOffseason/);
 assert.match(runtime, /Lato prezesa/);
 assert.match(runtime, /DECYZJA LETNIA/);
+assert.match(runtime, /UMOWY WIELOSEZONOWE/);
+assert.match(runtime, /data-sponsor-contract/);
+assert.match(runtime, /Pakiety są fikcyjne/);
+assert.match(runtime, /Aktywne umowy wielosezonowe/);
 assert.match(runtime, /RUCH WYCHODZĄCY/);
 assert.match(runtime, /FAKT ŁNP \+ DECYZJA GRY/);
 assert.match(runtime, /data-departure-outcome/);
