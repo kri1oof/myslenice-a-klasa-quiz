@@ -623,6 +623,132 @@ function presidentOffseasonNeeds(profile, career) {
   };
 }
 
+
+function presidentStablePlayerKey(profile) {
+  return globalThis.TransferInvestigationCore?.stablePlayerKey(profile) || profile?.id || null;
+}
+
+function presidentTransferCandidates(profile, career) {
+  if (!profile?.offseason || !career) return [];
+  const sourceSeason = career?.sourceSeason || career?.season;
+  const all = (state.playerCharacters || []).filter(player =>
+    player?.season === sourceSeason &&
+    player?.club &&
+    player.club !== career.club &&
+    player?.id
+  );
+
+  const byId = new Map(all.map(player => [player.id, player]));
+  if (Array.isArray(profile.offseason.marketIds) && profile.offseason.marketIds.length) {
+    return profile.offseason.marketIds.map(id => byId.get(id)).filter(Boolean);
+  }
+
+  const signedKeys = new Set((profile.transferRoster || []).map(item => item.playerKey || item.id));
+  const eligible = all
+    .filter(player => !signedKeys.has(presidentStablePlayerKey(player)))
+    .sort((a, b) =>
+      Number(b?.ratings?.game_rating || 0) - Number(a?.ratings?.game_rating || 0) ||
+      Number(b?.stats?.appearances || 0) - Number(a?.stats?.appearances || 0) ||
+      String(a?.player || '').localeCompare(String(b?.player || ''), 'pl')
+    );
+
+  const perClub = new Map();
+  const selected = [];
+  for (const player of eligible) {
+    const count = perClub.get(player.club) || 0;
+    if (count >= 2) continue;
+    perClub.set(player.club, count + 1);
+    selected.push(player);
+    if (selected.length >= 8) break;
+  }
+  profile.offseason.marketIds = selected.map(player => player.id);
+  return selected;
+}
+
+function presidentTransferSigningCount(profile) {
+  const year = Number(profile?.offseason?.careerYear || profile?.careerYear || 1);
+  return (profile?.transferHistory || []).filter(item => Number(item.careerYear) === year).length;
+}
+
+function presidentTransferMarketHtml(profile, career) {
+  if (!profile?.offseason?.planId) return '';
+  const signings = presidentTransferSigningCount(profile);
+  const closed = Boolean(profile.offseason.transferWindowClosed);
+  const candidates = presidentTransferCandidates(profile, career);
+
+  if (closed) {
+    const signed = (profile.transferHistory || []).filter(
+      item => Number(item.careerYear) === Number(profile.offseason.careerYear)
+    );
+    return `
+      <section class="president-transfer-market closed">
+        <div class="president-transfer-head">
+          <span><small>OKNO KADROWE</small><strong>Zamknięte · ${signed.length}/2 wzmocnień</strong></span>
+          <em>✓ zakończone</em>
+        </div>
+        ${signed.length ? `<div class="president-transfer-signed-list">
+          ${signed.map(item => `<div><span><strong>${presidentEscape(item.player)}</strong><small>z: ${presidentEscape(item.sourceClub || 'innego klubu')} · ${presidentEscape(item.sourceSeason || '')}</small></span><b>${presidentModeCore.money(item.fee)}</b></div>`).join('')}
+        </div>` : '<p class="president-transfer-empty">Okno zamknięte bez transferów.</p>'}
+      </section>`;
+  }
+
+  return `
+    <section class="president-transfer-market">
+      <div class="president-transfer-head">
+        <span><small>OKNO KADROWE · PROFILE ŁNP</small><strong>Możesz sprowadzić maksymalnie 2 zawodników</strong></span>
+        <em>${signings}/2</em>
+      </div>
+      <p class="president-transfer-note">Nazwiska, kluby i statystyki pochodzą z ŁNP. <strong>Dostępność zawodnika, koszt i warunki są fikcyjną mechaniką tej kariery</strong> — nie opisują realnego transferu ani umowy.</p>
+      <div class="president-transfer-grid">
+        ${candidates.map(player => {
+          const terms = presidentModeCore.transferGameTerms(player);
+          const key = presidentStablePlayerKey(player);
+          const alreadySigned = (profile.transferRoster || []).some(item => (item.playerKey || item.id) === key);
+          const canSign = presidentModeCore.canSignTransfer(profile, { ...player, playerKey:key });
+          const stats = player.stats || {};
+          return `<article class="president-transfer-card ${alreadySigned ? 'signed' : ''}">
+            <div class="president-transfer-card-head">
+              <span><strong>${presidentEscape(player.player)}</strong><small>${presidentEscape(player.club)} · ${presidentEscape(player.season)}</small></span>
+              <b>RPG ${Number(player?.ratings?.game_rating || 0) || '—'}</b>
+            </div>
+            <div class="president-transfer-stats">
+              <span><small>Mecze</small><strong>${Number(stats.appearances || 0)}</strong></span>
+              <span><small>Minuty</small><strong>${Number(stats.minutes || 0)}</strong></span>
+              <span><small>Gole</small><strong>${Number(stats.goals || 0)}</strong></span>
+              <span><small>Profil</small><strong>${presidentEscape(player.archetype || '—')}</strong></span>
+            </div>
+            <div class="president-transfer-terms">
+              <span>Jednorazowo <strong>${presidentModeCore.money(terms.fee)}</strong></span>
+              <span>Stały koszt <strong>−${presidentModeCore.money(terms.recurring)}/kolejkę</strong></span>
+            </div>
+            <button type="button" data-transfer-player="${player.id}" ${canSign ? '' : 'disabled'}>
+              ${alreadySigned ? '✓ Sprowadzony' : signings >= 2 ? 'Limit 2/2' : canSign ? 'Sprowadź zawodnika' : 'Brak środków'}
+            </button>
+          </article>`;
+        }).join('')}
+      </div>
+      ${candidates.length ? '' : '<p class="president-transfer-empty">Brak kolejnych profili ŁNP spełniających warunki rynku dla tego sezonu.</p>'}
+      <button type="button" class="president-close-transfer-window">${signings ? 'Zamknij okno transferowe →' : 'Pomiń transfery i zamknij okno →'}</button>
+    </section>`;
+}
+
+function signPresidentTransfer(playerId) {
+  const candidate = (state.playerCharacters || []).find(player => player?.id === playerId);
+  if (!candidate) return false;
+  const playerKey = presidentStablePlayerKey(candidate);
+  const applied = presidentModeCore.signTransfer(state.presidentMode, { ...candidate, playerKey });
+  if (!applied.ok) return false;
+  state.presidentMode = applied.profile;
+  return renderPresidentOffseason();
+}
+
+function closePresidentTransferMarket() {
+  const closed = presidentModeCore.closeTransferWindow(state.presidentMode);
+  if (!closed.ok) return false;
+  state.presidentMode = closed.profile;
+  return renderPresidentOffseason();
+}
+
 function applyPresidentOffseasonPlan(planId) {
   const applied = presidentModeCore.applyOffseasonPlan(state.presidentMode, planId);
   if (!applied.ok) return false;
@@ -726,10 +852,12 @@ function renderPresidentOffseason() {
         `}
       </section>
 
-      ${chosen ? `
+      ${chosen ? presidentTransferMarketHtml(profile, career) : ''}
+
+      ${chosen && profile.offseason?.transferWindowClosed ? `
         <section class="president-offseason-continue">
           <span><small>NASTĘPNY KROK</small><strong>Sezon ${Number(profile.careerYear || 1) + 1} · ${presidentEscape(nextPlan.season)}</strong></span>
-          <p>Stan klubu i decyzja letnia przechodzą dalej. Teraz zarząd ustali cel oraz strategię na nowy rok.</p>
+          <p>Stan klubu, decyzja letnia i ruchy kadrowe przechodzą dalej. Teraz zarząd ustali cel oraz strategię na nowy rok.</p>
           <button type="button" class="president-start-next-season">Przejdź do planowania sezonu →</button>
         </section>
       ` : ''}
@@ -742,6 +870,10 @@ function renderPresidentOffseason() {
   panel.querySelectorAll('[data-offseason-plan]').forEach(button => {
     button.addEventListener('click', () => applyPresidentOffseasonPlan(button.dataset.offseasonPlan));
   });
+  panel.querySelectorAll('[data-transfer-player]').forEach(button => {
+    button.addEventListener('click', () => signPresidentTransfer(button.dataset.transferPlayer));
+  });
+  panel.querySelector('.president-close-transfer-window')?.addEventListener('click', closePresidentTransferMarket);
   panel.querySelector('.president-start-next-season')?.addEventListener('click', startNextPresidentSeason);
 
   if (el('status')) {
@@ -760,7 +892,9 @@ function startNextPresidentSeason() {
   const begun = presidentModeCore.beginOffseason(state.presidentMode);
   if (!begun.ok) return false;
   state.presidentMode = begun.profile;
-  if (!state.presidentMode.offseason?.planId) return renderPresidentOffseason();
+  if (!state.presidentMode.offseason?.planId || !state.presidentMode.offseason?.transferWindowClosed) {
+    return renderPresidentOffseason();
+  }
   const plan = presidentNextSeasonPlan(previousCareer);
   if (!plan.clubs.length || !plan.club) return false;
 
