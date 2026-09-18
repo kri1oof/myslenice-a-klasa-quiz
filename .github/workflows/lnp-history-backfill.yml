@@ -13,6 +13,10 @@ permissions:
   contents: read
   actions: write
 
+concurrency:
+  group: lnp-history-backfill-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backfill:
     runs-on: ubuntu-latest
@@ -27,7 +31,7 @@ jobs:
 
       - name: Restore verified ŁNP caches
         run: |
-          mkdir -p /tmp/lnp-main /tmp/lnp-2024
+          mkdir -p /tmp/lnp-main /tmp/lnp-2024 /tmp/lnp-history-prev
 
           MAIN_RUN="$(gh run list --workflow 'LNP full sync' --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
           if [ -n "$MAIN_RUN" ]; then
@@ -41,13 +45,29 @@ jobs:
             gh run download "$HIST_RUN" -n lnp-myslenice-data -D /tmp/lnp-2024 || true
           fi
 
+          for RUN_ID in $(gh run list --workflow 'LNP history backfill' --branch "$GITHUB_REF_NAME" --limit 6 --json databaseId --jq '.[].databaseId'); do
+            if [ "$RUN_ID" = "$GITHUB_RUN_ID" ]; then
+              continue
+            fi
+            rm -rf /tmp/lnp-history-prev/*
+            if gh run download "$RUN_ID" -n lnp-history-data -D /tmp/lnp-history-prev 2>/dev/null; then
+              echo "Previous historical cache: $RUN_ID"
+              break
+            fi
+          done
+
           node - <<'NODE'
           const fs = require('fs');
           const read = path => fs.existsSync(path) ? JSON.parse(fs.readFileSync(path, 'utf8')) : null;
           const current = read('/tmp/lnp-main/lnp_myslenice.json');
           const historical = read('/tmp/lnp-2024/lnp_myslenice.json');
-          const base = current || historical || { seasons:{} };
-          base.seasons = { ...(historical?.seasons || {}), ...(current?.seasons || {}) };
+          const previous = read('/tmp/lnp-history-prev/lnp_myslenice_history.json');
+          const base = previous || current || historical || { seasons:{} };
+          base.seasons = {
+            ...(previous?.seasons || {}),
+            ...(historical?.seasons || {}),
+            ...(current?.seasons || {}),
+          };
           if (historical?.seasons?.['2024/25']) base.seasons['2024/25'] = historical.seasons['2024/25'];
           fs.writeFileSync('lnp_history_cache.json', JSON.stringify(base, null, 2));
           console.log('CACHE_SEASONS', Object.keys(base.seasons || {}).sort());
