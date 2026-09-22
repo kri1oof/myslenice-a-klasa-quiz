@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "version": 4,
-  "count": 115232,
+  "count": 116616,
   "clubs": {
     "Beskid Tokarnia": {
       "slug": "beskid-tokarnia",
@@ -380,8 +380,8 @@
     "2022/23": 21818,
     "2023/24": 23437,
     "2024/25": 23805,
-    "2025/26": 25114,
-    "2026/27": 7507
+    "2025/26": 25108,
+    "2026/27": 8897
   },
   "types": [
     "biggest_win_opponent",
@@ -601,14 +601,14 @@
       "season": "2025/26",
       "part": 3,
       "parts": 3,
-      "count": 1114
+      "count": 1108
     },
     {
       "path": "2026-27.json",
       "season": "2026/27",
       "part": 1,
       "parts": 1,
-      "count": 7507
+      "count": 8897
     },
     {
       "path": "general.json",
