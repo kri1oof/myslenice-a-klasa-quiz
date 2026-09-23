@@ -25,7 +25,7 @@ jobs:
           node --check web/fact-card-core.js
           node --check web/adaptive-difficulty-core.js
           node --check web/smart-question-engine-core.js
-          node --check web/match-question-context-core.js
+          node --check web/match-question-context-core.js\n          node --check web/analytics-config.js\n          node --check web/analytics.js
           node --check web/app.js
           node --check web/quality.js
           node --check web/rounds.js
