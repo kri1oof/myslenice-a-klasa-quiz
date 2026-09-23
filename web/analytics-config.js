@@ -1,7 +1,7 @@
 (function initAnalyticsConfig(root) {
   root.GAME_ANALYTICS_CONFIG = {
     provider: 'ga4',
-    measurementId: '',
+    measurementId: 'G-3S9BH1DVPB',
     consentRequired: true,
     debug: false,
   };
