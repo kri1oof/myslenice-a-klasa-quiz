@@ -1,5 +1,5 @@
 name: LNP full sync
-# Manual refresh marker: round 6, 2026-09-22
+# Manual refresh marker: refresh completed autumn round 2026-11-16
 on:
   push:
     branches: [main, lnp-data-2025-2027]
